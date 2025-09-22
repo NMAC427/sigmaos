@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 ROOT=$(pwd)
 OUTPATH=./bin
 
@@ -36,12 +38,11 @@ echo "/tmp/python/Lib" > $OUTPATH/user/python.pth
 echo -e "home = /~~\ninclude-system-site-packages = false\nversion = 3.11.10" > $OUTPATH/user/pyvenv.cfg
 
 # Copy and inject Python shim
-gcc -Wall -fPIC -shared -o ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl 
+gcc -Wall -fPIC -shared -o ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
 cp ld_fstatat.so $OUTPATH/kernel
 
 # Build Python library
-# gcc -I../sigmaos-local -Wall -fPIC -shared -L/usr/lib -lprotobuf-c -o clntlib.so ../sigmaos-local/pylib/clntlib.c /usr/lib/libprotobuf-c.a ../sigmaos-local/pylib/proto/proc.pb-c.c ../sigmaos-local/pylib/proto/rpc.pb-c.c ../sigmaos-local/pylib/proto/sessp.pb-c.c ../sigmaos-local/pylib/proto/sigmap.pb-c.c ../sigmaos-local/pylib/proto/spproxy.pb-c.c ../sigmaos-local/pylib/proto/timestamp.pb-c.c
-# cp clntlib.so $OUTPATH/kernel
+gcc -I../sigmaos -Wall -fPIC -shared -L/usr/lib -lprotobuf-c -o $OUTPATH/kernel/clntlib.so ../sigmaos/pylib/clntlib.c /usr/lib/libprotobuf-c.so ../sigmaos/pylib/proto/proc.pb-c.c ../sigmaos/pylib/proto/rpc.pb-c.c ../sigmaos/pylib/proto/sessp.pb-c.c ../sigmaos/pylib/proto/sigmap.pb-c.c ../sigmaos/pylib/proto/spproxy.pb-c.c ../sigmaos/pylib/proto/timestamp.pb-c.c
 
 # Copy Python user processes
 cp -r ./pyproc $OUTPATH/kernel

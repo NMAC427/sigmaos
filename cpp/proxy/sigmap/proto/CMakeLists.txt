@@ -3,7 +3,7 @@ message(STATUS "Building sigmap proxy proto library")
 add_library(sigmap_proxy_proto STATIC spproxy.pb.cc)
 
 target_link_libraries(sigmap_proxy_proto PUBLIC
-  ${Protobuf_LIBRARIES}
+  /usr/lib/libprotobuf.so
   rpc_proto
   proc_proto
 )

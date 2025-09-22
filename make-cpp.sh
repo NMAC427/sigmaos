@@ -84,4 +84,4 @@ for p in $USERBUILD/* ; do
   cp $p/$name $USERBIN/$name-v$VERSION
 done
 
-cp $ROOT/cpp/build/python/libclntlib.so $ROOT/bin/kernel/clntlib.so
+# cp $ROOT/cpp/build/python/libclntlib.so $ROOT/bin/kernel/clntlib.so

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 usage() {
   echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--parallel] [--rebuildbuilder] [--nocache]" 1>&2
@@ -265,7 +266,7 @@ fi
 
 # Build npproxy for host
 echo "========== Building proxy =========="
-/usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy 
+/usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy
 echo "========== Done building proxy =========="
 
 if ! [ -z "$TAG" ]; then
