@@ -60,7 +60,7 @@ func execInContainer(ctx context.Context, cli *client.Client, containerID string
 		db.DPrintf(db.CONTAINER, "ExecCreate err %v\n", err)
 		return err
 	}
-	attachResp, err := cli.ContainerExecAttach(ctx, execResp.ID, types.ExecStartCheck{}) 
+	attachResp, err := cli.ContainerExecAttach(ctx, execResp.ID, types.ExecStartCheck{})
 	if err != nil {
 		db.DPrintf(db.CONTAINER, "ExecStart err %v\n", err)
 		return err
@@ -215,7 +215,7 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 		return nil, err
 	}
 
-	// Set up OpenBLAS and GCC libraries for numpy
+/* 	// Set up OpenBLAS and GCC libraries for numpy
 	numpyCmd := "cp /tmp/pysl/* /usr/lib && cp /usr/lib/libgcc_s.so.1 /usr/lib/libgcc_s-a04fdf82.so.1"
 	err = execInContainer(ctx, cli, resp.ID, numpyCmd)
 	if err != nil {
@@ -227,7 +227,7 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 	err = execInContainer(ctx, cli, resp.ID, pilCmd)
 	if err != nil {
 		return nil, err
-	}
+	} */
 
 	json, err1 := cli.ContainerInspect(ctx, resp.ID)
 	if err1 != nil {

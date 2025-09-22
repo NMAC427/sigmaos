@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail -x
+
 usage() {
   echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--parallel] [--rebuildbuilder] [--nocache]" 1>&2
 }
@@ -22,64 +24,64 @@ while [[ "$#" -gt 0 ]]; do
   --parallel)
     shift
     PARALLEL="--parallel"
-    ;; 
+    ;;
   --rebuildbuilder)
     shift
     REBUILD_BUILDER="true"
-    ;; 
+    ;;
   --no_docker)
     shift
     NO_DOCKER="true"
-    ;; 
+    ;;
   --no_go)
     shift
     NO_GO="true"
-    ;; 
+    ;;
   --no_rs)
     shift
     NO_RS="true"
-    ;; 
+    ;;
   --no_cpp)
     shift
     NO_CPP="true"
-    ;; 
+    ;;
   --no_py)
     shift
     NO_PY="true"
-    ;; 
+    ;;
   --nocache)
     shift
     NO_CACHE="--no-cache"
-    ;; 
+    ;;
   --push)
     shift
     TAG="$1"
     shift
-    ;; 
+    ;;
   --target)
     shift
     TARGET="$1"
     shift
-    ;; 
+    ;;
   --version)
     shift
     VERSION="$1"
     shift
-    ;; 
+    ;;
   --race)
     shift
     NORACE=""
     shift
-    ;; 
+    ;;
   --userbin)
     shift
     USERBIN="$1"
     shift
-    ;; 
+    ;;
   -help)
     usage
     exit 0
-    ;; 
+    ;;
   *)
    echo "unexpected argument $1"
    usage
@@ -103,6 +105,7 @@ source $ROOT/env/env.sh
 TMP_BASE="/tmp"
 BUILDER_NAME="sig-builder"
 RS_BUILDER_NAME="sig-rs-builder"
+PY_BUILDER_NAME="sig-py-builder"
 CPP_BUILDER_NAME="sig-cpp-builder"
 USER_IMAGE_NAME="sigmauser"
 KERNEL_IMAGE_NAME="sigmaos"
@@ -111,6 +114,7 @@ if ! [ -z "$SIGMAUSER" ]; then
   TMP_BASE=$TMP_BASE/$SIGMAUSER
   BUILDER_NAME=$BUILDER_NAME-$SIGMAUSER
   RS_BUILDER_NAME=$RS_BUILDER_NAME-$SIGMAUSER
+  PY_BUILDER_NAME=$PY_BUILDER_NAME-$SIGMAUSER
   CPP_BUILDER_NAME=$CPP_BUILDER_NAME-$SIGMAUSER
   USER_IMAGE_NAME=$USER_IMAGE_NAME-$SIGMAUSER
   KERNEL_IMAGE_NAME=$KERNEL_IMAGE_NAME-$SIGMAUSER
@@ -148,6 +152,7 @@ fi
 # Check if a builder is running already
 buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
 rsbuildercid=$(docker ps -a | grep -E " $RS_BUILDER_NAME " | cut -d " " -f1)
+pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1)
 cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1)
 
 # Optionally stop any existing builder container, so it will be rebuilt and
@@ -164,6 +169,12 @@ if [[ $REBUILD_BUILDER == "true" ]]; then
     docker stop $rsbuildercid
     # Reset builder container ID
     rsbuildercid=""
+  fi
+  if ! [ -z "$pybuildercid" ]; then
+    echo "========== Stopping old Python builder container $pybuildercid =========="
+    docker stop $pybuildercid
+    # Reset builder container ID
+    pubuildercid=""
   fi
   if ! [ -z "$cppbuildercid" ]; then
     echo "========== Stopping old CPP builder container $cppbuildercid =========="
@@ -211,6 +222,25 @@ if [ -z "$rsbuildercid" ]; then
   echo "========== Done starting Rust builder ========== "
 fi
 
+if [ -z "$pybuildercid" ]; then
+  # Build builder
+  echo "========== Build Python builder image =========="
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/py-builder.Dockerfile -t $PY_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-py-builder.out
+  echo "========== Done building Python builder =========="
+  # Start builder
+  echo "========== Starting Python builder container =========="
+  docker run --rm -d -it \
+    --name $PY_BUILDER_NAME \
+    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
+    $PY_BUILDER_NAME
+  pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1)
+  until [ "`docker inspect -f {{.State.Running}} $pybuildercid`"=="true" ]; do
+      echo -n "." 1>&2
+      sleep 0.1;
+  done
+  echo "========== Done starting Python builder ========== "
+fi
+
 if [ -z "$cppbuildercid" ]; then
   # Build builder
   echo "========== Build CPP builder image =========="
@@ -254,7 +284,7 @@ if [ "${NO_GO}" != "true" ]; then
     # Copy named, which is also a user bin
     cp $KERNELBIN/named $USRBIN/named
   echo "========== Done building kernel bins =========="
-  
+
   echo "========== Building user bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user.out
   docker exec -it $buildercid \
@@ -275,7 +305,7 @@ fi
 if [ "${NO_PY}" != "true" ]; then
   echo "========== Building Python bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
-  docker exec -it $buildercid \
+  docker exec -it $pybuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-python.sh \
     2>&1 | tee $BUILD_OUT_FILE && \
@@ -388,7 +418,7 @@ fi
 if [ "${NO_GO}" != "true" ]; then
   # Build npproxy for host
   echo "========== Building proxy =========="
-  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy 
+  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy
   echo "========== Done building proxy =========="
 fi
 

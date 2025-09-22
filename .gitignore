@@ -5,6 +5,7 @@ bin/
 *.sw*
 *.bk
 *.pem
+*.so
 measurements
 ec2_measurements
 mr/par-mr.out
