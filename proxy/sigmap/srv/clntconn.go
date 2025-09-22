@@ -476,3 +476,75 @@ func (sca *SPProxySrvAPI) GetMultiDelegatedRPCReplies(ctx fs.CtxI, req scproto.S
 	db.DPrintf(db.SPPROXYSRV, "%v: GetMultiDelegatedRPCReply done totalLen %v req %v", sca.sc.ClntId(), totalLen, req)
 	return nil
 }
+
+// ========== EP Manipulation =========
+func (scs *SPProxySrvAPI) RegisterEP(ctx fs.CtxI, req scproto.SigmaRegisterEPReq, rep *scproto.SigmaErrRep) error {
+	ep := sp.NewEndpointFromProto(req.Endpoint)
+	db.DPrintf(db.SPPROXYSRV, "%v: RegisterEP %v -> %v", scs.sc.ClntId(), req.Path, ep)
+	err := scs.sc.MkEndpointFile(req.Path, ep)
+	if err != nil {
+		db.DPrintf(db.SPPROXYSRV_ERR, "%v: RegisterEP err: %v", scs.sc.ClntId(), err)
+	}
+	rep.Err = scs.setErr(err)
+	db.DPrintf(db.SPPROXYSRV, "%v: RegisterEP done %v %v", scs.sc.ClntId(), req, rep)
+	return nil
+}
+
+// ========== Procclnt API ==========
+func (scs *SPProxySrvAPI) initProcClnt() error {
+	scs.mu.Lock()
+	defer scs.mu.Unlock()
+
+	var err error
+	// Make a procclnt if we haven't already
+	if !scs.hasProcClnt {
+		scs.hasProcClnt = true
+		err = scs.sc.NewProcClnt()
+	}
+	// If unsuccessful, bail out
+	if err != nil {
+		db.DPrintf(db.SPPROXYSRV_ERR, "%v: Failed to create procclnt: %v", scs.sc.ClntId(), err)
+	}
+	return err
+}
+
+func (scs *SPProxySrvAPI) Started(ctx fs.CtxI, req scproto.SigmaNullReq, rep *scproto.SigmaErrRep) error {
+	db.DPrintf(db.SPPROXYSRV, "%v: Started", scs.sc.ClntId())
+	// err := scs.initProcClnt()
+	// if err != nil {
+	// 	rep.Err = scs.setErr(err)
+	// 	return nil
+	// }
+	err := scs.sc.Started()
+	if err != nil {
+		db.DPrintf(db.SPPROXYSRV_ERR, "%v: Started err: %v", scs.sc.ClntId(), err)
+	}
+	rep.Err = scs.setErr(err)
+	db.DPrintf(db.SPPROXYSRV, "%v: Started done %v %v", scs.sc.ClntId(), req, rep)
+	return nil
+}
+
+func (scs *SPProxySrvAPI) Exited(ctx fs.CtxI, req scproto.SigmaExitedReq, rep *scproto.SigmaErrRep) error {
+	status := proc.Tstatus(req.Status)
+	db.DPrintf(db.SPPROXYSRV, "%v: Exited status %v  msg %v", scs.sc.ClntId(), status, req.Msg)
+	err := scs.initProcClnt()
+	rep.Err = scs.setErr(err)
+	if err != nil {
+		return nil
+	}
+	scs.sc.Exited(proc.NewStatusInfo(proc.Tstatus(req.Status), req.Msg, nil))
+	db.DPrintf(db.SPPROXYSRV, "%v: Exited done %v %v", scs.sc.ClntId(), req, rep)
+	return nil
+}
+
+func (scs *SPProxySrvAPI) WaitEvict(ctx fs.CtxI, req scproto.SigmaNullReq, rep *scproto.SigmaErrRep) error {
+	db.DPrintf(db.SPPROXYSRV, "%v: WaitEvict %v", scs.sc.ClntId())
+	err := scs.initProcClnt()
+	rep.Err = scs.setErr(err)
+	if err != nil {
+		return nil
+	}
+	scs.sc.WaitEvict(scs.sc.ProcEnv().GetPID())
+	db.DPrintf(db.SPPROXYSRV, "%v: WaitEvict done %v %v", scs.sc.ClntId(), req, rep)
+	return nil
+}

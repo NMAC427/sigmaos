@@ -201,6 +201,14 @@ std::expected<std::shared_ptr<std::string>, sigmaos::serr::Error> Clnt::GetFile(
         (sigmaos::serr::Terror)rep.err().errcode(), rep.err().obj()));
   }
   log(SPPROXYCLNT, "GetFile done: {}", pn);
+  // Remove the data buffer from the protobuf's IOV in order to regain
+  // ownership of its underlying memory.
+  {
+    auto _ = iov->ReleaseLast();
+  }
+  {
+    auto _ = rep.release_blob();
+  }
   return s;
 }
 
@@ -209,8 +217,8 @@ std::expected<uint32_t, sigmaos::serr::Error> Clnt::PutFile(
     sigmaos::sigmap::types::Tmode mode, std::string *data,
     sigmaos::sigmap::types::Toffset offset,
     sigmaos::sigmap::types::TleaseID leaseID) {
-  log(SPPROXYCLNT, "PutFile: {} {} {} {} {} {}", pn, perm, mode, data->size(),
-      offset, leaseID);
+  log(SPPROXYCLNT, "PutFile: {} {} {} {} {} {}", pn, perm, mode,
+      data->size(), offset, leaseID);
   Blob blob;
   auto iov = blob.mutable_iov();
   iov->AddAllocated(data);
@@ -233,6 +241,14 @@ std::expected<uint32_t, sigmaos::serr::Error> Clnt::PutFile(
   }
   log(SPPROXYCLNT, "PutFile done: {} {} {} {} {} {}", pn, perm, mode,
       data->size(), offset, leaseID);
+  // Remove the data buffer from the protobuf's IOV in order to regain
+  // ownership of its underlying memory.
+  {
+    auto _ = iov->ReleaseLast();
+  }
+  {
+    auto _ = req.release_blob();
+  }
   return rep.size();
 }
 
@@ -258,6 +274,14 @@ std::expected<uint32_t, sigmaos::serr::Error> Clnt::Read(int fd,
         (sigmaos::serr::Terror)rep.err().errcode(), rep.err().obj()));
   }
   log(SPPROXYCLNT, "Read done: {} {}", fd, b->size());
+  // Remove the data buffer from the protobuf's IOV in order to regain
+  // ownership of its underlying memory.
+  {
+    auto _ = iov->ReleaseLast();
+  }
+  {
+    auto _ = rep.release_blob();
+  }
   return b->size();
 }
 
@@ -283,6 +307,14 @@ std::expected<uint32_t, sigmaos::serr::Error> Clnt::Pread(
         (sigmaos::serr::Terror)rep.err().errcode(), rep.err().obj()));
   }
   log(SPPROXYCLNT, "Pread done: {} {} {}", fd, b->size(), offset);
+  // Remove the data buffer from the protobuf's IOV in order to regain
+  // ownership of its underlying memory.
+  {
+    auto _ = iov->ReleaseLast();
+  }
+  {
+    auto _ = rep.release_blob();
+  }
   return b->size();
 }
 
@@ -306,6 +338,14 @@ std::expected<uint32_t, sigmaos::serr::Error> Clnt::Write(int fd,
         (sigmaos::serr::Terror)rep.err().errcode(), rep.err().obj()));
   }
   log(SPPROXYCLNT, "Write done: {} {}", fd, b->size());
+  // Remove the data buffer from the protobuf's IOV in order to regain
+  // ownership of its underlying memory.
+  {
+    auto _ = iov->ReleaseLast();
+  }
+  {
+    auto _ = req.release_blob();
+  }
   return rep.size();
 }
 
@@ -392,8 +432,8 @@ std::expected<int, sigmaos::serr::Error> Clnt::FenceDir(
 }
 
 // TODO: support WriteFence?
-// func (scc *SPProxyClnt) WriteFence(fd int, d []byte, f sp.Tfence) (sp.Tsize,
-// error) {
+// func (scc *SPProxyClnt) WriteFence(fd int, d []byte, f sp.Tfence) (
+// sp.Tsize, error) {
 
 std::expected<int, sigmaos::serr::Error> Clnt::WriteRead(
     int fd, std::shared_ptr<sigmaos::io::iovec::IOVec> in_iov,
@@ -602,7 +642,7 @@ std::expected<std::vector<std::string>, sigmaos::serr::Error> Clnt::Mounts() {
   log(SPPROXYCLNT, "Mounts done");
   std::vector<std::string> mounts(rep.endpoints().size());
   for (int i = 0; i < rep.endpoints().size(); i++) {
-    mounts[i] = rep.endpoints().Get(i);
+    mounts[i] = std::string(rep.endpoints().Get(i));
   }
   return mounts;
 }

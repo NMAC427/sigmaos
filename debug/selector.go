@@ -220,21 +220,22 @@ const (
 
 // Client Libraries
 const (
-	WRITER_ERR   Tselector = "WRITER" + ERR
-	SIGMACLNT              = "SIGMACLNT"
-	READER_ERR             = "READER" + ERR
-	AWRITER                = "AWRITER"
-	PREADER                = "PREADER"
-	FSLIB                  = "FSLIB"
-	FSLIB_ERR              = "FSLIB" + ERR
-	FIDCLNT                = "FIDCLNT"
-	FIDCLNT_ERR            = FIDCLNT + ERR
-	FSCLNT                 = "FSCLNT"
-	SEMCLNT                = "SEMCLNT"
-	SEMCLNT_ERR            = SEMCLNT + ERR
-	PROCCLNT               = "PROCCLNT"
-	PROCCLNT_ERR           = "PROCCLNT" + ERR
-	SPPROXYCLNT            = "SPPROXYCLNT"
+	WRITER_ERR    Tselector = "WRITER" + ERR
+	SIGMACLNT               = "SIGMACLNT"
+	READER_ERR              = "READER" + ERR
+	AWRITER                 = "AWRITER"
+	PREADER                 = "PREADER"
+	FSLIB                   = "FSLIB"
+	FSLIB_ERR               = "FSLIB" + ERR
+	FIDCLNT                 = "FIDCLNT"
+	FIDCLNT_ERR             = FIDCLNT + ERR
+	FSCLNT                  = "FSCLNT"
+	SEMCLNT                 = "SEMCLNT"
+	SEMCLNT_ERR             = SEMCLNT + ERR
+	PROCCLNT                = "PROCCLNT"
+	PROCCLNT_ERR            = "PROCCLNT" + ERR
+	SIGMACLNTCLNT           = "SIGMACLNTCLNT"
+	SPPROXYCLNT             = "SPPROXYCLNT"
 )
 
 // Fault-tolerance
@@ -282,6 +283,8 @@ const (
 	DIALPROXY_ERR              = "DIALPROXY" + ERR
 	DIALPROXYSRV               = "DIALPROXYSRV"
 	DIALPROXYSRV_ERR           = "DIALPROXYSRV" + ERR
+	PYPROXYSRV                 = "PYPROXYSRV"
+	PYPROXYSRV_ERR             = "PYPROXYSRV" + ERR
 )
 
 // Networking

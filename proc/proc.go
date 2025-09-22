@@ -66,6 +66,39 @@ func NewProc(program string, args []string) *Proc {
 	return NewProcPid(pid, program, args)
 }
 
+func NewPythonProc(args []string, bucket string) *Proc {
+	program := "python"
+	pid := sp.GenPid(program)
+	p := NewProcPid(pid, program, args)
+	p.AppendEnv(SIGMAPYBUCKET, bucket)
+
+	// Calculate PYTHONPATH for the relevant file
+	var filename string
+	pythonPath := "/tmp/python/build/lib.linux-x86_64-3.11:/tmp/python/Lib"
+
+	for _, arg := range args {
+		if strings.HasSuffix(arg, ".py") {
+			filename = arg
+			break
+		}
+	}
+
+	splitName := strings.Split(filename, "/")
+	if len(splitName) > 4 { // More nested than /~~/pyproc/<file>.py
+		rootDir := filepath.Join("/tmp/python/pyproc", splitName[3])
+		filepath.WalkDir(rootDir, func(path string, d os.DirEntry, _ error) error {
+			if d.IsDir() {
+				shimPath := filepath.Join("/~~", filepath.Join(strings.Split(path, "/")[3:]...))
+				pythonPath += ":" + shimPath
+			}
+			return nil
+		})
+	}
+
+	p.AppendEnv("PYTHONPATH", pythonPath)
+	return p
+}
+
 func NewPrivProcPid(pid sp.Tpid, program string, args []string, priv bool) *Proc {
 	p := &Proc{}
 	p.ProcProto = &ProcProto{}

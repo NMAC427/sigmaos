@@ -2,8 +2,22 @@
 
 FROM archlinux
 
-RUN pacman --noconfirm -Sy git libseccomp wget gcc pkg-config parallel time
-#RUN pacman --noconfirm -Sy git libseccomp wget gcc pkg-config parallel time
+RUN pacman --noconfirm -Sy \
+  git \
+  libseccomp \
+  wget \
+  gcc \
+  pkg-config \
+  parallel \
+  time \
+  make \
+  cmake \
+  protobuf \
+  protobuf-c \
+  spdlog \
+  base-devel
+
+RUN ln -s /usr/bin/make /usr/bin/gmake
 
 # Download an initial version of Go
 RUN wget "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz" && \
@@ -22,10 +36,30 @@ RUN git clone https://github.com/ArielSzekely/go.git go-custom && \
   ./make.bash && \
   /go-custom/bin/go version
 
+# Install specific version of OpenBLAS
+RUN wget -P / https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz && \
+  tar -xzf /OpenBLAS-0.3.23.tar.gz && \
+  rm /OpenBLAS-0.3.23.tar.gz && \
+  cd /OpenBLAS-0.3.23 && \
+  make USE_THREAD=1 INTERFACE64=1 DYNAMIC_ARCH=1 SYMBOLSUFFIX=64_ CFLAGS="-fcommon -Wno-error=incompatible-pointer-types" && \
+  cp /OpenBLAS-0.3.23/libopenblas64_p-r0.3.23.so /home/sigmaos/bin/kernel
+
+# Install Python
+RUN git clone https://github.com/ivywu2003/cpython.git /cpython3.11 && \
+  cd /cpython3.11 && \
+  git checkout 3.11 && \
+  git config pull.rebase false && \
+  git pull && \
+  ./configure --prefix=/home/sigmaos/bin/user --exec-prefix=/home/sigmaos/bin/user && \
+  make -j
+
 RUN pacman -Sy --noconfirm docker
 
 RUN mkdir /tmp/sigmaos
 
 WORKDIR /home/sigmaos
+
+# Copy python user programs
+# COPY pyproc pyproc
 
 CMD [ "/bin/bash", "-l" ]

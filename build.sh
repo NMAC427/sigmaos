@@ -1,11 +1,12 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--parallel] [--rebuildbuilder]" 1>&2
+  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--parallel] [--rebuildbuilder] [--nocache]" 1>&2
 }
 
 PARALLEL=""
 REBUILD_BUILDER="false"
+NO_CACHE=""
 TAG=""
 TARGET="local"
 VERSION="1.0"
@@ -13,6 +14,7 @@ USERBIN="all"
 NO_CPP="false"
 NO_RS="false"
 NO_GO="false"
+NO_PY="false"
 NO_DOCKER="false"
 NORACE="--norace"
 while [[ "$#" -gt 0 ]]; do
@@ -20,56 +22,64 @@ while [[ "$#" -gt 0 ]]; do
   --parallel)
     shift
     PARALLEL="--parallel"
-    ;;
+    ;; 
   --rebuildbuilder)
     shift
     REBUILD_BUILDER="true"
-    ;;
+    ;; 
   --no_docker)
     shift
     NO_DOCKER="true"
-    ;;
+    ;; 
   --no_go)
     shift
     NO_GO="true"
-    ;;
+    ;; 
   --no_rs)
     shift
     NO_RS="true"
-    ;;
+    ;; 
   --no_cpp)
     shift
     NO_CPP="true"
-    ;;
+    ;; 
+  --no_py)
+    shift
+    NO_PY="true"
+    ;; 
+  --nocache)
+    shift
+    NO_CACHE="--no-cache"
+    ;; 
   --push)
     shift
     TAG="$1"
     shift
-    ;;
+    ;; 
   --target)
     shift
     TARGET="$1"
     shift
-    ;;
+    ;; 
   --version)
     shift
     VERSION="$1"
     shift
-    ;;
+    ;; 
   --race)
     shift
     NORACE=""
     shift
-    ;;
+    ;; 
   --userbin)
     shift
     USERBIN="$1"
     shift
-    ;;
+    ;; 
   -help)
     usage
     exit 0
-    ;;
+    ;; 
   *)
    echo "unexpected argument $1"
    usage
@@ -109,10 +119,14 @@ fi
 
 BUILD_LOG="${TMP_BASE}/sigmaos-build"
 PROCD_BIN="${TMP_BASE}/sigmaos-procd-bin"
+PYTHON_DEPENDENCIES="${TMP_BASE}/pysl"
+PYTHON="${TMP_BASE}/python"
 
 # tests uses host's /tmp, which mounted in kernel container.
 mkdir -p $TMP_BASE
 mkdir -p $BUILD_LOG
+mkdir -p $PYTHON_DEPENDENCIES
+mkdir -p $PYTHON
 
 # Make a dir to hold user proc build output
 BIN=${ROOT}/bin
@@ -162,14 +176,14 @@ fi
 if [ -z "$buildercid" ]; then
   # Build builder
   echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/builder.Dockerfile -t $BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-builder.out
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/builder.Dockerfile -t $BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-builder.out
   echo "========== Done building builder =========="
   # Start builder
   echo "========== Starting builder container =========="
   docker run --rm -d -it \
     --name $BUILDER_NAME \
     --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $BUILDER_NAME 
+    $BUILDER_NAME
   buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
   until [ "`docker inspect -f {{.State.Running}} $buildercid`"=="true" ]; do
       echo -n "." 1>&2
@@ -181,7 +195,7 @@ fi
 if [ -z "$rsbuildercid" ]; then
   # Build builder
   echo "========== Build Rust builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/rs-builder.Dockerfile -t $RS_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/rs-builder.Dockerfile -t $RS_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
   echo "========== Done building Rust builder =========="
   # Start builder
   echo "========== Starting Rust builder container =========="
@@ -256,7 +270,25 @@ if [ "${NO_GO}" != "true" ]; then
       exit 1
     fi
   echo "========== Done building user bins =========="
-fi 
+fi
+
+if [ "${NO_PY}" != "true" ]; then
+  echo "========== Building Python bins =========="
+  BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
+  docker exec -it $buildercid \
+    /usr/bin/time -f "Build time: %e sec" \
+    ./make-python.sh \
+    2>&1 | tee $BUILD_OUT_FILE && \
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
+        | tee -a $BUILD_OUT_FILE;
+    fi;
+    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
+      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
+      exit 1
+    fi
+  echo "========== Done building Python bins =========="
+fi
 
 RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
   $PARALLEL"
@@ -304,6 +336,16 @@ if [ "${NO_DOCKER}" != "true" ]; then
     cp $KERNELBIN/procd $PROCD_BIN/
     cp $KERNELBIN/spproxyd $PROCD_BIN/
     cp $KERNELBIN/uproc-trampoline $PROCD_BIN/
+    # OpenBLAS
+    cp $KERNELBIN/libopenblas64_p-r0.3.23.so $PYTHON_DEPENDENCIES/libopenblas64_p-r0-25e23498.3.23.so
+    # PYTHON
+    cp $KERNELBIN/python $PROCD_BIN/
+    sudo rm -rf $PYTHON
+    cp -r $KERNELBIN/cpython3.11 /tmp/
+    mv /tmp/cpython3.11 $PYTHON
+    cp -r $KERNELBIN/pyproc $PYTHON/
+    cp $KERNELBIN/ld_fstatat.so $PYTHON/
+    cp $KERNELBIN/clntlib.so $PYTHON/
   fi
   echo "========== Done copying kernel bins for uproc =========="
 fi

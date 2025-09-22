@@ -136,6 +136,7 @@ func ReadSeqno(rdr io.Reader) (sessp.Tseqno, error) {
 	if err := binary.Read(rdr, binary.LittleEndian, &sn); err != nil {
 		return 0, err
 	}
+	db.DPrintf(db.PYPROXYSRV, "ReadSeqno success: %v\n", sn)
 	return sessp.Tseqno(sn), nil
 }
 
@@ -145,6 +146,7 @@ func ReadNumOfFrames(rd io.Reader) (uint32, error) {
 	if err := binary.Read(rd, binary.LittleEndian, &nframes); err != nil {
 		return 0, err
 	}
+	db.DPrintf(db.PYPROXYSRV, "ReadNumOfFrames: %v\n", nframes)
 	return nframes, nil
 }
 

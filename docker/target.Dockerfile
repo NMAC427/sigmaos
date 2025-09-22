@@ -13,13 +13,17 @@ RUN apt update && \
   libc6-dbg \
   libabsl-dev \
   curl \
-  golang
+  golang \
+  musl-dev
 
 # Install wasmer go pkg
 RUN mkdir t && \
   cd t && \
   go mod init tmod && \
   go get github.com/wasmerio/wasmer-go/wasmer@latest
+
+# # Symlink for Python support
+# RUN ln -sf /usr/lib/ld-musl-x86_64.so.1 /usr/lib/libc.musl-x86_64.so.1
 
 WORKDIR /home/sigmaos
 RUN mkdir bin && \

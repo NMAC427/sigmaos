@@ -371,7 +371,11 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		}()
 	}
 	// Assign this uprocsrv to the realm, if not already assigned.
-	if err := ps.assignToRealm(uproc.GetRealm(), uproc.GetPid(), uproc.GetVersionedProgram(), uproc.GetSigmaPath(), uproc.GetSecrets()["s3"], uproc.GetNamedEndpoint()); err != nil {
+	stringProg := uproc.GetVersionedProgram()
+	if uproc.GetProgram() == "python" {
+		stringProg = "python"
+	}
+	if err := ps.assignToRealm(uproc.GetRealm(), uproc.GetPid(), stringProg, uproc.GetSigmaPath(), uproc.GetSecrets()["s3"], uproc.GetNamedEndpoint()); err != nil {
 		db.DFatalf("Err assign to realm: %v", err)
 	}
 	// Set this uprocsrv's Linux scheduling policy

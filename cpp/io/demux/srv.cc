@@ -9,7 +9,7 @@ bool Srv::_l_e = sigmaos::util::log::init_logger(DEMUXSRV_ERR);
 void Srv::read_requests() {
   while (true) {
     if (IsClosed()) {
-      log(DEMUXSRV, "closed, reader thread exiting");
+      log(DEMUXSRV, "demuxsrv closed, reader thread exiting");
       break;
     }
     auto res = _trans->ReadCall();
