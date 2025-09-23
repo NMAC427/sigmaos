@@ -90,3 +90,6 @@ for p in $USERBUILD/* ; do
   # Copy to userbin
   cp $p/$name $USERBIN/$name-v$VERSION
 done
+
+# Copy python
+cp $ROOT/cpp/build/python/libclntlib.so $ROOT/bin/kernel/clntlib.so

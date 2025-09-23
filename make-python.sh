@@ -71,16 +71,5 @@ EOF
 gcc -Wall -fPIC -shared -o ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
 cp ld_fstatat.so $OUTPATH/kernel
 
-# Build Python library
-for P in ../sigmaos/pylib/proto/*.proto; do
-  protoc --c_out=../sigmaos/pylib/proto -I=../sigmaos/pylib/proto -I=. $P
-done
-
-gcc -I../sigmaos -Wall -fPIC -shared \
-  -Wl,--no-as-needed -lprotobuf-c -lprotobuf-c \
-  -o $OUTPATH/kernel/clntlib.so \
-  ../sigmaos/pylib/clntlib.c \
-  ../sigmaos/pylib/proto/*.pb-c.c
-
 # Copy Python user processes
 cp -r ./pyproc $OUTPATH/kernel

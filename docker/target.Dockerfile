@@ -9,7 +9,6 @@ RUN apt update && \
   fuse \
   libspdlog-dev \
   libprotobuf-dev \
-  libprotobuf-c-dev \
   valgrind \
   libc6-dbg \
   libabsl-dev \
