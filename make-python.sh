@@ -1,4 +1,33 @@
 #!/bin/bash
+
+usage() {
+  echo "Usage: $0 [--version VERSION]" 1>&2
+}
+
+VERSION="1.0"
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+  --version)
+    shift
+    VERSION="$1"
+    shift
+    ;;
+  -help)
+    usage
+    exit 0
+    ;;
+  *)
+   echo "unexpected argument $1"
+   usage
+   exit 1
+  esac
+done
+
+if [ $# -gt 0 ]; then
+    usage
+    exit 1
+fi
+
 ROOT=$(pwd)
 OUTPATH=./bin
 
@@ -27,7 +56,9 @@ cp /OpenBLAS-0.3.23/libopenblas64_p-r0.3.23.so $OUTPATH/kernel
 
 # Copy Python executable
 cp /cpython3.11/python "$OUTPATH/kernel"
-cp -r /cpython3.11 "$OUTPATH/kernel"
+cp -r /cpython3.11 "$OUTPATH/kernel"                    # TODO: Is this needed?
+cp /cpython3.11/python "$OUTPATH/user/python"           # TODO: Why is this needed?
+cp /cpython3.11/python "$OUTPATH/user/python-$VERSION"  # TODO: Why is this needed?
 echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
 
 cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF

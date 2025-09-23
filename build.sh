@@ -307,7 +307,7 @@ if [ "${NO_PY}" != "true" ]; then
   BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
   docker exec -it $pybuildercid \
     /usr/bin/time -f "Build time: %e sec" \
-    ./make-python.sh \
+    ./make-python.sh --version $VERSION \
     2>&1 | tee $BUILD_OUT_FILE && \
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
       printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
