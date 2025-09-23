@@ -293,8 +293,7 @@ struct Cond {
     op: String,
 }
 
-fn seccomp_proc(dialproxy: String) -> Result<(), Box<dyn std::error::Error>> {
-    return Ok(());
+fn seccomp_proc(debug_pid: &str, dialproxy: String) -> Result<(), Box<dyn std::error::Error>> {
     use libseccomp::*;
 
     // XXX Should really be 64 syscalls. We can remove ioctl, poll, and lstat,

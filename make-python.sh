@@ -33,7 +33,7 @@ echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
 cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF
 home = /~~
 include-system-site-packages = false
-version = 3.11.10
+version = 3.11.13
 EOF
 
 # Copy and inject Python shim

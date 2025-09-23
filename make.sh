@@ -4,8 +4,7 @@ usage() {
   echo "Usage: $0 [--norace] [--vet] [--parallel] [--gopath GO] [--target local|remote] [--version VERSION] [--userbin USERBIN] kernel|user|npproxy" 1>&2
 }
 
-# RACE="-race"
-RACE=""
+RACE="-race"
 CMD="build"
 TARGET="local"
 VERSION="1.0"
