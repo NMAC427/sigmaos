@@ -67,9 +67,8 @@ include-system-site-packages = false
 version = 3.11.13
 EOF
 
-# Copy and inject Python shim
-gcc -Wall -fPIC -shared -o ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
-cp ld_fstatat.so $OUTPATH/kernel
+# Build python shim
+gcc -Wall -fPIC -shared -o $OUTPATH/kernel/ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
 
 # Copy Python user processes
 cp -r ./pyproc $OUTPATH/kernel
