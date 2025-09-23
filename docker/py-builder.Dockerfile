@@ -17,8 +17,10 @@ RUN apt update && \
   libseccomp-dev \
   libspdlog-dev \
   libabsl-dev \
+  libffi-dev \
   libprotoc-dev \
-  protobuf-compiler
+  protobuf-compiler \
+  protobuf-c-compiler
 
 # Install specific version of OpenBLAS
 RUN wget -P / https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz && \
