@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "watchperf-coord_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/watchperf-coord",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt/fslib/dirwatcher/test",
+        "//util/perf",
+    ],
+)
+
+go_binary(
+    name = "watchperf-coord",
+    embed = [":watchperf-coord_lib"],
+    visibility = ["//visibility:public"],
+)

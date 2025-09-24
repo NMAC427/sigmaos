@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "namei",
+    srcs = ["namei.go"],
+    importpath = "sigmaos/spproto/srv/namei",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//serr",
+        "//spproto/srv/lockmap",
+    ],
+)

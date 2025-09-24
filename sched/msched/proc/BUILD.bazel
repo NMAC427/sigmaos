@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "proc",
+    srcs = ["proc.go"],
+    importpath = "sigmaos/sched/msched/proc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proc",
+        "//sigmap",
+    ],
+)

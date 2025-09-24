@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "test",
+    srcs = [
+        "perf_coord.go",
+        "perf_worker.go",
+        "test_coord.go",
+        "test_worker.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fslib/dirwatcher/test",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib/dircache",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//util/rand",
+    ],
+)

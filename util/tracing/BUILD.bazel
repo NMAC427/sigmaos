@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tracing",
+    srcs = [
+        "context.go",
+        "exporter.go",
+        "mux.go",
+        "tracer.go",
+    ],
+    importpath = "sigmaos/util/tracing",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//util/tracing/proto",
+        "@io_opentelemetry_go_otel//:otel",
+        "@io_opentelemetry_go_otel//semconv/v1.14.0:v1_14_0",
+        "@io_opentelemetry_go_otel_exporters_jaeger//:jaeger",
+        "@io_opentelemetry_go_otel_sdk//resource",
+        "@io_opentelemetry_go_otel_sdk//trace",
+        "@io_opentelemetry_go_otel_trace//:trace",
+    ],
+)

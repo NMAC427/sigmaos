@@ -1,0 +1,57 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "attach.go",
+        "fidio.go",
+        "namei.go",
+        "srv.go",
+        "state.go",
+    ],
+    importpath = "sigmaos/spproto/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//api/spprotsrv",
+        "//debug",
+        "//path",
+        "//proc",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/clntcond",
+        "//sigmasrv/stats",
+        "//spproto/srv/fid",
+        "//spproto/srv/leasedmap",
+        "//spproto/srv/lockmap",
+        "//spproto/srv/namei",
+        "//spproto/srv/version",
+        "//spproto/srv/watch",
+        "//util/crash",
+    ],
+)
+
+go_test(
+    name = "srv_test",
+    srcs = ["srv_test.go"],
+    deps = [
+        ":srv",
+        "//api/fs",
+        "//ctx",
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//sigmasrv/stats",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

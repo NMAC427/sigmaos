@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "thumbnail_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/benchmarks/k8s/apps/thumbnail/cmd/thumbnail",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_nfnt_resize//:resize",
+        "@com_github_nmac427_corral//export/pkg/corfs:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "thumbnail",
+    embed = [":thumbnail_lib"],
+    visibility = ["//visibility:public"],
+)

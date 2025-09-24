@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cgroup",
+    srcs = [
+        "cgroup.go",
+        "cpu.go",
+        "fs.go",
+        "manager.go",
+        "monitor.go",
+        "parsing.go",
+    ],
+    importpath = "sigmaos/dcontainer/cgroup",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//sigmap",
+        "//util/linux/sched",
+        "//util/perf",
+    ],
+)

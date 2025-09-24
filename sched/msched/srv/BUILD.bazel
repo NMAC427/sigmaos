@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "accounting.go",
+        "beschedsess.go",
+        "resources.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/sched/msched/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//proc",
+        "//rpc/clnt/sigmap",
+        "//sched/besched/clnt",
+        "//sched/lcsched/proto",
+        "//sched/msched/clnt",
+        "//sched/msched/proto",
+        "//sched/msched/srv/procmgr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/crash",
+        "//util/linux/mem",
+        "//util/linux/sched",
+        "//util/perf",
+        "//util/syncmap",
+    ],
+)

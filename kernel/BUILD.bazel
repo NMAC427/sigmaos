@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kernel",
+    srcs = [
+        "kernel.go",
+        "srvs.go",
+        "subsystem.go",
+    ],
+    importpath = "sigmaos/kernel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//dcontainer",
+        "//debug",
+        "//proc",
+        "//proc/kproc",
+        "//proxy/sigmap/srv",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/ip",
+    ],
+)

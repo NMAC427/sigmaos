@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fid",
+    srcs = [
+        "fid.go",
+        "fidmap.go",
+    ],
+    importpath = "sigmaos/spproto/srv/fid",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//serr",
+        "//sigmap",
+        "//util/syncmap",
+    ],
+)

@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "fss3d_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/kernel/fss3d",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proxy/s3",
+    ],
+)
+
+go_binary(
+    name = "fss3d",
+    embed = [":fss3d_lib"],
+    visibility = ["//visibility:public"],
+)

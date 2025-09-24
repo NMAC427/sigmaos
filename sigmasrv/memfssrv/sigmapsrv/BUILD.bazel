@@ -1,0 +1,48 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sigmapsrv",
+    srcs = ["sigmapsrv.go"],
+    importpath = "sigmaos/sigmasrv/memfssrv/sigmapsrv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//api/spprotsrv",
+        "//ctx",
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//serr",
+        "//session/proto",
+        "//session/srv",
+        "//sigmaclnt",
+        "//sigmaclnt/procclnt",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//sigmasrv/memfssrv/sigmapsrv/overlaydir",
+        "//sigmasrv/stats",
+        "//spproto/srv",
+        "//util/perf",
+    ],
+)
+
+go_test(
+    name = "sigmapsrv_test",
+    srcs = ["sigmapsrv_test.go"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//proc",
+        "//rpc",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//test",
+        "//util/perf",
+        "@com_github_dustin_go_humanize//:go-humanize",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

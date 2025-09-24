@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "qmgr",
+    srcs = [
+        "basic.go",
+        "maxqdelay.go",
+        "queue.go",
+    ],
+    importpath = "sigmaos/simulation/simms/qmgr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//simulation/simms",
+    ],
+)

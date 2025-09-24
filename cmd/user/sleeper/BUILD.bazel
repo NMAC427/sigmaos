@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "sleeper_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/sleeper",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/perf",
+    ],
+)
+
+go_binary(
+    name = "sleeper",
+    embed = [":sleeper_lib"],
+    visibility = ["//visibility:public"],
+)

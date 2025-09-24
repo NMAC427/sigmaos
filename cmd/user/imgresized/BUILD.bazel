@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "imgresized_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/imgresized",
+    visibility = ["//visibility:private"],
+    deps = ["//apps/imgresize/srv"],
+)
+
+go_binary(
+    name = "imgresized",
+    embed = [":imgresized_lib"],
+    visibility = ["//visibility:public"],
+)

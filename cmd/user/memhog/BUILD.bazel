@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "memhog_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/memhog",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "@com_github_dustin_go_humanize//:go-humanize",
+        "@com_github_shirou_gopsutil//process",
+    ],
+)
+
+go_binary(
+    name = "memhog",
+    embed = [":memhog_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "memhog_test",
+    srcs = ["memhog_test.go"],
+    embed = [":memhog_lib"],
+    deps = ["//sigmap"],
+)

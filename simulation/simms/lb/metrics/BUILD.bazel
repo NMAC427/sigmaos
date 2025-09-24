@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "metrics",
+    srcs = [
+        "default.go",
+        "qlen.go",
+    ],
+    importpath = "sigmaos/simulation/simms/lb/metrics",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//simulation/simms",
+    ],
+)

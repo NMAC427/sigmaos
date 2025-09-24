@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fenceclnt",
+    srcs = ["fenceclnt.go"],
+    importpath = "sigmaos/ft/leaderclnt/fenceclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)

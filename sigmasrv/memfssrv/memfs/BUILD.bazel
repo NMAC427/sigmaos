@@ -1,0 +1,43 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "memfs",
+    srcs = [
+        "mfile.go",
+        "newinode.go",
+        "pipe.go",
+    ],
+    importpath = "sigmaos/sigmasrv/memfssrv/memfs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//serr",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs/file",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//sigmasrv/pipe",
+    ],
+)
+
+go_test(
+    name = "memfs_test",
+    srcs = [
+        "fs_test.go",
+        "memfs_test.go",
+    ],
+    embed = [":memfs"],
+    deps = [
+        "//api/fs",
+        "//ctx",
+        "//debug",
+        "//dialproxy/clnt",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

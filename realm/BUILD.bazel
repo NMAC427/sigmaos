@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "realm",
+    srcs = ["const.go"],
+    importpath = "sigmaos/realm",
+    visibility = ["//visibility:public"],
+)

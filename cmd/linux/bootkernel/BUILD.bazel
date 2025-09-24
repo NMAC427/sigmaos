@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "bootkernel_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/linux/bootkernel",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//boot/init",
+        "//debug",
+        "//kernel",
+        "//namesrv/fsetcd",
+        "//proc",
+        "//sigmap",
+        "//util/auth",
+        "//util/ip",
+    ],
+)
+
+go_binary(
+    name = "bootkernel",
+    embed = [":bootkernel_lib"],
+    visibility = ["//visibility:public"],
+)

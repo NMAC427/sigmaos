@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "wasmer",
+    srcs = [
+        "util.go",
+        "wasmer.go",
+    ],
+    importpath = "sigmaos/proxy/wasm/rpc/wasmer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proxy/wasm/rpc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/perf",
+        "@com_github_wasmerio_wasmer_go//wasmer",
+    ],
+)

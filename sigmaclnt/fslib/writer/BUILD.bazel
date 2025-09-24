@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "writer",
+    srcs = ["writer.go"],
+    importpath = "sigmaos/sigmaclnt/fslib/writer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/sigmaos",
+        "//debug",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "writer_test",
+    srcs = ["writer_test.go"],
+    deps = [
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

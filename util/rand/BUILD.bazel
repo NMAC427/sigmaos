@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rand",
+    srcs = ["rand.go"],
+    importpath = "sigmaos/util/rand",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_thanhpk_randstr//:randstr"],
+)

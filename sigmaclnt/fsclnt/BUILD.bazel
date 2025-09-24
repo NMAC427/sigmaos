@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fsclnt",
+    srcs = [
+        "fd.go",
+        "fences.go",
+        "fsclnt.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fsclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/sigmaos",
+        "//debug",
+        "//path",
+        "//proc",
+        "//serr",
+        "//session/proto",
+        "//sigmaclnt/fidclnt",
+        "//sigmaclnt/fsclnt/pathclnt",
+        "//sigmap",
+        "//util/syncmap",
+    ],
+)

@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "procd_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/kernel/procd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//sched/msched/proc/srv",
+        "//sigmap",
+    ],
+)
+
+go_binary(
+    name = "procd",
+    embed = [":procd_lib"],
+    visibility = ["//visibility:public"],
+)

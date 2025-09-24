@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpcchannel",
+    srcs = [
+        "connchannel.go",
+        "rpcchannel.go",
+    ],
+    importpath = "sigmaos/rpc/clnt/channel/rpcchannel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//rpc",
+        "//rpc/transport",
+        "//session/proto",
+        "//sigmap",
+        "//util/io/demux",
+    ],
+)

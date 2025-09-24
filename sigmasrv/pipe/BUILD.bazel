@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "pipe",
+    srcs = ["pipe.go"],
+    importpath = "sigmaos/sigmasrv/pipe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//serr",
+        "//sigmap",
+        "//sigmasrv/clntcond",
+    ],
+)

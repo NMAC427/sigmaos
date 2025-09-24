@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "db.go",
+        "query.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/proxy/db/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//proc",
+        "//proxy/db/proto",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "@com_github_go_sql_driver_mysql//:mysql",
+    ],
+)

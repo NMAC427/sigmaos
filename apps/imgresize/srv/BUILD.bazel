@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "imgresizesrv.go",
+        "rpc.go",
+    ],
+    importpath = "sigmaos/apps/imgresize/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//apps/imgresize",
+        "//apps/imgresize/proto",
+        "//debug",
+        "//ft/leaderclnt",
+        "//ft/task",
+        "//ft/task/clnt",
+        "//ft/task/fttaskmgr",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/spstats",
+    ],
+)

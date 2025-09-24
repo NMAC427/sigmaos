@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dirwatcher",
+    srcs = ["dirwatcher.go"],
+    importpath = "sigmaos/sigmaclnt/fslib/dirwatcher",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//path",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//spproto/srv/proto",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "dirwatcher_test",
+    srcs = ["dirwatcher_test.go"],
+    deps = [
+        ":dirwatcher",
+        "//proc",
+        "//serr",
+        "//sigmaclnt/fslib/dirwatcher/test",
+        "//sigmap",
+        "//spproto/srv/proto",
+        "//test",
+        "@com_github_mitchellh_mapstructure//:mapstructure",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

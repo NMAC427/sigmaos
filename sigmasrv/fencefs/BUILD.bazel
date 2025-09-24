@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fencefs",
+    srcs = ["fencefs.go"],
+    importpath = "sigmaos/sigmasrv/fencefs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//ctx",
+        "//debug",
+        "//serr",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//sigmasrv/memfssrv/memfs/inode",
+    ],
+)
+
+go_test(
+    name = "fencefs_test",
+    srcs = ["fencefs_test.go"],
+    deps = [
+        ":fencefs",
+        "//ctx",
+        "//sigmap",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

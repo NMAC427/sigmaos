@@ -1,0 +1,48 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+go_library(
+    name = "proc",
+    srcs = [
+        "dir.go",
+        "env.go",
+        "how.go",
+        "proc.go",
+        "seqno.go",
+        "status.go",
+    ],
+    embed = [":proc_go_proto"],
+    importpath = "sigmaos/proc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto",
+        "//serr",
+        "//sigmap",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+proto_library(
+    name = "proc_proto",
+    srcs = ["proc.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto:rpc_proto",
+        "//sigmap:sigmap_proto",
+        "@protobuf//:timestamp_proto",
+    ],
+)
+
+go_proto_library(
+    name = "proc_go_proto",
+    compilers = ["@rules_go//proto:go_proto"],
+    importpath = "sigmaos/proc",
+    proto = ":proc_proto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto",
+        "//sigmap",
+    ],
+)

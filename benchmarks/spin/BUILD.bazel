@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spin",
+    srcs = ["cpu.go"],
+    importpath = "sigmaos/benchmarks/spin",
+    visibility = ["//visibility:public"],
+    deps = ["//debug"],
+)

@@ -1,0 +1,42 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "bins.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/sched/msched/proc/chunk/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//dialproxy/clnt",
+        "//proc",
+        "//rpc/proto",
+        "//sched/msched/proc/chunk",
+        "//sched/msched/proc/chunk/clnt",
+        "//sched/msched/proc/chunk/proto",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/perf",
+        "//util/retry",
+        "//util/syncmap",
+    ],
+)
+
+go_test(
+    name = "srv_test",
+    srcs = ["srv_test.go"],
+    deps = [
+        ":srv",
+        "//debug",
+        "//sched/msched/proc/chunk",
+        "//sched/msched/proc/chunk/clnt",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

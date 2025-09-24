@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "version",
+    srcs = ["version.go"],
+    importpath = "sigmaos/spproto/srv/version",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//sigmap",
+        "//util/refmap",
+    ],
+)

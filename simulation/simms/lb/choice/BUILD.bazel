@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "choice",
+    srcs = [
+        "fullscan.go",
+        "random_subset.go",
+    ],
+    importpath = "sigmaos/simulation/simms/lb/choice",
+    visibility = ["//visibility:public"],
+    deps = ["//simulation/simms"],
+)

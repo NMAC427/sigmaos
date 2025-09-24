@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dialproxy",
+    srcs = [
+        "ctx.go",
+        "listenermap.go",
+        "net.go",
+        "preamble.go",
+    ],
+    importpath = "sigmaos/dialproxy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ctx",
+        "//debug",
+        "//sigmap",
+        "//util/io/frame",
+        "//util/ip",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "dialproxy_test",
+    srcs = ["dialproxy_test.go"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

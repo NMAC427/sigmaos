@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "job.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/apps/epcache/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//apps/epcache",
+        "//apps/epcache/clnt",
+        "//apps/epcache/proto",
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/perf",
+    ],
+)

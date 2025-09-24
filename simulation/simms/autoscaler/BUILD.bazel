@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "autoscaler",
+    srcs = [
+        "avgval.go",
+        "common.go",
+        "const.go",
+        "ctx.go",
+        "k8s.go",
+        "noop.go",
+        "qdelay.go",
+        "util.go",
+    ],
+    importpath = "sigmaos/simulation/simms/autoscaler",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//simulation/simms",
+        "@com_github_montanaflynn_stats//:stats",
+    ],
+)

@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "sigmap_test",
+    srcs = ["sigmap_test.go"],
+    deps = [
+        "//apps/cache",
+        "//apps/cache/cachegrp/clnt",
+        "//apps/cache/cachegrp/mgr",
+        "//apps/cache/clnt",
+        "//apps/cache/proto",
+        "//apps/cache/srv",
+        "//apps/epcache/srv",
+        "//debug",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

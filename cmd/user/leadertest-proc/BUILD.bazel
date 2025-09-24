@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "leadertest-proc_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/leadertest-proc",
+    visibility = ["//visibility:private"],
+    deps = ["//ft/leadertest"],
+)
+
+go_binary(
+    name = "leadertest-proc",
+    embed = [":leadertest-proc_lib"],
+    visibility = ["//visibility:public"],
+)

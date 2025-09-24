@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "wc",
+    srcs = ["wc.go"],
+    importpath = "sigmaos/apps/mr/wc",
+    visibility = ["//visibility:public"],
+    deps = ["//apps/mr/mr"],
+)

@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "clnt.go",
+        "raw.go",
+        "structured.go",
+    ],
+    importpath = "sigmaos/ft/task/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//ft/task",
+        "//ft/task/proto",
+        "//rpc/clnt/cache",
+        "//rpc/clnt/sigmap",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/retry",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

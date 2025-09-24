@@ -1,0 +1,33 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "semaphore",
+    srcs = ["semaphore.go"],
+    importpath = "sigmaos/util/coordination/semaphore",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//util/retry",
+    ],
+)
+
+go_test(
+    name = "semaphore_test",
+    srcs = ["semaphore_test.go"],
+    deps = [
+        ":semaphore",
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//test",
+        "//util/rand",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

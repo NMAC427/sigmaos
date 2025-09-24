@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dir",
+    srcs = ["dir.go"],
+    importpath = "sigmaos/sigmasrv/memfssrv/memfs/dir",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//serr",
+        "//session/codec",
+        "//sigmap",
+        "//util/sortedmapv1",
+    ],
+)

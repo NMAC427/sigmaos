@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "binsrv",
+    srcs = [
+        "binsrv.go",
+        "cache.go",
+        "dir.go",
+        "download.go",
+        "file.go",
+    ],
+    importpath = "sigmaos/sched/msched/proc/srv/binsrv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sched/msched/proc",
+        "//sched/msched/proc/chunk",
+        "//sched/msched/proc/chunk/srv",
+        "//sigmap",
+        "//util/perf",
+        "//util/syncmap",
+        "@com_github_hanwen_go_fuse_v2//fs",
+        "@com_github_hanwen_go_fuse_v2//fuse",
+        "@org_golang_x_sys//unix",
+    ],
+)

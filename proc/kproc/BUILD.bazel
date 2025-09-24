@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kproc",
+    srcs = ["kproc.go"],
+    importpath = "sigmaos/proc/kproc",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmap",
+    ],
+)

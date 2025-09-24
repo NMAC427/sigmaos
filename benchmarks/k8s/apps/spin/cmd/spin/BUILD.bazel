@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "spin_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/benchmarks/k8s/apps/spin/cmd/spin",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "spin",
+    embed = [":spin_lib"],
+    visibility = ["//visibility:public"],
+)

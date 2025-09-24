@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "remote",
+    srcs = [
+        "benchcmds.go",
+        "cluster.go",
+        "config.go",
+        "const.go",
+        "k8s.go",
+        "localfs.go",
+        "tstate.go",
+        "util.go",
+    ],
+    importpath = "sigmaos/benchmarks/remote",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmap",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
+
+go_test(
+    name = "remote_test",
+    srcs = ["remote_test.go"],
+    embed = [":remote"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmap",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

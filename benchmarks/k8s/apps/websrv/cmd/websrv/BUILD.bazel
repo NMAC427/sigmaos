@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "websrv_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/benchmarks/k8s/apps/websrv/cmd/websrv",
+    visibility = ["//visibility:private"],
+    deps = ["@org_gonum_v1_gonum//mat"],
+)
+
+go_binary(
+    name = "websrv",
+    embed = [":websrv_lib"],
+    visibility = ["//visibility:public"],
+)

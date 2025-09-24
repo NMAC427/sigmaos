@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "memfssrv",
+    srcs = [
+        "makesrv.go",
+        "memfssrv.go",
+    ],
+    importpath = "sigmaos/sigmasrv/memfssrv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//ctx",
+        "//debug",
+        "//path",
+        "//proc",
+        "//serr",
+        "//session/srv",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//sigmasrv/memfssrv/memfs/fenceddir",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//sigmasrv/memfssrv/sigmapsrv",
+        "//spproto/srv",
+        "//spproto/srv/lockmap",
+        "//util/perf",
+        "//util/syncmap",
+    ],
+)

@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "clnt.go",
+        "ctrl.go",
+        "stubs.go",
+    ],
+    importpath = "sigmaos/proxy/sigmap/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/sigmaos",
+        "//debug",
+        "//dialproxy/clnt",
+        "//path",
+        "//proc",
+        "//proxy/sigmap/proto",
+        "//rpc",
+        "//rpc/clnt",
+        "//rpc/clnt/channel",
+        "//rpc/clnt/channel/rpcchannel",
+        "//rpc/clnt/netconn",
+        "//rpc/proto",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//util/io/demux",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

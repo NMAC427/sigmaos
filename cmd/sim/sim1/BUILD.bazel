@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "sim1_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/sim/sim1",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "sim1",
+    embed = [":sim1_lib"],
+    visibility = ["//visibility:public"],
+)

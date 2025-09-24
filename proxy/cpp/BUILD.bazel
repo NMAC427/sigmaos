@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "cpp_test",
+    srcs = ["cpp_test.go"],
+    deps = [
+        "//apps/cossim",
+        "//apps/cossim/proto",
+        "//apps/cossim/srv",
+        "//apps/epcache",
+        "//apps/epcache/srv",
+        "//apps/spin/proto",
+        "//debug",
+        "//example/example_echo_server/proto",
+        "//proc",
+        "//rpc/clnt/netconn",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

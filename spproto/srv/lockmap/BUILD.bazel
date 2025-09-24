@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "lockmap",
+    srcs = ["lockmap.go"],
+    importpath = "sigmaos/spproto/srv/lockmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//sigmap",
+        "//util/refmap",
+    ],
+)

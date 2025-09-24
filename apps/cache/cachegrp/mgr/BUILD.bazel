@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mgr",
+    srcs = [
+        "mgr.go",
+        "svc.go",
+    ],
+    importpath = "sigmaos/apps/cache/cachegrp/mgr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/cache",
+        "//apps/cache/cachegrp",
+        "//apps/epcache",
+        "//apps/epcache/srv",
+        "//debug",
+        "//proc",
+        "//proxy/wasm/rpc/wasmer",
+        "//rpc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+    ],
+)

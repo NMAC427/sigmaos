@@ -1,0 +1,43 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sigmasrv",
+    srcs = [
+        "leasesrv.go",
+        "rpc.go",
+        "sigmasrv.go",
+        "stats.go",
+    ],
+    importpath = "sigmaos/sigmasrv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//ctx",
+        "//debug",
+        "//ft/lease/proto",
+        "//proc",
+        "//rpc",
+        "//rpc/dev/srv",
+        "//rpc/srv",
+        "//serr",
+        "//session/proto",
+        "//session/srv",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv/cpumon",
+        "//sigmasrv/fencefs",
+        "//sigmasrv/memfssrv",
+        "//sigmasrv/memfssrv/memfs",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//spproto/srv",
+        "//spproto/srv/leasedmap",
+        "//util/perf",
+        "//util/syncmap",
+    ],
+)
+
+go_test(
+    name = "sigmasrv_test",
+    srcs = ["sigmasrv_test.go"],
+)

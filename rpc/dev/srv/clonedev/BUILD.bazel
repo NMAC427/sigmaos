@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clonedev",
+    srcs = [
+        "clonedev.go",
+        "session.go",
+    ],
+    importpath = "sigmaos/rpc/dev/srv/clonedev",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//api/spprotsrv",
+        "//debug",
+        "//rpc/dev",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/memfssrv",
+        "//sigmasrv/memfssrv/memfs/inode",
+    ],
+)

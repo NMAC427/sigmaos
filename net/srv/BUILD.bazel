@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = ["srv.go"],
+    importpath = "sigmaos/net/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//proc",
+        "//sigmap",
+        "//util/io/demux",
+    ],
+)

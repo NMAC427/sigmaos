@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "clnt.go",
+        "listener.go",
+    ],
+    importpath = "sigmaos/dialproxy/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy",
+        "//dialproxy/proto",
+        "//dialproxy/transport",
+        "//proc",
+        "//rpc",
+        "//rpc/clnt",
+        "//rpc/clnt/opts",
+        "//rpc/proto",
+        "//session/proto",
+        "//sigmap",
+        "//util/io/demux",
+        "@org_golang_x_sys//unix",
+    ],
+)

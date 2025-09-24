@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "clnt.go",
+        "mgr.go",
+        "pool.go",
+        "shares.go",
+    ],
+    importpath = "sigmaos/sched/msched/proc/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//kernel/clnt",
+        "//path",
+        "//proc",
+        "//rpc/clnt",
+        "//rpc/clnt/sigmap",
+        "//sched/msched/proc/proto",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//util/perf",
+    ],
+)

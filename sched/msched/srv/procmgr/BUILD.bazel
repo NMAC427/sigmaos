@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "procmgr",
+    srcs = [
+        "exit-status.go",
+        "fsstate.go",
+        "procmgr.go",
+        "run.go",
+        "state.go",
+        "wait.go",
+    ],
+    importpath = "sigmaos/sched/msched/srv/procmgr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//proc/kproc",
+        "//sched/msched/proc/clnt",
+        "//sigmaclnt",
+        "//sigmaclnt/procclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/perf",
+    ],
+)

@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clntcond",
+    srcs = [
+        "clntcond.go",
+        "table.go",
+    ],
+    importpath = "sigmaos/sigmasrv/clntcond",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//serr",
+        "//sigmap",
+    ],
+)

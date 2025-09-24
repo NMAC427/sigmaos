@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "reader",
+    srcs = [
+        "dir.go",
+        "reader.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fslib/reader",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//session/codec",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "reader_test",
+    srcs = ["reader_test.go"],
+    deps = [
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

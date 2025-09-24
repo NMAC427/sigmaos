@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "chunk",
+    srcs = ["chunk.go"],
+    importpath = "sigmaos/sched/msched/proc/chunk",
+    visibility = ["//visibility:public"],
+    deps = ["//sigmap"],
+)

@@ -5,7 +5,7 @@ go 1.19
 require gonum.org/v1/gonum v0.12.0
 
 require (
-	github.com/ArielSzekely/corral v0.0.0-20230531153147-c7d559158f71 // indirect
+	github.com/NMAC427/corral v0.1.1
 	github.com/aws/aws-sdk-go v1.38.45 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect

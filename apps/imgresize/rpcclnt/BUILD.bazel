@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpcclnt",
+    srcs = ["clnt.go"],
+    importpath = "sigmaos/apps/imgresize/rpcclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/imgresize/proto",
+        "//rpc/clnt/cache",
+        "//rpc/clnt/sigmap",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)

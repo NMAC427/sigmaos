@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "cachedsvc-clerk_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/cachedsvc-clerk",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//apps/cache/cachegrp/clnt",
+        "//apps/cache/clnt",
+        "//apps/cache/proto",
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//util/coordination/semaphore",
+        "//util/perf",
+        "@com_github_go_redis_redis_v8//:redis",
+    ],
+)
+
+go_binary(
+    name = "cachedsvc-clerk",
+    embed = [":cachedsvc-clerk_lib"],
+    visibility = ["//visibility:public"],
+)

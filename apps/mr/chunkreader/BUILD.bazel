@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "chunkreader",
+    srcs = ["chunkreader.go"],
+    importpath = "sigmaos/apps/mr/chunkreader",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/mr/kvmap",
+        "//apps/mr/mr",
+        "//apps/mr/scanner",
+        "//debug",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/perf",
+    ],
+)

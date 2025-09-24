@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sortedmapv1",
+    srcs = ["sortedmap.go"],
+    importpath = "sigmaos/util/sortedmapv1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//util/rand",
+        "@com_github_google_btree//:btree",
+        "@org_golang_x_exp//constraints",
+    ],
+)
+
+go_test(
+    name = "sortedmapv1_test",
+    srcs = ["sortedmap_test.go"],
+    embed = [":sortedmapv1"],
+    deps = [
+        "//debug",
+        "//util/rand",
+        "@com_github_google_btree//:btree",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

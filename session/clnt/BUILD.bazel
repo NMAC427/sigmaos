@@ -1,0 +1,51 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "mgr.go",
+        "sessclnt.go",
+    ],
+    importpath = "sigmaos/session/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//net/clnt",
+        "//proc",
+        "//serr",
+        "//session/codec",
+        "//session/proto",
+        "//sigmap",
+        "//util/io/demux",
+        "//util/rand",
+        "//util/spstats",
+    ],
+)
+
+go_test(
+    name = "clnt_test",
+    srcs = ["sessclnt_test.go"],
+    deps = [
+        ":clnt",
+        "//ctx",
+        "//debug",
+        "//dialproxy/clnt",
+        "//net/srv",
+        "//path",
+        "//serr",
+        "//session/codec",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs",
+        "//sigmasrv/memfssrv/memfs/dir",
+        "//sigmasrv/memfssrv/sigmapsrv",
+        "//spproto/srv",
+        "//test",
+        "//util/io/demux",
+        "//util/rand",
+        "//util/spstats",
+        "@com_github_dustin_go_humanize//:go-humanize",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

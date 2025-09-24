@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "hotel-geod_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/hotel-geod",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//apps/hotel",
+        "//debug",
+    ],
+)
+
+go_binary(
+    name = "hotel-geod",
+    embed = [":hotel-geod_lib"],
+    visibility = ["//visibility:public"],
+)

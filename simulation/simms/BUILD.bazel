@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "simms",
+    srcs = [
+        "app.go",
+        "autoscaler.go",
+        "client.go",
+        "lb.go",
+        "microsvc.go",
+        "opts.go",
+        "qmgr.go",
+        "req.go",
+        "simms.go",
+        "stats.go",
+        "svcinstance.go",
+    ],
+    importpath = "sigmaos/simulation/simms",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "@com_github_montanaflynn_stats//:stats",
+    ],
+)
+
+go_test(
+    name = "simms_test",
+    srcs = ["simms_test.go"],
+    deps = [
+        ":simms",
+        "//debug",
+        "//simulation/simms/autoscaler",
+        "//simulation/simms/opts",
+        "//simulation/simms/qmgr",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

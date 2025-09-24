@@ -1,0 +1,45 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "imgresize",
+    srcs = [
+        "clnt.go",
+        "mgr.go",
+    ],
+    importpath = "sigmaos/apps/imgresize",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/imgresize/rpcclnt",
+        "//debug",
+        "//ft/procgroupmgr",
+        "//ft/task",
+        "//ft/task/clnt",
+        "//ft/task/fttaskmgr",
+        "//ft/task/srv",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/crash",
+        "//util/rand",
+    ],
+)
+
+go_test(
+    name = "imgresize_test",
+    srcs = ["imgresize_test.go"],
+    deps = [
+        ":imgresize",
+        "//debug",
+        "//ft/task/clnt",
+        "//proc",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "//util/rand",
+        "//util/spstats",
+        "@com_github_nfnt_resize//:resize",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

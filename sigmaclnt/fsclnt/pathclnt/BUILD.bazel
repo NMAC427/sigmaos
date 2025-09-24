@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "pathclnt",
+    srcs = [
+        "pathclnt.go",
+        "symlink.go",
+        "union.go",
+        "walk.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fsclnt/pathclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/sigmaos",
+        "//debug",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt/fidclnt",
+        "//sigmaclnt/fsclnt/pathclnt/mntclnt",
+        "//sigmaclnt/fslib/reader",
+        "//sigmap",
+        "//util/rand",
+        "//util/retry",
+        "//util/spstats",
+    ],
+)

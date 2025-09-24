@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "npproxyd_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/npproxy/npproxyd",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//net/srv",
+        "//proc",
+        "//proxy/ninep",
+        "//sigmap",
+        "//util/auth",
+    ],
+)
+
+go_binary(
+    name = "npproxyd",
+    embed = [":npproxyd_lib"],
+    visibility = ["//visibility:public"],
+)

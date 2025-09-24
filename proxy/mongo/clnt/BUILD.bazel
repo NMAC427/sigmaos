@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clnt",
+    srcs = ["clnt.go"],
+    importpath = "sigmaos/proxy/mongo/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//path",
+        "//proxy/mongo/proto",
+        "//rpc/clnt",
+        "//rpc/clnt/sigmap",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "@in_gopkg_mgo_v2//bson",
+    ],
+)
+
+go_test(
+    name = "clnt_test",
+    srcs = ["clnt_test.go"],
+    deps = [
+        ":clnt",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+        "@in_gopkg_mgo_v2//bson",
+    ],
+)

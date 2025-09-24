@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "srv",
+    srcs = ["srv.go"],
+    importpath = "sigmaos/proxy/mongo/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//proc",
+        "//proxy/mongo/proto",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "@org_mongodb_go_mongo_driver//bson",
+        "@org_mongodb_go_mongo_driver//mongo",
+        "@org_mongodb_go_mongo_driver//mongo/options",
+    ],
+)
+
+go_test(
+    name = "srv_test",
+    srcs = ["srv_test.go"],
+    deps = [
+        "//debug",
+        "//proxy/db/clnt",
+        "//proxy/mongo/clnt",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+        "@in_gopkg_mgo_v2//bson",
+        "@org_mongodb_go_mongo_driver//bson",
+        "@org_mongodb_go_mongo_driver//mongo",
+        "@org_mongodb_go_mongo_driver//mongo/options",
+    ],
+)

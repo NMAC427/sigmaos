@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "leaderclnt",
+    srcs = [
+        "leaderclnt.go",
+        "test.go",
+    ],
+    importpath = "sigmaos/ft/leaderclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//ft/leaderclnt/electclnt",
+        "//ft/leaderclnt/fenceclnt",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
+
+go_test(
+    name = "leaderclnt_test",
+    srcs = ["leaderclnt_test.go"],
+    deps = [
+        ":leaderclnt",
+        "//debug",
+        "//namesrv/ndclnt",
+        "//path",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

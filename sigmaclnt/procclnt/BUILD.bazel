@@ -1,0 +1,54 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "procclnt",
+    srcs = [
+        "children.go",
+        "exit-status.go",
+        "notify.go",
+        "procclnt.go",
+        "procdir.go",
+        "procinit.go",
+        "wait.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/procclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//ft/lease/clnt",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//proc/kproc",
+        "//rpc",
+        "//sched/besched/clnt",
+        "//sched/lcsched/clnt",
+        "//sched/msched/clnt",
+        "//sched/msched/proc/chunk",
+        "//sched/msched/proc/chunk/clnt",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/coordination/semaphore",
+        "//util/crash",
+        "//util/perf",
+        "//util/retry",
+        "//util/spstats",
+    ],
+)
+
+go_test(
+    name = "procclnt_test",
+    srcs = ["procclnt_test.go"],
+    deps = [
+        "//debug",
+        "//ft/procgroupmgr",
+        "//proc",
+        "//serr",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "//util/linux/sched",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

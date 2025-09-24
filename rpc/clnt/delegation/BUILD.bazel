@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "delegation",
+    srcs = ["cache.go"],
+    importpath = "sigmaos/rpc/clnt/delegation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proxy/sigmap/proto",
+    ],
+)

@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "file",
+    srcs = ["file.go"],
+    importpath = "sigmaos/sigmasrv/memfssrv/memfs/file",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//serr",
+        "//sigmap",
+        "//sigmasrv/fencefs",
+    ],
+)

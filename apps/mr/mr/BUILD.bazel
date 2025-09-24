@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mr",
+    srcs = ["mr.go"],
+    importpath = "sigmaos/apps/mr/mr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sigmap",
+        "@com_github_dustin_go_humanize//:go-humanize",
+    ],
+)

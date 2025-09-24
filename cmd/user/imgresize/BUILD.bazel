@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "imgresize_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/imgresize",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/crash",
+        "//util/perf",
+        "@com_github_nfnt_resize//:resize",
+    ],
+)
+
+go_binary(
+    name = "imgresize",
+    embed = [":imgresize_lib"],
+    visibility = ["//visibility:public"],
+)

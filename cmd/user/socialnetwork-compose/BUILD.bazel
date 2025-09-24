@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "socialnetwork-compose_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/socialnetwork-compose",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//apps/socialnetwork",
+        "//debug",
+    ],
+)
+
+go_binary(
+    name = "socialnetwork-compose",
+    embed = [":socialnetwork-compose_lib"],
+    visibility = ["//visibility:public"],
+)

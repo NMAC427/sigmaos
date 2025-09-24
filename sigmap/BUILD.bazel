@@ -1,0 +1,64 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+go_library(
+    name = "sigmap",
+    srcs = [
+        "clntid.go",
+        "const.go",
+        "endpoint.go",
+        "fence.go",
+        "fid.go",
+        "hyperparams.go",
+        "lease.go",
+        "mode.go",
+        "named.go",
+        "net.go",
+        "path.go",
+        "perm.go",
+        "pid.go",
+        "principal.go",
+        "protomsg.go",
+        "qid.go",
+        "realm.go",
+        "sigmap.go",
+        "stat.go",
+        "types.go",
+    ],
+    embed = [":sigmap_go_proto"],
+    importpath = "sigmaos/sigmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//path",
+        "//serr",
+        "//session/proto",
+        "//util/rand",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+proto_library(
+    name = "sigmap_proto",
+    srcs = ["sigmap.proto"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_library(
+    name = "sigmap_go_proto",
+    compilers = ["@rules_go//proto:go_proto"],
+    importpath = "sigmaos/sigmap",
+    proto = ":sigmap_proto",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "sigmap_test",
+    srcs = ["sigmap_test.go"],
+    deps = [
+        ":sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

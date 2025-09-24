@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = ["job.go"],
+    importpath = "sigmaos/apps/cossim/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/cache/cachegrp/clnt",
+        "//apps/cache/cachegrp/mgr",
+        "//apps/cache/proto",
+        "//apps/cossim",
+        "//apps/cossim/clnt",
+        "//apps/cossim/proto",
+        "//apps/epcache",
+        "//apps/epcache/srv",
+        "//debug",
+        "//proc",
+        "//proxy/wasm/rpc/wasmer",
+        "//sigmaclnt",
+        "//sigmap",
+    ],
+)

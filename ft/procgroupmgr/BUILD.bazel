@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "procgroupmgr",
+    srcs = ["procgroupmgr.go"],
+    importpath = "sigmaos/ft/procgroupmgr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "procgroupmgr_test",
+    srcs = ["procgroupmgr_test.go"],
+    deps = [
+        ":procgroupmgr",
+        "//namesrv/ndclnt",
+        "//path",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

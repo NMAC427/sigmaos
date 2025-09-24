@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fidclnt",
+    srcs = [
+        "channel.go",
+        "fid.go",
+        "fidclnt.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fidclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//path",
+        "//proc",
+        "//serr",
+        "//session/clnt",
+        "//session/proto",
+        "//sigmap",
+        "//spproto/clnt",
+        "//util/spstats",
+        "//util/syncmap",
+    ],
+)

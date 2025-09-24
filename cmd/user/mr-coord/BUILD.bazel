@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "mr-coord_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/mr-coord",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//apps/mr",
+        "//debug",
+    ],
+)
+
+go_binary(
+    name = "mr-coord",
+    embed = [":mr-coord_lib"],
+    visibility = ["//visibility:public"],
+)

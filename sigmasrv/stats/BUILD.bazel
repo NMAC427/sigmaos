@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "stats",
+    srcs = ["stats.go"],
+    importpath = "sigmaos/sigmasrv/stats",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//util/perf",
+        "//util/spstats",
+    ],
+)
+
+go_test(
+    name = "stats_test",
+    srcs = ["stats_test.go"],
+    deps = [
+        "//debug",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

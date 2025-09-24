@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "crash_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/crash",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/crash",
+    ],
+)
+
+go_binary(
+    name = "crash",
+    embed = [":crash_lib"],
+    visibility = ["//visibility:public"],
+)

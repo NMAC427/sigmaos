@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "task",
+    srcs = [
+        "const.go",
+        "id.go",
+    ],
+    importpath = "sigmaos/ft/task",
+    visibility = ["//visibility:public"],
+    deps = ["//sigmap"],
+)
+
+go_test(
+    name = "task_test",
+    srcs = ["fttask_test.go"],
+    deps = [
+        "//apps/mr",
+        "//debug",
+        "//dialproxy/clnt",
+        "//ft/procgroupmgr",
+        "//ft/task/clnt",
+        "//ft/task/proto",
+        "//ft/task/srv",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "rpc_proto",
+    srcs = ["rpc.proto"],
+    visibility = ["//visibility:public"],
+    deps = ["//sigmap:sigmap_proto"],
+)
+
+go_proto_library(
+    name = "rpc_go_proto",
+    compilers = ["@rules_go//proto:go_proto"],
+    importpath = "sigmaos/rpc/proto",
+    proto = ":rpc_proto",
+    visibility = ["//visibility:public"],
+    deps = ["//sigmap"],
+)
+
+go_library(
+    name = "proto",
+    srcs = ["rpc.go"],
+    embed = [":rpc_go_proto"],
+    importpath = "sigmaos/rpc/proto",
+    visibility = ["//visibility:public"],
+    deps = ["//session/proto"],
+)

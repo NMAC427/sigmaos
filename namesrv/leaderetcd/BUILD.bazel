@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "leaderetcd",
+    srcs = ["leaderetcd.go"],
+    importpath = "sigmaos/namesrv/leaderetcd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//namesrv/fsetcd",
+        "//proc",
+        "//sigmap",
+        "@io_etcd_go_etcd_client_v3//concurrency",
+    ],
+)

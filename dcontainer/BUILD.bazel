@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dcontainer",
+    srcs = ["dcontainer.go"],
+    importpath = "sigmaos/dcontainer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//dcontainer/cgroup",
+        "//debug",
+        "//proc",
+        "//sched/msched/proc/chunk/srv",
+        "//sigmap",
+        "//util/linux/mem",
+        "//util/perf",
+        "@com_github_docker_docker//api/types",
+        "@com_github_docker_docker//api/types/container",
+        "@com_github_docker_docker//api/types/mount",
+        "@com_github_docker_docker//api/types/network",
+        "@com_github_docker_docker//client",
+        "@com_github_docker_docker//pkg/stdcopy",
+        "@com_github_docker_go_connections//nat",
+        "@com_github_docker_go_units//:go-units",
+    ],
+)

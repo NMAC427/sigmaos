@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cache",
+    srcs = ["cache.go"],
+    importpath = "sigmaos/apps/cache",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//serr",
+        "//sigmap",
+        "//util/tracing/proto",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

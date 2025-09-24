@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fttaskmgr",
+    srcs = ["fttaskmgr.go"],
+    importpath = "sigmaos/ft/task/fttaskmgr",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/proc",
+        "//debug",
+        "//ft/task/clnt",
+        "//ft/task/proto",
+        "//proc",
+    ],
+)

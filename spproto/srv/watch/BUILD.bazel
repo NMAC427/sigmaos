@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "watch",
+    srcs = [
+        "watch.go",
+        "watchtable.go",
+    ],
+    importpath = "sigmaos/spproto/srv/watch",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//serr",
+        "//sigmap",
+        "//spproto/srv/fid",
+        "//spproto/srv/proto",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

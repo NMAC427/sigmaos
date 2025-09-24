@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "test",
+    srcs = [
+        "buf.go",
+        "crash.go",
+        "dialproxy.go",
+        "multirealmtest.go",
+        "realmtest.go",
+        "test.go",
+    ],
+    importpath = "sigmaos/test",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//boot/clnt",
+        "//debug",
+        "//kernel",
+        "//kernel/clnt",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//proxy/sigmap/srv",
+        "//realm",
+        "//realm/clnt",
+        "//sigmaclnt",
+        "//sigmap",
+        "//util/auth",
+        "//util/crash",
+        "//util/ip",
+        "//util/retry",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

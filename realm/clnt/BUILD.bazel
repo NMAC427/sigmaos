@@ -1,0 +1,35 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clnt",
+    srcs = ["clnt.go"],
+    importpath = "sigmaos/realm/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//realm/proto",
+        "//rpc/clnt",
+        "//rpc/clnt/sigmap",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "clnt_test",
+    srcs = ["clnt_test.go"],
+    deps = [
+        "//apps/cache/cachegrp/clnt",
+        "//apps/cache/cachegrp/mgr",
+        "//apps/cache/proto",
+        "//debug",
+        "//path",
+        "//proc",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "//util/linux/mem",
+        "//util/rand",
+        "//util/retry",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kvmap",
+    srcs = ["kvmap.go"],
+    importpath = "sigmaos/apps/mr/kvmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/mr/mr",
+        "@com_github_fmstephe_unsafeutil//:unsafeutil",
+    ],
+)

@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "opts",
+    srcs = ["opts.go"],
+    importpath = "sigmaos/rpc/clnt/opts",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//rpc/clnt/channel",
+    ],
+)

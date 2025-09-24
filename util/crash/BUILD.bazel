@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "crash",
+    srcs = [
+        "crash.go",
+        "eventmap.go",
+        "selector.go",
+    ],
+    importpath = "sigmaos/util/crash",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/coordination/semaphore",
+        "//util/rand",
+    ],
+)

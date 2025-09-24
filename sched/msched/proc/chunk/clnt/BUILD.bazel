@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "binpath.go",
+        "clnt.go",
+    ],
+    importpath = "sigmaos/sched/msched/proc/chunk/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//rpc/proto",
+        "//rpc/shardedsvc/clnt",
+        "//sched/msched/proc/chunk/proto",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//util/perf",
+        "//util/rand",
+        "//util/syncmap",
+        "@org_golang_x_exp//slices",
+    ],
+)

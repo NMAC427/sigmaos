@@ -1,0 +1,44 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ninep",
+    srcs = [
+        "fidmap.go",
+        "proxy.go",
+        "qidmap.go",
+        "spnp.go",
+    ],
+    importpath = "sigmaos/proxy/ninep",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//api/spprotsrv",
+        "//debug",
+        "//dialproxy/clnt",
+        "//ninep",
+        "//path",
+        "//proc",
+        "//proxy/ninep/npcodec",
+        "//serr",
+        "//session/proto",
+        "//sigmaclnt/fidclnt",
+        "//sigmaclnt/fsclnt/pathclnt",
+        "//sigmaclnt/fslib/reader",
+        "//sigmap",
+        "//util/io/demux",
+        "//util/rand",
+        "//util/syncmap",
+    ],
+)
+
+go_test(
+    name = "ninep_test",
+    srcs = ["proxy_test.go"],
+    deps = [
+        "//debug",
+        "//namesrv",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "fsreader_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/fsreader",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv/pipe",
+    ],
+)
+
+go_binary(
+    name = "fsreader",
+    embed = [":fsreader_lib"],
+    visibility = ["//visibility:public"],
+)

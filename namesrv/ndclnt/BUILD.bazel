@@ -1,0 +1,40 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ndclnt",
+    srcs = [
+        "ndclnt.go",
+        "ndgrp.go",
+    ],
+    importpath = "sigmaos/namesrv/ndclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//ft/procgroupmgr",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "ndclnt_test",
+    srcs = ["ndclnt_test.go"],
+    deps = [
+        ":ndclnt",
+        "//debug",
+        "//namesrv",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//test",
+        "//util/coordination/semaphore",
+        "//util/crash",
+        "//util/retry",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

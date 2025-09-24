@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "transport",
+    srcs = [
+        "call.go",
+        "fd.go",
+        "transport.go",
+    ],
+    importpath = "sigmaos/dialproxy/transport",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//util/io/demux",
+        "//util/io/frame",
+        "@org_golang_x_sys//unix",
+    ],
+)

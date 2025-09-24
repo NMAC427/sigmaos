@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sigmaclnt",
+    srcs = ["sigmaclnt.go"],
+    importpath = "sigmaos/sigmaclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/proc",
+        "//api/sigmaos",
+        "//debug",
+        "//dialproxy/clnt",
+        "//ft/lease/clnt",
+        "//proc",
+        "//proxy/sigmap/clnt",
+        "//sigmaclnt/fidclnt",
+        "//sigmaclnt/fsclnt",
+        "//sigmaclnt/fslib",
+        "//sigmaclnt/procclnt",
+        "//sigmap",
+        "//util/perf",
+    ],
+)

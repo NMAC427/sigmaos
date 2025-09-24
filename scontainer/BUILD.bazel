@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "scontainer",
+    srcs = ["scontainer.go"],
+    importpath = "sigmaos/scontainer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sched/msched/proc/srv/binsrv",
+        "//sigmap",
+        "//util/perf",
+    ],
+)
+
+go_test(
+    name = "scontainer_test",
+    srcs = ["scontainer_test.go"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//test",
+        "//util/linux/mem",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

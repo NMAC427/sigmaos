@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sigmap",
+    srcs = ["clnt.go"],
+    importpath = "sigmaos/rpc/clnt/sigmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proxy/sigmap/clnt",
+        "//rpc/clnt",
+        "//rpc/clnt/channel",
+        "//rpc/clnt/channel/spchannel",
+        "//rpc/clnt/opts",
+        "//sigmaclnt/fslib",
+    ],
+)

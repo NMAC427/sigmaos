@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "refmap",
+    srcs = ["refmap.go"],
+    importpath = "sigmaos/util/refmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//util/freelist",
+    ],
+)

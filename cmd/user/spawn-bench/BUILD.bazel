@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "spawn-bench_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/spawn-bench",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt",
+        "//util/perf",
+    ],
+)
+
+go_binary(
+    name = "spawn-bench",
+    embed = [":spawn-bench_lib"],
+    visibility = ["//visibility:public"],
+)

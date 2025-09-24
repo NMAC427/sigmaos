@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "serr",
+    srcs = ["serr.go"],
+    importpath = "sigmaos/serr",
+    visibility = ["//visibility:public"],
+    deps = ["//path"],
+)
+
+go_test(
+    name = "serr_test",
+    srcs = ["serr_test.go"],
+    deps = [
+        ":serr",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

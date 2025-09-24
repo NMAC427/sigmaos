@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "backup_srv.go",
+        "dump.go",
+        "scaler_srv.go",
+        "shard.go",
+        "srv.go",
+        "stats.go",
+    ],
+    importpath = "sigmaos/apps/cache/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//apps/cache",
+        "//apps/cache/clnt",
+        "//apps/cache/proto",
+        "//apps/epcache",
+        "//apps/epcache/clnt",
+        "//debug",
+        "//proc",
+        "//rpc",
+        "//rpc/dev/srv",
+        "//rpc/proto",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv",
+        "//sigmasrv/memfssrv",
+        "//sigmasrv/memfssrv/memfs/inode",
+        "//util/perf",
+        "//util/tracing",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

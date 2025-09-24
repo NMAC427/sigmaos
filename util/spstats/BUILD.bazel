@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spstats",
+    srcs = [
+        "counter.go",
+        "pcstats.go",
+        "spstats.go",
+    ],
+    importpath = "sigmaos/util/spstats",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//session/proto",
+        "//sigmap",
+        "@com_github_mitchellh_mapstructure//:mapstructure",
+    ],
+)

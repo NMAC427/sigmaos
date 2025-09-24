@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "demux",
+    srcs = [
+        "callmap.go",
+        "dmxclnt.go",
+        "dmxsrv.go",
+        "iovecmap.go",
+    ],
+    importpath = "sigmaos/util/io/demux",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//serr",
+        "//session/proto",
+    ],
+)

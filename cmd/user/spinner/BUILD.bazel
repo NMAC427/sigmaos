@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "spinner_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/spinner",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//namesrv/fsetcd",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+    ],
+)
+
+go_binary(
+    name = "spinner",
+    embed = [":spinner_lib"],
+    visibility = ["//visibility:public"],
+)

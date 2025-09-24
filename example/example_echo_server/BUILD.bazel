@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "example_echo_server",
+    srcs = ["echosrv.go"],
+    importpath = "sigmaos/example/example_echo_server",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//example/example_echo_server/proto",
+        "//proc",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/rand",
+    ],
+)
+
+go_test(
+    name = "example_echo_server_test",
+    srcs = ["echo_test.go"],
+    deps = [
+        ":example_echo_server",
+        "//debug",
+        "//example/example_echo_server/proto",
+        "//proc",
+        "//rpc/clnt/sigmap",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//test",
+        "//util/rand",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

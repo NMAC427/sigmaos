@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "wasm_test",
+    srcs = [
+        "wasm_rpc_api_test.go",
+        "wasm_test.go",
+    ],
+    deps = [
+        "//apps/cache",
+        "//apps/cache/cachegrp/clnt",
+        "//apps/cache/proto",
+        "//debug",
+        "//proxy/wasm/rpc/wasmer",
+        "//sigmap",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_wasmerio_wasmer_go//wasmer",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

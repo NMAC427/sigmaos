@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "fs",
+    srcs = ["fs.go"],
+    importpath = "sigmaos/api/fs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//ninep",
+        "//path",
+        "//proxy/ninep/npcodec",
+        "//serr",
+        "//session/codec",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/clntcond",
+    ],
+)

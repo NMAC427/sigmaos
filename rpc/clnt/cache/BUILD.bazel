@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cache",
+    srcs = ["cache.go"],
+    importpath = "sigmaos/rpc/clnt/cache",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//rpc",
+        "//rpc/clnt",
+        "//rpc/clnt/opts",
+        "//serr",
+        "//util/retry",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

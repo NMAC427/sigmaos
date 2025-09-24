@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "perf",
+    srcs = [
+        "io.go",
+        "logging.go",
+        "perf.go",
+        "selector.go",
+    ],
+    cgo = True,
+    importpath = "sigmaos/util/perf",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmap",
+        "//util/linux/sched",
+    ],
+)
+
+go_test(
+    name = "perf_test",
+    srcs = ["perf_test.go"],
+    deps = [
+        ":perf",
+        "//debug",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

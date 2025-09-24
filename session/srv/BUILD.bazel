@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "conn.go",
+        "mgr.go",
+        "session.go",
+        "sesssrv.go",
+        "sesstable.go",
+    ],
+    importpath = "sigmaos/session/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/spprotsrv",
+        "//debug",
+        "//dialproxy/clnt",
+        "//net/srv",
+        "//proc",
+        "//serr",
+        "//session/codec",
+        "//session/proto",
+        "//sigmap",
+        "//sigmasrv/stats",
+        "//util/io/demux",
+        "//util/spstats",
+    ],
+)

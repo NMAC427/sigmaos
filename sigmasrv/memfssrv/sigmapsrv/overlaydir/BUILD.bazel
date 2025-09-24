@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "overlaydir",
+    srcs = ["dir.go"],
+    importpath = "sigmaos/sigmasrv/memfssrv/sigmapsrv/overlaydir",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//serr",
+        "//sigmap",
+    ],
+)

@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "frame",
+    srcs = ["frame.go"],
+    importpath = "sigmaos/util/io/frame",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//session/proto",
+        "//sigmap",
+    ],
+)

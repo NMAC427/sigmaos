@@ -1,0 +1,56 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "fslib",
+    srcs = [
+        "atomic.go",
+        "dir.go",
+        "file.go",
+        "fslib.go",
+        "json.go",
+        "leader.go",
+        "mount.go",
+        "pipe.go",
+        "stats.go",
+        "symlink.go",
+        "updown.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fslib",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/sigmaos",
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//proxy/s3/s3pathclnt",
+        "//rpc",
+        "//serr",
+        "//sigmaclnt/fslib/reader",
+        "//sigmaclnt/fslib/writer",
+        "//sigmap",
+        "//sigmasrv/stats",
+        "//util/rand",
+    ],
+)
+
+go_test(
+    name = "fslib_test",
+    srcs = ["fslib_test.go"],
+    deps = [
+        ":fslib",
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

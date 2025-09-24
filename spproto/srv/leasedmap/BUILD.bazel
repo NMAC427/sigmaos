@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "leasedmap",
+    srcs = ["leasedmap.go"],
+    importpath = "sigmaos/spproto/srv/leasedmap",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//sigmap",
+    ],
+)

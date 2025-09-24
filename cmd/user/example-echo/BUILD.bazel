@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "example-echo_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/example-echo",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//example/example_echo_server",
+    ],
+)
+
+go_binary(
+    name = "example-echo",
+    embed = [":example-echo_lib"],
+    visibility = ["//visibility:public"],
+)

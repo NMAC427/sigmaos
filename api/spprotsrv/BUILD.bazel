@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spprotsrv",
+    srcs = ["spprotsrv.go"],
+    importpath = "sigmaos/api/spprotsrv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+    ],
+)

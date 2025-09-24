@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "loadgen",
+    srcs = ["loadgen.go"],
+    importpath = "sigmaos/benchmarks/loadgen",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//benchmarks",
+        "//debug",
+    ],
+)

@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "opts",
+    srcs = [
+        "autoscaler.go",
+        "default.go",
+        "lb.go",
+        "microservice.go",
+        "qmgr.go",
+    ],
+    importpath = "sigmaos/simulation/simms/opts",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//simulation/simms",
+        "//simulation/simms/autoscaler",
+        "//simulation/simms/lb",
+        "//simulation/simms/lb/choice",
+        "//simulation/simms/lb/metrics",
+        "//simulation/simms/lb/probe",
+        "//simulation/simms/lb/shard",
+        "//simulation/simms/lb/state",
+        "//simulation/simms/qmgr",
+    ],
+)

@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "leadertest",
+    srcs = [
+        "config.go",
+        "leader.go",
+        "proc.go",
+    ],
+    importpath = "sigmaos/ft/leadertest",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//ft/leaderclnt",
+        "//ft/leaderclnt/fenceclnt",
+        "//proc",
+        "//sigmaclnt",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "leadertest_test",
+    srcs = ["leader_test.go"],
+    embed = [":leadertest"],
+    deps = [
+        "//debug",
+        "//proc",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

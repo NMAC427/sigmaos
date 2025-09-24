@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "rpcsrv.go",
+        "svcmap.go",
+    ],
+    importpath = "sigmaos/rpc/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//rpc",
+        "//rpc/proto",
+        "//serr",
+        "//session/proto",
+        "//sigmap",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

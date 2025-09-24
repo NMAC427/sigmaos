@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "simbid",
+    srcs = ["simbid.go"],
+    importpath = "sigmaos/simulation/simbid",
+    visibility = ["//visibility:public"],
+    deps = ["@org_gonum_v1_gonum//stat/distuv"],
+)
+
+go_test(
+    name = "simbid_test",
+    srcs = ["simbid_test.go"],
+    embed = [":simbid"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)

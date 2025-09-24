@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "spchannel",
+    srcs = ["spchannel.go"],
+    importpath = "sigmaos/rpc/clnt/channel/spchannel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//rpc",
+        "//rpc/clnt/channel",
+        "//rpc/dev/clnt",
+        "//session/proto",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)

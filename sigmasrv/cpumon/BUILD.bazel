@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cpumon",
+    srcs = ["cpumon.go"],
+    importpath = "sigmaos/sigmasrv/cpumon",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sigmasrv/stats",
+        "//util/perf",
+    ],
+)

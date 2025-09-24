@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "webcli_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/benchmarks/k8s/apps/webcli/cmd/webcli",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "webcli",
+    embed = [":webcli_lib"],
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "electclnt",
+    srcs = ["electclnt.go"],
+    importpath = "sigmaos/ft/leaderclnt/electclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//namesrv/fsetcd",
+        "//namesrv/leaderetcd",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)
+
+go_test(
+    name = "electclnt_test",
+    srcs = ["electclnt_test.go"],
+    deps = [
+        ":electclnt",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

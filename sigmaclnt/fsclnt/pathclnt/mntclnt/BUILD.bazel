@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mntclnt",
+    srcs = [
+        "mntclnt.go",
+        "mount.go",
+        "named.go",
+        "ndepcache.go",
+        "rootmnts.go",
+    ],
+    importpath = "sigmaos/sigmaclnt/fsclnt/pathclnt/mntclnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//namesrv/fsetcd",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt/fidclnt",
+        "//sigmap",
+        "//util/spstats",
+        "//util/syncmap",
+    ],
+)

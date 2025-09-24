@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "clnt",
+    srcs = [
+        "clnt.go",
+        "shardclnt.go",
+    ],
+    importpath = "sigmaos/apps/cossim/clnt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/cossim",
+        "//apps/cossim/proto",
+        "//apps/epcache",
+        "//apps/epcache/clnt",
+        "//apps/epcache/proto",
+        "//debug",
+        "//rpc/clnt",
+        "//rpc/clnt/netconn",
+        "//sigmaclnt/fslib",
+        "//sigmap",
+    ],
+)

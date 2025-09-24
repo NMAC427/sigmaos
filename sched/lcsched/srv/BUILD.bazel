@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "resources.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/sched/lcsched/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//proc",
+        "//rpc",
+        "//sched/besched/proto",
+        "//sched/lcsched/proto",
+        "//sched/msched/clnt",
+        "//sched/msched/proc/chunk",
+        "//sched/msched/proc/chunk/clnt",
+        "//sched/queue",
+        "//sigmaclnt",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/crash",
+        "//util/perf",
+    ],
+)

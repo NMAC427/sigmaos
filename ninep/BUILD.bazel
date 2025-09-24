@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ninep",
+    srcs = ["ninep.go"],
+    importpath = "sigmaos/ninep",
+    visibility = ["//visibility:public"],
+    deps = ["//session/proto"],
+)

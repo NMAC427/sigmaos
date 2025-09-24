@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "k8s-stat-scraper_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/k8s-stat-scraper",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//debug",
+        "//util/k8s",
+    ],
+)
+
+go_binary(
+    name = "k8s-stat-scraper",
+    embed = [":k8s-stat-scraper_lib"],
+    visibility = ["//visibility:public"],
+)

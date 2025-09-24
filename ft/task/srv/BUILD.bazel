@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "srv",
+    srcs = [
+        "mgr.go",
+        "srv.go",
+    ],
+    importpath = "sigmaos/ft/task/srv",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//ft/leaderclnt/electclnt",
+        "//ft/procgroupmgr",
+        "//ft/task",
+        "//ft/task/clnt",
+        "//ft/task/proto",
+        "//proc",
+        "//serr",
+        "//session/srv",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//util/crash",
+        "@io_etcd_go_etcd_client_v3//:client",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

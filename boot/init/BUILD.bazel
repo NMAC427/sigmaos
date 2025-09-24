@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "init",
+    srcs = ["init.go"],
+    importpath = "sigmaos/boot/init",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//kernel",
+        "//kernel/srv",
+        "//proc",
+    ],
+)

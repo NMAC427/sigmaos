@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "mr-m-wc_lib",
+    srcs = ["main.go"],
+    importpath = "sigmaos/cmd/user/mr-m-wc",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//apps/mr",
+        "//apps/mr/wc",
+    ],
+)
+
+go_binary(
+    name = "mr-m-wc",
+    embed = [":mr-m-wc_lib"],
+    visibility = ["//visibility:public"],
+)

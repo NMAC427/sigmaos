@@ -1,0 +1,59 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ux",
+    srcs = [
+        "dir.go",
+        "file.go",
+        "fsux.go",
+        "obj.go",
+        "pipe.go",
+        "refobj.go",
+        "symlink.go",
+    ],
+    importpath = "sigmaos/proxy/ux",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/fs",
+        "//debug",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//sigmasrv",
+        "//sigmasrv/memfssrv/memfs/file",
+        "//sigmasrv/pipe",
+        "//util/crash",
+        "//util/ip",
+        "//util/perf",
+        "//util/refmap",
+        "//util/sortedmapv1",
+    ] + select({
+        "@rules_go//go/platform:android": [
+            "@org_golang_x_sys//unix",
+        ],
+        "@rules_go//go/platform:linux": [
+            "@org_golang_x_sys//unix",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_test(
+    name = "ux_test",
+    srcs = ["fsux_test.go"],
+    embed = [":ux"],
+    deps = [
+        "//debug",
+        "//dialproxy/clnt",
+        "//path",
+        "//proc",
+        "//serr",
+        "//sigmaclnt",
+        "//sigmap",
+        "//test",
+        "//util/crash",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

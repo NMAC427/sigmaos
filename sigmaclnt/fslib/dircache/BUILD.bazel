@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dircache",
+    srcs = ["dircache.go"],
+    importpath = "sigmaos/sigmaclnt/fslib/dircache",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//debug",
+        "//namesrv/fsetcd",
+        "//serr",
+        "//sigmaclnt/fslib",
+        "//sigmaclnt/fslib/dirwatcher",
+        "//sigmap",
+        "//spproto/srv/proto",
+        "//util/sortedmapv1",
+        "//util/spstats",
+    ],
+)
+
+go_test(
+    name = "dircache_test",
+    srcs = ["dircache_test.go"],
+    deps = [
+        ":dircache",
+        "//debug",
+        "//sigmap",
+        "//test",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
