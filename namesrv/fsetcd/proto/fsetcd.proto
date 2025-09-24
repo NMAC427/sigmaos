@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "sigmaos/namesrv/fsetcd";
+option go_package = "sigmaos/namesrv/fsetcd/proto";
 
 message EtcdFileProto {
         bytes   data = 1;
@@ -12,7 +12,7 @@ message EtcdDirEntProto {
         uint32 perm = 3;
         int64 leaseId = 4;
         uint64  clientId = 5;
-}       
+}
 
 message EtcdDirProto {
         repeated EtcdDirEntProto ents = 3;

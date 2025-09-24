@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "sigmaos/sigmap";
+option go_package = "sigmaos/sigmap/proto";
 
 // A Qid is the server's unique identification for the file being
 // accessed: two files on the same server hierarchy are the same if
@@ -48,7 +48,7 @@ message TendpointProto {
 }
 
 message TfenceProto {
-        string pathName = 1; 
+        string pathName = 1;
         uint64 epoch = 2;
         uint64 seqno = 3;
 }
@@ -82,7 +82,7 @@ message Tattach {
 }
 
 message Rattach {
-        TqidProto qid = 1;        
+        TqidProto qid = 1;
 }
 
 message Rerror {
@@ -184,7 +184,7 @@ message Twatch {
 }
 
 message Rwatch {
-        
+
 }
 
 message Trenameat {

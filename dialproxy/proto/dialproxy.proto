@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "sigmap/sigmap.proto";
+import "sigmap/proto/sigmap.proto";
 import "rpc/proto/rpc.proto";
 
 option go_package = "sigmaos/dialproxy/proto";

@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 import "rpc/proto/rpc.proto";
-import "sigmap/sigmap.proto";
+import "sigmap/proto/sigmap.proto";
 
 option go_package = "sigmaos/sched/msched/proc/chunk/proto";
 

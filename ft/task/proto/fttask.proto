@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "sigmaos/ft/task/proto";
 
-import "sigmap/sigmap.proto";
+import "sigmap/proto/sigmap.proto";
 
 enum TaskStatus {
   TODO = 0;
@@ -67,7 +67,7 @@ message MoveTasksReq {
 }
 
 message MoveTasksRep {
-  
+
 }
 
 message MoveTasksByStatusReq {
@@ -99,7 +99,7 @@ message AddTaskOutputsReq {
 }
 
 message AddTaskOutputsRep {
-  
+
 }
 
 message GetTaskOutputsReq {
@@ -119,7 +119,7 @@ message TaskStats {
 }
 
 message GetTaskStatsReq {
-  
+
 }
 
 message GetTaskStatsRep {

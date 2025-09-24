@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "sigmaos/proc";
+option go_package = "sigmaos/proc/proto";
 import "google/protobuf/timestamp.proto";
-import "sigmap/sigmap.proto";
+import "sigmap/proto/sigmap.proto";
 import "rpc/proto/rpc.proto";
 
 message ProcSeqno {

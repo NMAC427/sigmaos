@@ -1,14 +1,32 @@
 load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
-go_library(
-    name = "proto",
-    srcs = ["chunk.pb.go"],
+proto_library(
+    name = "proto_proto",
+    srcs = ["chunk.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto:proto_proto",
+        "//sigmap/proto:proto_proto",
+    ],
+)
+
+go_proto_library(
+    name = "proto_go_proto",
+    compilers = ["@rules_go//proto:go_proto"],
     importpath = "sigmaos/sched/msched/proc/chunk/proto",
+    proto = ":proto_proto",
     visibility = ["//visibility:public"],
     deps = [
         "//rpc/proto",
-        "//sigmap",
-        "@org_golang_google_protobuf//reflect/protoreflect",
-        "@org_golang_google_protobuf//runtime/protoimpl",
+        "//sigmap/proto",
     ],
+)
+
+go_library(
+    name = "proto",
+    embed = [":proto_go_proto"],
+    importpath = "sigmaos/sched/msched/proc/chunk/proto",
+    visibility = ["//visibility:public"],
 )

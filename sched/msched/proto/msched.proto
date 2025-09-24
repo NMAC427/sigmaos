@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "proc/proc.proto";
+import "proc/proto/proc.proto";
 
 option go_package = "sigmaos/sched/msched/proto";
 
@@ -65,7 +65,7 @@ message WarmCacheBinRep {
 
 message RealmStats {
   int64 running = 1;
-  int64 totalRan = 2; 
+  int64 totalRan = 2;
 }
 
 message GetMSchedStatsReq {

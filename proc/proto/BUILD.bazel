@@ -4,23 +4,30 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 
 proto_library(
     name = "proto_proto",
-    srcs = ["epcache.proto"],
+    srcs = ["proc.proto"],
     visibility = ["//visibility:public"],
-    deps = ["//sigmap/proto:proto_proto"],
+    deps = [
+        "//rpc/proto:proto_proto",
+        "//sigmap/proto:proto_proto",
+        "@protobuf//:timestamp_proto",
+    ],
 )
 
 go_proto_library(
     name = "proto_go_proto",
     compilers = ["@rules_go//proto:go_proto"],
-    importpath = "sigmaos/apps/epcache/proto",
+    importpath = "sigmaos/proc/proto",
     proto = ":proto_proto",
     visibility = ["//visibility:public"],
-    deps = ["//sigmap/proto"],
+    deps = [
+        "//rpc/proto",
+        "//sigmap/proto",
+    ],
 )
 
 go_library(
     name = "proto",
     embed = [":proto_go_proto"],
-    importpath = "sigmaos/apps/epcache/proto",
+    importpath = "sigmaos/proc/proto",
     visibility = ["//visibility:public"],
 )

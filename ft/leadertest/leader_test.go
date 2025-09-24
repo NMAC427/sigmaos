@@ -8,7 +8,7 @@ import (
 
 	db "sigmaos/debug"
 	"sigmaos/sigmaclnt/fslib"
-	"sigmaos/proc"
+	"sigmaos/proc" // gazelle:resolve go sigmaos/proc //proc:proc // gazelle:resolve go sigmaos/proc //proc:proc
 	sp "sigmaos/sigmap"
 	"sigmaos/test"
 )

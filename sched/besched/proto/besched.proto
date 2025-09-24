@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "proc/proc.proto";
+import "proc/proto/proc.proto";
 
 option go_package = "sigmaos/sched/besched/proto";
 
