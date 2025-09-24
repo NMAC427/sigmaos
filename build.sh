@@ -29,7 +29,7 @@ BUILDER_NAME="sig-bazel-builder"
 BUILD_LOG="/tmp/sigmaos-build"
 
 # Start / Rebuild Builder
-buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
+buildercid=$((docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1) || true)
 if [[ $REBUILD_FLAG == "true" ]]; then
   if ! [ -z "$buildercid" ]; then
     echo "========== Stopping old builder container $buildercid =========="
@@ -44,12 +44,10 @@ fi
 
 if [ -z "$buildercid" ]; then
   echo "========== Starting builder container =========="
-  mkdir -p ${ROOT}/.cache
   docker run --rm -d -it \
     --name $BUILDER_NAME \
     --user $( id -u ):$( id -g ) \
     --mount "type=bind,src=${ROOT},dst=/src" \
-    --mount "type=bind,src=${ROOT}/.cache,dst=/root/.cache/bazel" \
     "${BUILDER_NAME}"
   buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
   until [ "`docker inspect -f {{.State.Running}} $buildercid`"=="true" ]; do
