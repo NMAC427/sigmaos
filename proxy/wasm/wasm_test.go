@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	wasmer "github.com/NMAC427/wasmer-go/wasmer"
 	"github.com/stretchr/testify/assert"
-	wasmer "github.com/wasmerio/wasmer-go/wasmer"
 
 	"sigmaos/apps/cache"
 	cachegrpclnt "sigmaos/apps/cache/cachegrp/clnt"

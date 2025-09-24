@@ -1,14 +1,12 @@
 module sigmaos
 
-go 1.21
+go 1.23
 
-toolchain go1.21.3
-
-// replace (
-// 	go.etcd.io/etcd/client/pkg/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/pkg/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-// 	go.etcd.io/etcd/client/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-// 	go.etcd.io/etcd/server/v3 v3.5.13 => github.com/ArielSzekely/etcd/server/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-// )
+replace (
+	go.etcd.io/etcd/client/pkg/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/pkg/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+	go.etcd.io/etcd/client/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+	go.etcd.io/etcd/server/v3 v3.5.13 => github.com/ArielSzekely/etcd/server/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+)
 
 require (
 	github.com/aws/aws-lambda-go v1.31.0
@@ -34,6 +32,7 @@ require (
 
 require (
 	github.com/ArielSzekely/corral v0.0.0-20230531153147-c7d559158f71
+	github.com/NMAC427/wasmer-go v0.0.0-20250924231452-27664ef84bbe
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.13
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -45,7 +44,6 @@ require (
 	github.com/mit-pdos/go-geoindex v0.0.0-20230316114931-aab59857d7c8
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/shirou/gopsutil v2.21.11+incompatible
-	github.com/wasmerio/wasmer-go v1.0.4
 	go.etcd.io/etcd/client/v3 v3.5.13
 	go.mongodb.org/mongo-driver v1.12.1
 	go.opentelemetry.io/otel v1.28.0

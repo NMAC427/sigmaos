@@ -14,6 +14,6 @@ go_library(
         "//sigmaclnt",
         "//sigmap",
         "//util/perf",
-        "@com_github_wasmerio_wasmer_go//wasmer",
+        "@com_github_nmac427_wasmer_go//wasmer",
     ],
 )

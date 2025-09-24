@@ -3,7 +3,7 @@ package wasmer
 import (
 	"time"
 
-	wasmer "github.com/wasmerio/wasmer-go/wasmer"
+	wasmer "github.com/NMAC427/wasmer-go/wasmer"
 
 	db "sigmaos/debug"
 	wasmrpc "sigmaos/proxy/wasm/rpc"

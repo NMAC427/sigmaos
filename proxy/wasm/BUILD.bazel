@@ -13,8 +13,8 @@ go_test(
         "//debug",
         "//proxy/wasm/rpc/wasmer",
         "//sigmap",
+        "@com_github_nmac427_wasmer_go//wasmer",
         "@com_github_stretchr_testify//assert",
-        "@com_github_wasmerio_wasmer_go//wasmer",
         "@org_golang_google_protobuf//proto",
     ],
 )
