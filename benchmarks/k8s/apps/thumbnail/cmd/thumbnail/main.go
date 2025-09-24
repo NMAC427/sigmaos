@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/NMAC427/corral/export/pkg/corfs"
+	"github.com/ArielSzekely/corral/export/pkg/corfs"
 	"github.com/nfnt/resize"
 )
 

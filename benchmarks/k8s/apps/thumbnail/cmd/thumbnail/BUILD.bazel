@@ -6,8 +6,8 @@ go_library(
     importpath = "sigmaos/benchmarks/k8s/apps/thumbnail/cmd/thumbnail",
     visibility = ["//visibility:private"],
     deps = [
+        "@com_github_arielszekely_corral//export/pkg/corfs",
         "@com_github_nfnt_resize//:resize",
-        "@com_github_nmac427_corral//export/pkg/corfs:go_default_library",
     ],
 )
 
