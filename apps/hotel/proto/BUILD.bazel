@@ -1,34 +1,21 @@
 load("@rules_go//go:def.bzl", "go_library")
-load("@rules_go//proto:def.bzl", "go_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-
-proto_library(
-    name = "proto_proto",
-    srcs = [
-        "geo.proto",
-        "prof.proto",
-        "rate.proto",
-        "rec.proto",
-        "reserve.proto",
-        "search.proto",
-        "user.proto",
-    ],
-    visibility = ["//visibility:public"],
-    deps = ["//util/tracing/proto:proto_proto"],
-)
-
-go_proto_library(
-    name = "proto_go_proto",
-    compilers = ["@rules_go//proto:go_grpc"],
-    importpath = "sigmaos/apps/hotel/proto",
-    proto = ":proto_proto",
-    visibility = ["//visibility:public"],
-    deps = ["//util/tracing/proto"],
-)
 
 go_library(
     name = "proto",
-    embed = [":proto_go_proto"],
+    srcs = [
+        "geo.pb.go",
+        "prof.pb.go",
+        "rate.pb.go",
+        "rec.pb.go",
+        "reserve.pb.go",
+        "search.pb.go",
+        "user.pb.go",
+    ],
     importpath = "sigmaos/apps/hotel/proto",
     visibility = ["//visibility:public"],
+    deps = [
+        "//util/tracing/proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
 )

@@ -1,34 +1,15 @@
 load("@rules_go//go:def.bzl", "go_library")
-load("@rules_go//proto:def.bzl", "go_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
 
-proto_library(
-    name = "spproxy_proto",
-    srcs = ["spproxy.proto"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//proc:proc_proto",
-        "//rpc/proto:rpc_proto",
-        "//sigmap:sigmap_proto",
-    ],
-)
-
-go_proto_library(
-    name = "spproxy_go_proto",
-    compilers = ["@rules_go//proto:go_proto"],
+go_library(
+    name = "proto",
+    srcs = ["spproxy.pb.go"],
     importpath = "sigmaos/proxy/sigmap/proto",
-    proto = ":spproxy_proto",
     visibility = ["//visibility:public"],
     deps = [
         "//proc",
         "//rpc/proto",
         "//sigmap",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
     ],
-)
-
-go_library(
-    name = "proto",
-    embed = [":spproxy_go_proto"],
-    importpath = "sigmaos/proxy/sigmap/proto",
-    visibility = ["//visibility:public"],
 )

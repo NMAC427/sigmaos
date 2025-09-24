@@ -1,6 +1,4 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
-load("@rules_go//proto:def.bzl", "go_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
 
 go_library(
     name = "fsetcd",
@@ -9,11 +7,11 @@ go_library(
         "dir.go",
         "fs.go",
         "fsetcd.go",
+        "fsetcd.pb.go",
         "pstats.go",
         "session.go",
         "types.go",
     ],
-    embed = [":fsetcd_go_proto"],
     importpath = "sigmaos/namesrv/fsetcd",
     visibility = ["//visibility:public"],
     deps = [
@@ -32,21 +30,9 @@ go_library(
         "@io_etcd_go_etcd_client_v3//concurrency",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
     ],
-)
-
-proto_library(
-    name = "fsetcd_proto",
-    srcs = ["fsetcd.proto"],
-    visibility = ["//visibility:public"],
-)
-
-go_proto_library(
-    name = "fsetcd_go_proto",
-    compilers = ["@rules_go//proto:go_proto"],
-    importpath = "sigmaos/namesrv/fsetcd",
-    proto = ":fsetcd_proto",
-    visibility = ["//visibility:public"],
 )
 
 go_test(

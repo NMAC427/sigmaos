@@ -1,36 +1,19 @@
 load("@rules_go//go:def.bzl", "go_library")
-load("@rules_go//proto:def.bzl", "go_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-
-proto_library(
-    name = "proto_proto",
-    srcs = ["cache.proto"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//rpc/proto:rpc_proto",
-        "//sigmap:sigmap_proto",
-        "//util/tracing/proto:proto_proto",
-    ],
-)
-
-go_proto_library(
-    name = "proto_go_proto",
-    compilers = ["@rules_go//proto:go_proto"],
-    importpath = "sigmaos/apps/cache/proto",
-    proto = ":proto_proto",
-    visibility = ["//visibility:public"],
-    deps = [
-        "//rpc/proto",
-        "//sigmap",
-        "//util/tracing/proto",
-    ],
-)
 
 go_library(
     name = "proto",
-    srcs = ["types.go"],
-    embed = [":proto_go_proto"],
+    srcs = [
+        "cache.pb.go",
+        "types.go",
+    ],
     importpath = "sigmaos/apps/cache/proto",
     visibility = ["//visibility:public"],
-    deps = ["//apps/cache"],
+    deps = [
+        "//apps/cache",
+        "//rpc/proto",
+        "//sigmap",
+        "//util/tracing/proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
 )

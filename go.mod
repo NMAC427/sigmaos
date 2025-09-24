@@ -4,11 +4,11 @@ go 1.21
 
 toolchain go1.21.3
 
-replace (
-	go.etcd.io/etcd/client/pkg/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/pkg/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-	go.etcd.io/etcd/client/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-	go.etcd.io/etcd/server/v3 v3.5.13 => github.com/ArielSzekely/etcd/server/v3 v3.5.14-0.20240513153706-90dd26ac9c07
-)
+// replace (
+// 	go.etcd.io/etcd/client/pkg/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/pkg/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+// 	go.etcd.io/etcd/client/v3 v3.5.13 => github.com/ArielSzekely/etcd/client/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+// 	go.etcd.io/etcd/server/v3 v3.5.13 => github.com/ArielSzekely/etcd/server/v3 v3.5.14-0.20240513153706-90dd26ac9c07
+// )
 
 require (
 	github.com/aws/aws-lambda-go v1.31.0
