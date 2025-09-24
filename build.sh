@@ -59,5 +59,11 @@ if [ -z "$buildercid" ]; then
   echo "========== Done starting builder ========== "
 fi
 
-docker exec -it $buildercid \
+if [ -t 1 ] ; then
+  TTY_FLAG="-it";
+else
+  TTY_FLAG="";
+fi
+
+docker exec $TTY_FLAG $buildercid \
   bazel "${BAZEL_ARGS[@]}"
