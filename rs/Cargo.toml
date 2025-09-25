@@ -1,5 +1,12 @@
 [workspace]
 members = [
+    "proto",
+    "sigmaos",
     "uproc-trampoline",
     "spawn-latency",
+    "wasm/cached_backup_boot",
+    "wasm/cached_backup_hot_shard_boot",
+    "wasm/cached_scaler_boot",
+    "wasm/cossim_boot",
+    "wasm/hello_wasm",
 ]

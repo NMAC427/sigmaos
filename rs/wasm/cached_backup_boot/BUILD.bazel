@@ -1,0 +1,14 @@
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+
+rust_shared_library(
+    name = "cached_backup_boot",
+    srcs = ["src/lib.rs"],
+    edition = "2024",
+    platform = "@rules_rust//rust/platform:wasm",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True) + [
+        "//rs/proto",
+        "//rs/sigmaos",
+    ],
+)

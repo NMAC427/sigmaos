@@ -69,15 +69,14 @@ rust.toolchain(
     edition = "2024",
     versions = [ "1.85.0" ],
 )
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
 crate.from_cargo(
     name = "crates",
     cargo_lockfile = "//rs:Cargo.lock",
-    manifests = [
-        "//rs:Cargo.toml",
-        "//rs/spawn-latency:Cargo.toml",
-        "//rs/uproc-trampoline:Cargo.toml",
-    ],
+    manifests = ["//rs:Cargo.toml"],
 )
 use_repo(crate, "crates")
