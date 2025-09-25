@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "sigmaos/ft/task/proto";
 
-import "sigmap/proto/sigmap.proto";
+import "sigmap/sigmap.proto";
 
 enum TaskStatus {
   TODO = 0;

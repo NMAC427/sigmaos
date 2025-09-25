@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "sigmaos/sigmap/proto";
+option go_package = "sigmaos/sigmap";
 
 // A Qid is the server's unique identification for the file being
 // accessed: two files on the same server hierarchy are the same if

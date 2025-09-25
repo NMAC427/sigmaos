@@ -8,7 +8,7 @@ proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//rpc/proto:proto_proto",
-        "//sigmap/proto:proto_proto",
+        "//sigmap:sigmap_proto",
     ],
 )
 
@@ -20,7 +20,7 @@ go_proto_library(
     visibility = ["//visibility:public"],
     deps = [
         "//rpc/proto",
-        "//sigmap/proto",
+        "//sigmap",
     ],
 )
 

@@ -6,7 +6,7 @@ proto_library(
     name = "proto_proto",
     srcs = ["msched.proto"],
     visibility = ["//visibility:public"],
-    deps = ["//proc/proto:proto_proto"],
+    deps = ["//proc:proc_proto"],
 )
 
 go_proto_library(
@@ -15,7 +15,7 @@ go_proto_library(
     importpath = "sigmaos/sched/msched/proto",
     proto = ":proto_proto",
     visibility = ["//visibility:public"],
-    deps = ["//proc/proto"],
+    deps = ["//proc"],
 )
 
 go_library(

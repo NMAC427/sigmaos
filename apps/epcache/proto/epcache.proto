@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "sigmap/proto/sigmap.proto";
+import "sigmap/sigmap.proto";
 
 option go_package = "sigmaos/apps/epcache/proto";
 

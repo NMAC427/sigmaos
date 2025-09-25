@@ -7,9 +7,9 @@ proto_library(
     srcs = ["spproxy.proto"],
     visibility = ["//visibility:public"],
     deps = [
-        "//proc/proto:proto_proto",
+        "//proc:proc_proto",
         "//rpc/proto:proto_proto",
-        "//sigmap/proto:proto_proto",
+        "//sigmap:sigmap_proto",
     ],
 )
 
@@ -20,9 +20,9 @@ go_proto_library(
     proto = ":proto_proto",
     visibility = ["//visibility:public"],
     deps = [
-        "//proc/proto",
+        "//proc",
         "//rpc/proto",
-        "//sigmap/proto",
+        "//sigmap",
     ],
 )
 
