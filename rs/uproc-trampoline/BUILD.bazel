@@ -1,0 +1,10 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+
+rust_binary(
+    name = "uproc-trampoline",
+    srcs = ["src/main.rs"],
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True),
+)

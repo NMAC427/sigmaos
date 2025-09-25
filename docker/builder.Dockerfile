@@ -35,6 +35,13 @@ RUN git clone https://github.com/ArielSzekely/go.git go-custom && \
   ./make.bash && \
   /go-custom/bin/go version
 
+# Install additional dependencies
+RUN apt install -y \
+  libseccomp-dev
+
+ENV LIBSECCOMP_LINK_TYPE=static
+ENV LIBSECCOMP_LIB_PATH="/usr/lib"
+
 WORKDIR /home/sigmaos
 
 CMD [ "/bin/bash", "-l" ]
