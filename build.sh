@@ -23,47 +23,66 @@ if [ ${#BAZEL_ARGS[@]} -eq 0 ]; then
 fi
 
 ROOT=$(dirname $(realpath $0))
+PATH_HASH=$(echo ${ROOT} | md5sum | cut -c -8)
 
-BUILDER_NAME="sig-bazel-builder"
+BUILDER_IMAGE_NAME="sig-bazel-builder"
+BUILDER_CONTAINER_NAME="${BUILDER_IMAGE_NAME}_${PATH_HASH}"
 
 BUILD_LOG="/tmp/sigmaos-build"
+mkdir -p "$BUILD_LOG"
 
-# Start / Rebuild Builder
-buildercid=$((docker ps | grep -E " $BUILDER_NAME " | cut -d " " -f1) || true)
+function container_exists() {
+  docker container inspect $BUILDER_CONTAINER_NAME >/dev/null 2>&1 && echo "true" || echo "false"
+}
+
+function builder_running() {
+  if [[ "$(container_exists)" == "true" ]]; then
+    docker container inspect -f '{{.State.Running}}' $BUILDER_CONTAINER_NAME 2>/dev/null || echo "false"
+  else
+    echo "false"
+  fi
+}
+
 if [[ $REBUILD_FLAG == "true" ]]; then
-  if ! [ -z "$buildercid" ]; then
-    echo "========== Stopping old builder container $buildercid =========="
-    docker stop $buildercid
+  if [[ "$(container_exists)" == "true" ]]; then
+    echo "========== Stopping and removing old builder container $BUILDER_CONTAINER_NAME =========="
+    docker rm -f $BUILDER_CONTAINER_NAME
   fi
 
   echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/bazel.Dockerfile -t $BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-bazel-builder.out
-  buildercid=""
+  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/bazel.Dockerfile -t $BUILDER_IMAGE_NAME . 2>&1 | tee $BUILD_LOG/sig-bazel-builder.out
   echo "========== Done building builder =========="
 fi
 
-if [ -z "$buildercid" ]; then
+if [[ "$(builder_running)" != "true" ]]; then
+    # If the container exists but is stopped, remove it before trying to run a new one.
+    if [[ "$(container_exists)" == "true" ]]; then
+        echo "========== Removing stopped container $BUILDER_CONTAINER_NAME =========="
+        docker rm $BUILDER_CONTAINER_NAME
+    fi
   echo "========== Starting builder container =========="
   mkdir -p /tmp/bazel_build_cache
   docker run --rm -d -it \
-    --name $BUILDER_NAME \
-    --user $( id -u ):$( id -g ) \
+    --name "${BUILDER_CONTAINER_NAME}" \
+    --user "$(id -u):$(id -g)" \
     --mount "type=bind,src=/tmp/bazel_build_cache,dst=/tmp/bazel_build_cache" \
-    --mount "type=bind,src=${ROOT},dst=/src" \
-    "${BUILDER_NAME}"
-  buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $buildercid`"=="true" ]; do
+    --mount "type=bind,src=${ROOT},dst=/home/builder/${ROOT}" \
+    "${BUILDER_IMAGE_NAME}"
+  # Loop until the container is in a running state.
+  until [[ "$(builder_running)" == "true" ]]; do
       echo -n "." 1>&2
-      sleep 0.1;
+      sleep 0.1
   done
   echo "========== Done starting builder ========== "
 fi
 
 if [ -t 1 ] ; then
-  TTY_FLAG="-it";
+  TTY_FLAG="-it"
 else
-  TTY_FLAG="";
+  TTY_FLAG=""
 fi
 
-docker exec $TTY_FLAG $buildercid \
+docker exec $TTY_FLAG \
+  -w "/home/builder/${ROOT}" \
+  "${BUILDER_CONTAINER_NAME}" \
   bazel "${BAZEL_ARGS[@]}"

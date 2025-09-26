@@ -15,9 +15,6 @@ RUN apt-get update && \
         unzip \
         zip
 
-# Set a working directory for our build.
-WORKDIR /src
-
 # --- Install Bazel ---
 ARG BAZEL_VERSION
 ENV BAZEL_VERSION=${BAZEL_VERSION:-8.4.1}
@@ -27,10 +24,17 @@ RUN curl -fSL "https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VER
     ./bazel-installer.sh && \
     rm bazel-installer.sh
 
+# Install additional dependencies
+RUN apt install -y \
+  libseccomp-dev
+
+ENV LIBSECCOMP_LINK_TYPE=static
+ENV LIBSECCOMP_LIB_PATH="/usr/lib"
+
+# Setup user
 RUN groupadd -g 1001 builder && \
     useradd -m -u 1001 -g 1001 -s /bin/bash builder
-
 USER builder
-
+WORKDIR /home/builder
 
 CMD [ "/bin/bash", "-l" ]
