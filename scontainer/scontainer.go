@@ -58,7 +58,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 			args = append([]string{"--signal=!SIGSEGV"}, args...)
 		}
 		if uproc.GetProgram() == "python" {
-			straceArgs = append([]string{"-E", "LD_PRELOAD=/tmp/python/ld_fstatat.so"}, straceArgs...)
+			args = append([]string{"-E", "LD_PRELOAD=/tmp/python/ld_fstatat.so"}, args...)
 		}
 		args = append(args, uproc.Args...)
 		cmd = exec.Command("strace", args...)
