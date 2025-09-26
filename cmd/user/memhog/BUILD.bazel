@@ -15,15 +15,15 @@ go_library(
     ],
 )
 
-go_binary(
-    name = "memhog",
-    embed = [":memhog_lib"],
-    visibility = ["//visibility:public"],
-)
-
 go_test(
     name = "memhog_test",
     srcs = ["memhog_test.go"],
     embed = [":memhog_lib"],
     deps = ["//sigmap"],
+)
+
+go_binary(
+    name = "memhog",
+    embed = [":memhog_lib"],
+    visibility = ["//visibility:public"],
 )

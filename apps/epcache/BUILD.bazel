@@ -1,12 +1,5 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
-go_library(
-    name = "epcache",
-    srcs = ["epcache.go"],
-    importpath = "sigmaos/apps/epcache",
-    visibility = ["//visibility:public"],
-)
-
 go_test(
     name = "epcache_test",
     srcs = ["epcache_test.go"],
@@ -19,4 +12,11 @@ go_test(
         "//test",
         "@com_github_stretchr_testify//assert",
     ],
+)
+
+go_library(
+    name = "epcache",
+    srcs = ["epcache.go"],
+    importpath = "sigmaos/apps/epcache",
+    visibility = ["//visibility:public"],
 )

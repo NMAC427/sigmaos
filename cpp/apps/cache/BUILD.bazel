@@ -1,0 +1,36 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "cache",
+    srcs = [
+        "cache.cc",
+        "clnt.cc",
+        "shard.cc",
+        "srv.cc",
+    ],
+    hdrs = [
+        "cache.h",
+        "clnt.h",
+        "shard.h",
+        "srv.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/cache/proto:proto_cc_proto",
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux",
+        "//cpp/io/iovec",
+        "//cpp/io/net",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/rpc/spchannel",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "//sigmap:sigmap_cc_proto",
+        "//util/tracing/proto:proto_cc_proto",
+    ],
+)

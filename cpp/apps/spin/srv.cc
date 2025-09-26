@@ -1,4 +1,4 @@
-#include <apps/spin/srv.h>
+#include "cpp/apps/spin/srv.h"
 
 namespace sigmaos {
 namespace apps::spin {

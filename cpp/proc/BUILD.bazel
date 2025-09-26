@@ -1,0 +1,24 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "proc",
+    srcs = [
+        "proc.cc",
+        "proc.pb.cc",
+    ],
+    hdrs = [
+        "proc.h",
+        "proc.pb.h",
+        "status.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//proc:proc_cc_proto",
+        "//rpc/proto:proto_cc_proto",
+        "//sigmap:sigmap_cc_proto",
+        "@protobuf//src/google/protobuf/io",
+        "@protobuf//src/google/protobuf/util:time_util",
+    ],
+)

@@ -1,4 +1,4 @@
-#include "rpc/delegation/cache.h"
+#include "cpp/rpc/delegation/cache.h"
 
 namespace sigmaos {
 namespace rpc {

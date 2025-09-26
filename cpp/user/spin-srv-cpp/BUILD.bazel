@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "spin-srv-cpp",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/apps/spin",
+        "//cpp/proc",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/rpc/spchannel",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "@protobuf//src/google/protobuf/util:time_util",
+    ],
+)

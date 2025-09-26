@@ -1,0 +1,17 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "spchannel",
+    srcs = ["spchannel.cc"],
+    hdrs = ["spchannel.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/demux",
+        "//cpp/io/iovec",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/util/log",
+        "//rpc/proto:proto_cc_proto",
+    ],
+)

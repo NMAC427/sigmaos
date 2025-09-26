@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "frame",
+    srcs = ["frame.cc"],
+    hdrs = ["frame.h"],
+    includes = ["."],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/iovec",
+        "//cpp/serr",
+        "//cpp/util/log",
+    ],
+)

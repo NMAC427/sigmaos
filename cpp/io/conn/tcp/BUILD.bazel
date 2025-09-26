@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "tcp",
+    srcs = ["tcp.cc"],
+    hdrs = ["tcp.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/serr",
+        "//cpp/util/log",
+    ],
+)

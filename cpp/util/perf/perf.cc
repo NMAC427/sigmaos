@@ -1,5 +1,5 @@
 #include <google/protobuf/util/time_util.h>
-#include <util/perf/perf.h>
+#include "cpp/util/perf/perf.h"
 
 #include <chrono>
 

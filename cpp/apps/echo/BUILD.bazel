@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "echo",
+    srcs = ["srv.cc"],
+    hdrs = ["srv.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux",
+        "//cpp/io/net",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//example/example_echo_server/proto:proto_cc_proto",
+        "//sigmap:sigmap_cc_proto",
+    ],
+)

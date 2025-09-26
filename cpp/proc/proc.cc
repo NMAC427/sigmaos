@@ -1,4 +1,4 @@
-#include <proc/proc.h>
+#include "cpp/proc/proc.h"
 
 namespace sigmaos {
 namespace proc {

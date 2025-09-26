@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "threadpool",
+    srcs = ["threadpool.cc"],
+    hdrs = ["threadpool.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/proxy/sigmap",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//sigmap:sigmap_cc_proto",
+    ],
+)

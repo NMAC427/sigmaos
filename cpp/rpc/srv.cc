@@ -1,5 +1,5 @@
-#include <rpc/blob.h>
-#include <rpc/srv.h>
+#include "cpp/rpc/blob.h"
+#include "cpp/rpc/srv.h"
 
 namespace sigmaos {
 namespace rpc::srv {

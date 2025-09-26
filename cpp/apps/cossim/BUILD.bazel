@@ -1,0 +1,30 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "cossim",
+    srcs = [
+        "srv.cc",
+        "vec.cc",
+    ],
+    hdrs = [
+        "srv.h",
+        "vec.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apps/cossim/proto:proto_cc_proto",
+        "//cpp/apps/cache",
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux",
+        "//cpp/io/net",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "//sigmap:sigmap_cc_proto",
+    ],
+)

@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "conn",
+    srcs = ["conn.cc"],
+    hdrs = ["conn.h"],
+    implementation_deps = [
+        "//cpp/util/codec",
+        "//cpp/util/perf",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/serr",
+        "//cpp/util/log",
+    ],
+)

@@ -1,0 +1,22 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "demux",
+    srcs = [
+        "clnt.cc",
+        "srv.cc",
+    ],
+    hdrs = [
+        "clnt.h",
+        "srv.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/demux/internal",
+        "//cpp/io/transport",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/threadpool",
+        "//cpp/util/log",
+    ],
+)

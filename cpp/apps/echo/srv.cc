@@ -1,4 +1,4 @@
-#include <apps/echo/srv.h>
+#include "cpp/apps/echo/srv.h"
 
 namespace sigmaos {
 namespace apps::echo {

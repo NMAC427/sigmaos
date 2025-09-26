@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "delegation",
+    srcs = ["cache.cc"],
+    hdrs = ["cache.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/iovec",
+        "//cpp/serr",
+        "//cpp/util/log",
+        "//proxy/sigmap/proto:proto_cc_proto",
+    ],
+)

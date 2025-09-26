@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "transport",
+    srcs = ["transport.cc"],
+    hdrs = [
+        "call.h",
+        "transport.h",
+    ],
+    implementation_deps = ["//cpp/io/frame"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/iovec",
+        "//cpp/io/transport/internal",
+        "//cpp/serr",
+        "//cpp/util/log",
+    ],
+)

@@ -1,0 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "proto",
+    srcs = ["spin.pb.cc"],
+    hdrs = ["spin.pb.h"],
+    visibility = ["//visibility:public"],
+    deps = ["@protobuf//src/google/protobuf/io"],
+)

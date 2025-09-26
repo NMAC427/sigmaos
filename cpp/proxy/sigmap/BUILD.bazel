@@ -1,0 +1,25 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "sigmap",
+    srcs = ["sigmap.cc"],
+    hdrs = ["sigmap.h"],
+    implementation_deps = [
+        "//cpp/io/frame",
+        "//proxy/sigmap/proto:proto_cc_proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/conn/unix",
+        "//cpp/io/demux",
+        "//cpp/io/transport",
+        "//cpp/proc",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "@protobuf//src/google/protobuf/util:time_util",
+    ],
+)

@@ -1,6 +1,6 @@
-#include <io/frame/frame.h>
-#include <proxy/sigmap/proto/spproxy.pb.h>
-#include <proxy/sigmap/sigmap.h>
+#include "cpp/io/frame/frame.h"
+#include "proxy/sigmap/proto/spproxy.pb.h"
+#include "cpp/proxy/sigmap/sigmap.h"
 
 namespace sigmaos {
 namespace proxy::sigmap {

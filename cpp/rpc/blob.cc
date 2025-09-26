@@ -1,4 +1,4 @@
-#include <rpc/blob.h>
+#include "cpp/rpc/blob.h"
 
 namespace sigmaos {
 namespace rpc {

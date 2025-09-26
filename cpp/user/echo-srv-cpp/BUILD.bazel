@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "echo-srv-cpp",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/apps/echo",
+        "//cpp/proc",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+    ],
+)

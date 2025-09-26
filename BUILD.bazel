@@ -1,8 +1,18 @@
 # gazelle:go_grpc_compilers @rules_go//proto:go_grpc
 # gazelle:go_proto_compilers @rules_go//proto:go_proto
 
-load("@gazelle//:def.bzl", "gazelle")
+load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = [
+        "@gazelle//language/proto",
+        "@gazelle//language/go",
+        "@gazelle_cc//language/cc",
+    ],
+)
 
 gazelle(
     name = "gazelle",
+    gazelle = ":gazelle_bin",
 )

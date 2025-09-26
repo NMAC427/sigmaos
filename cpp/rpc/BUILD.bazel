@@ -1,0 +1,36 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "rpc",
+    srcs = [
+        "blob.cc",
+        "clnt.cc",
+        "srv.cc",
+    ],
+    hdrs = [
+        "blob.h",
+        "channel.h",
+        "clnt.h",
+        "rpc.h",
+        "srv.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux",
+        "//cpp/io/iovec",
+        "//cpp/io/net",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc/delegation",
+        "//cpp/serr",
+        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "//proxy/sigmap/proto:proto_cc_proto",
+        "//rpc/proto:proto_cc_proto",
+        "//sigmap:sigmap_cc_proto",
+        "@protobuf//src/google/protobuf/util:time_util",
+    ],
+)

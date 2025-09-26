@@ -1,0 +1,15 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "spawn-latency-cpp",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/proc",
+        "//cpp/proxy/sigmap",
+        "//cpp/serr",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "@protobuf//src/google/protobuf/util:time_util",
+    ],
+)

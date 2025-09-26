@@ -2,7 +2,7 @@
 
 #include <google/protobuf/message.h>
 #include <google/protobuf/util/json_util.h>
-#include <proc/proc.pb.h>
+#include "proc/proc.pb.h"
 
 #include <expected>
 

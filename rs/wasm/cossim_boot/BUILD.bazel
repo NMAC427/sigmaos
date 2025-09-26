@@ -1,5 +1,5 @@
-load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 
 rust_shared_library(
     name = "cossim_boot",
@@ -7,9 +7,9 @@ rust_shared_library(
     edition = "2021",
     platform = "@rules_rust//rust/platform:wasm",
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
         "//rs/proto",
         "//rs/sigmaos",
     ],
-    visibility = ["//visibility:public"],
 )

@@ -1,17 +1,17 @@
 #pragma once
 
-#include <apps/echo/proto/example_echo_server.pb.h>
-#include <io/conn/conn.h>
-#include <io/conn/tcp/tcp.h>
-#include <io/demux/srv.h>
-#include <io/net/srv.h>
-#include <io/transport/transport.h>
-#include <proxy/sigmap/sigmap.h>
-#include <rpc/srv.h>
-#include <serr/serr.h>
-#include <sigmap/const.h>
-#include <sigmap/sigmap.pb.h>
-#include <util/log/log.h>
+#include "example/example_echo_server/proto/example_echo_server.pb.h"
+#include "cpp/io/conn/conn.h"
+#include "cpp/io/conn/tcp/tcp.h"
+#include "cpp/io/demux/srv.h"
+#include "cpp/io/net/srv.h"
+#include "cpp/io/transport/transport.h"
+#include "cpp/proxy/sigmap/sigmap.h"
+#include "cpp/rpc/srv.h"
+#include "cpp/serr/serr.h"
+#include "cpp/sigmap/const.h"
+#include "sigmap/sigmap.pb.h"
+#include "cpp/util/log/log.h"
 
 #include <expected>
 #include <format>

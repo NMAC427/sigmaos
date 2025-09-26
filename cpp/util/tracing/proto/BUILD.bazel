@@ -1,0 +1,10 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "proto",
+    srcs = ["tracing.pb.cc"],
+    hdrs = ["tracing.pb.h"],
+    implementation_deps = ["//util/tracing/proto:proto_cc_proto"],
+    visibility = ["//visibility:public"],
+    deps = ["@protobuf//src/google/protobuf/io"],
+)

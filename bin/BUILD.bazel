@@ -1,10 +1,4 @@
-
 sh_binary(
     name = "genbuild",
     srcs = ["genbuild.py"],
-)
-
-alias(
-    name = "bin",
-    actual = "//bin/gen:bin",
 )

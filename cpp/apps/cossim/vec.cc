@@ -1,4 +1,4 @@
-#include <apps/cossim/vec.h>
+#include "cpp/apps/cossim/vec.h"
 
 namespace sigmaos {
 namespace apps::cossim {

@@ -1,1 +1,2 @@
 startup --output_user_root=/tmp/bazel_build_cache
+build --cxxopt="-std=c++23"

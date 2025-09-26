@@ -1,17 +1,7 @@
+load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@rules_go//go:def.bzl", "go_library")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
-
-proto_library(
-    name = "proto_proto",
-    srcs = ["cache.proto"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//rpc/proto:proto_proto",
-        "//sigmap:sigmap_proto",
-        "//util/tracing/proto:proto_proto",
-    ],
-)
 
 go_proto_library(
     name = "proto_go_proto",
@@ -33,4 +23,21 @@ go_library(
     importpath = "sigmaos/apps/cache/proto",
     visibility = ["//visibility:public"],
     deps = ["//apps/cache"],
+)
+
+cc_proto_library(
+    name = "proto_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [":proto_proto"],
+)
+
+proto_library(
+    name = "proto_proto",
+    srcs = ["cache.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto:proto_proto",
+        "//sigmap:sigmap_proto",
+        "//util/tracing/proto:proto_proto",
+    ],
 )

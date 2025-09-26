@@ -2,9 +2,9 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/util/time_util.h>
-#include <proc/proc.h>
-#include <sigmap/types.h>
-#include <util/log/log.h>
+#include "cpp/proc/proc.h"
+#include "cpp/sigmap/types.h"
+#include "cpp/util/log/log.h"
 
 #include <format>
 #include <fstream>

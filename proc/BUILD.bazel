@@ -1,3 +1,4 @@
+load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@rules_go//go:def.bzl", "go_library")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
@@ -24,17 +25,6 @@ go_library(
     ],
 )
 
-proto_library(
-    name = "proc_proto",
-    srcs = ["proc.proto"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "//rpc/proto:proto_proto",
-        "//sigmap:sigmap_proto",
-        "@protobuf//:timestamp_proto",
-    ],
-)
-
 go_proto_library(
     name = "proc_go_proto",
     compilers = ["@rules_go//proto:go_proto"],
@@ -44,5 +34,22 @@ go_proto_library(
     deps = [
         "//rpc/proto",
         "//sigmap",
+    ],
+)
+
+cc_proto_library(
+    name = "proc_cc_proto",
+    visibility = ["//visibility:public"],
+    deps = [":proc_proto"],
+)
+
+proto_library(
+    name = "proc_proto",
+    srcs = ["proc.proto"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//rpc/proto:proto_proto",
+        "//sigmap:sigmap_proto",
+        "@protobuf//:timestamp_proto",
     ],
 )

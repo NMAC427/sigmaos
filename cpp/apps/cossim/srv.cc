@@ -1,4 +1,4 @@
-#include <apps/cossim/srv.h>
+#include "cpp/apps/cossim/srv.h"
 
 namespace sigmaos {
 namespace apps::cossim {

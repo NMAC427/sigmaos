@@ -1,4 +1,4 @@
-#include <rpc/spchannel/spchannel.h>
+#include "cpp/rpc/spchannel/spchannel.h"
 
 namespace sigmaos {
 namespace rpc::spchannel {

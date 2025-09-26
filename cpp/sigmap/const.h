@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sigmap/types.h>
+#include "cpp/sigmap/types.h"
 
 namespace sigmaos {
 namespace sigmap::constants {

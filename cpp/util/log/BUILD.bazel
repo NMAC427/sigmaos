@@ -1,0 +1,12 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "log",
+    srcs = ["log.cc"],
+    hdrs = ["log.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/util/common",
+        "@spdlog",
+    ],
+)
