@@ -1,12 +1,12 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "internal",
+    name = "callmap",
     srcs = ["callmap.cc"],
     hdrs = ["callmap.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//cpp/io/transport",
+        "//cpp/io/transport:call",
         "//cpp/serr",
     ],
 )

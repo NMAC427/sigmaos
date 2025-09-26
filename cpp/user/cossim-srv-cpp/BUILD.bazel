@@ -1,17 +1,16 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_binary(
-    name = "cossim-srv-cpp",
+    name = "main",
     srcs = ["main.cc"],
-    visibility = ["//visibility:public"],
     deps = [
-        "//cpp/apps/cossim",
+        "//cpp/apps/cossim:srv",
         "//cpp/proc",
         "//cpp/proxy/sigmap",
-        "//cpp/rpc",
+        "//cpp/rpc:srv",
         "//cpp/rpc/spchannel",
         "//cpp/serr",
-        "//cpp/sigmap",
+        "//cpp/sigmap:const",
         "//cpp/util/log",
         "//cpp/util/perf",
         "@protobuf//src/google/protobuf/util:time_util",

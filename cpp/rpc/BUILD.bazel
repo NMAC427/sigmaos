@@ -1,35 +1,63 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "rpc",
+    name = "clnt",
     srcs = [
         "blob.cc",
         "clnt.cc",
-        "srv.cc",
     ],
     hdrs = [
         "blob.h",
-        "channel.h",
         "clnt.h",
-        "rpc.h",
-        "srv.h",
     ],
+    implementation_deps = ["//cpp/util/perf"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":channel",
+        "//cpp/io/iovec",
+        "//cpp/rpc/delegation:cache",
+        "//cpp/serr",
+        "//cpp/util/log",
+        "//proxy/sigmap/proto:proto_cc_proto",
+        "//rpc/proto:proto_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "channel",
+    hdrs = ["channel.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/iovec",
+        "//cpp/io/transport",
+        "//cpp/serr",
+        "//cpp/util/log",
+        "//rpc/proto:proto_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "rpc",
+    hdrs = ["rpc.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "srv",
+    srcs = ["srv.cc"],
+    hdrs = ["srv.h"],
+    implementation_deps = [":clnt"],
     visibility = ["//visibility:public"],
     deps = [
         "//cpp/io/conn",
         "//cpp/io/conn/tcp",
-        "//cpp/io/demux",
-        "//cpp/io/iovec",
-        "//cpp/io/net",
+        "//cpp/io/net:srv",
         "//cpp/io/transport",
         "//cpp/proxy/sigmap",
-        "//cpp/rpc/delegation",
         "//cpp/serr",
-        "//cpp/sigmap",
+        "//cpp/sigmap:const",
         "//cpp/util/log",
         "//cpp/util/perf",
-        "//proxy/sigmap/proto:proto_cc_proto",
-        "//rpc/proto:proto_cc_proto",
         "//sigmap:sigmap_cc_proto",
         "@protobuf//src/google/protobuf/util:time_util",
     ],

@@ -1,21 +1,25 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "epcache",
+    name = "clnt",
     srcs = ["clnt.cc"],
-    hdrs = [
-        "clnt.h",
-        "epcache.h",
-    ],
+    hdrs = ["clnt.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":epcache",
         "//apps/epcache/proto:proto_cc_proto",
-        "//cpp/io/demux",
+        "//cpp/io/demux:clnt",
         "//cpp/io/iovec",
         "//cpp/proxy/sigmap",
-        "//cpp/rpc",
+        "//cpp/rpc:clnt",
         "//cpp/rpc/spchannel",
         "//cpp/serr",
         "//cpp/util/log",
     ],
+)
+
+cc_library(
+    name = "epcache",
+    hdrs = ["epcache.h"],
+    visibility = ["//visibility:public"],
 )

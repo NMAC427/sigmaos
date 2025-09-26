@@ -7,7 +7,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cpp/serr",
-        "//cpp/sigmap",
+        "//cpp/sigmap:const",
         "//cpp/util/log",
         "//sigmap:sigmap_cc_proto",
     ],

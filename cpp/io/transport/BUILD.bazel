@@ -1,18 +1,22 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
+    name = "call",
+    hdrs = ["call.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//cpp/io/iovec"],
+)
+
+cc_library(
     name = "transport",
     srcs = ["transport.cc"],
-    hdrs = [
-        "call.h",
-        "transport.h",
-    ],
+    hdrs = ["transport.h"],
     implementation_deps = ["//cpp/io/frame"],
     visibility = ["//visibility:public"],
     deps = [
+        ":call",
         "//cpp/io/conn",
-        "//cpp/io/iovec",
-        "//cpp/io/transport/internal",
+        "//cpp/io/transport/internal:callmap",
         "//cpp/serr",
         "//cpp/util/log",
     ],

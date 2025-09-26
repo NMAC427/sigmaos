@@ -1,7 +1,6 @@
 #pragma once
 
 #include <google/protobuf/message.h>
-#include "cpp/io/demux/clnt.h"
 #include "cpp/io/iovec/iovec.h"
 #include "cpp/proxy/sigmap/sigmap.h"
 #include "cpp/rpc/channel.h"

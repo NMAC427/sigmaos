@@ -1,7 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "spin",
+    name = "srv",
     srcs = ["srv.cc"],
     hdrs = ["srv.h"],
     visibility = ["//visibility:public"],
@@ -9,13 +9,13 @@ cc_library(
         "//apps/spin/proto:proto_cc_proto",
         "//cpp/io/conn",
         "//cpp/io/conn/tcp",
-        "//cpp/io/demux",
-        "//cpp/io/net",
+        "//cpp/io/demux:srv",
+        "//cpp/io/net:srv",
         "//cpp/io/transport",
         "//cpp/proxy/sigmap",
-        "//cpp/rpc",
+        "//cpp/rpc:srv",
         "//cpp/serr",
-        "//cpp/sigmap",
+        "//cpp/sigmap:const",
         "//cpp/util/log",
         "//cpp/util/perf",
         "//sigmap:sigmap_cc_proto",

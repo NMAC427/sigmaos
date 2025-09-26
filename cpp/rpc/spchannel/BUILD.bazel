@@ -6,10 +6,10 @@ cc_library(
     hdrs = ["spchannel.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//cpp/io/demux",
         "//cpp/io/iovec",
         "//cpp/proxy/sigmap",
         "//cpp/rpc",
+        "//cpp/rpc:channel",
         "//cpp/serr",
         "//cpp/util/log",
         "//rpc/proto:proto_cc_proto",

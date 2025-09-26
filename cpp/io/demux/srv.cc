@@ -1,4 +1,5 @@
 #include "cpp/io/demux/srv.h"
+#include "cpp/util/perf/perf.h"
 
 namespace sigmaos {
 namespace io::demux {

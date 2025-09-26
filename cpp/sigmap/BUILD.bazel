@@ -1,11 +1,20 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "sigmap",
-    hdrs = [
-        "const.h",
-        "named.h",
-        "types.h",
-    ],
+    name = "const",
+    hdrs = ["const.h"],
+    visibility = ["//visibility:public"],
+    deps = [":types"],
+)
+
+cc_library(
+    name = "named",
+    hdrs = ["named.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "types",
+    hdrs = ["types.h"],
     visibility = ["//visibility:public"],
 )

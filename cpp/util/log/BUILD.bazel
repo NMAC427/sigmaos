@@ -6,7 +6,7 @@ cc_library(
     hdrs = ["log.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//cpp/util/common",
+        "//cpp/util/common:util",
         "@spdlog",
     ],
 )

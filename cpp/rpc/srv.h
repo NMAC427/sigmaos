@@ -1,10 +1,9 @@
 #pragma once
+#define __CPP_SIGMAOS_RPC__
 
 #include <google/protobuf/util/time_util.h>
 #include "cpp/io/conn/conn.h"
 #include "cpp/io/conn/tcp/tcp.h"
-#include "cpp/io/demux/srv.h"
-#include "cpp/io/net/srv.h"
 #include "cpp/io/transport/transport.h"
 #include "cpp/proxy/sigmap/sigmap.h"
 #include "cpp/serr/serr.h"
@@ -12,6 +11,7 @@
 #include "sigmap/sigmap.pb.h"
 #include "cpp/util/log/log.h"
 #include "cpp/util/perf/perf.h"
+#include "cpp/io/net/srv.h"
 
 #include <expected>
 #include <format>

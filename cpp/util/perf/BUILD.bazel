@@ -7,7 +7,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cpp/proc",
-        "//cpp/sigmap",
+        "//cpp/sigmap:types",
         "//cpp/util/log",
         "@protobuf//src/google/protobuf/util:time_util",
     ],

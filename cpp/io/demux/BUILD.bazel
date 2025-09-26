@@ -1,20 +1,30 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "demux",
-    srcs = [
-        "clnt.cc",
-        "srv.cc",
-    ],
-    hdrs = [
-        "clnt.h",
-        "srv.h",
-    ],
+    name = "clnt",
+    srcs = ["clnt.cc"],
+    hdrs = ["clnt.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//cpp/io/demux/internal",
+        "//cpp/io/demux/internal:callmap",
         "//cpp/io/transport",
-        "//cpp/rpc",
+        "//cpp/io/transport:call",
+        "//cpp/rpc:channel",
+        "//cpp/serr",
+        "//cpp/util/log",
+    ],
+)
+
+cc_library(
+    name = "srv",
+    srcs = ["srv.cc"],
+    hdrs = ["srv.h"],
+    implementation_deps = ["//cpp/util/perf"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/demux/internal:callmap",
+        "//cpp/io/transport",
+        "//cpp/io/transport:call",
         "//cpp/serr",
         "//cpp/threadpool",
         "//cpp/util/log",

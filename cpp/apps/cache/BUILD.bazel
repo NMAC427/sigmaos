@@ -2,35 +2,74 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "cache",
-    srcs = [
-        "cache.cc",
-        "clnt.cc",
-        "shard.cc",
-        "srv.cc",
-    ],
-    hdrs = [
-        "cache.h",
-        "clnt.h",
-        "shard.h",
-        "srv.h",
-    ],
+    srcs = ["cache.cc"],
+    hdrs = ["cache.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//cpp/util/log"],
+)
+
+cc_library(
+    name = "clnt",
+    srcs = ["clnt.cc"],
+    hdrs = ["clnt.h"],
     visibility = ["//visibility:public"],
     deps = [
+        ":cache",
+        ":shard",
         "//apps/cache/proto:proto_cc_proto",
-        "//cpp/io/conn",
-        "//cpp/io/conn/tcp",
-        "//cpp/io/demux",
+        "//cpp/io/demux:clnt",
         "//cpp/io/iovec",
-        "//cpp/io/net",
-        "//cpp/io/transport",
         "//cpp/proxy/sigmap",
         "//cpp/rpc",
+        "//cpp/rpc:clnt",
         "//cpp/rpc/spchannel",
         "//cpp/serr",
-        "//cpp/sigmap",
+        "//cpp/util/log",
+        "//util/tracing/proto:proto_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "shard",
+    srcs = ["shard.cc"],
+    hdrs = ["shard.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux:srv",
+        "//cpp/io/net:srv",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc:srv",
+        "//cpp/serr",
+        "//cpp/sigmap:const",
         "//cpp/util/log",
         "//cpp/util/perf",
         "//sigmap:sigmap_cc_proto",
-        "//util/tracing/proto:proto_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "srv",
+    srcs = ["srv.cc"],
+    hdrs = ["srv.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":cache",
+        ":clnt",
+        ":shard",
+        "//cpp/io/conn",
+        "//cpp/io/conn/tcp",
+        "//cpp/io/demux:srv",
+        "//cpp/io/net:srv",
+        "//cpp/io/transport",
+        "//cpp/proxy/sigmap",
+        "//cpp/rpc:srv",
+        "//cpp/serr",
+        "//cpp/sigmap:const",
+        "//cpp/util/log",
+        "//cpp/util/perf",
+        "//sigmap:sigmap_cc_proto",
     ],
 )
