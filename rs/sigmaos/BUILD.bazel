@@ -7,7 +7,7 @@ rust_library(
         "src/lib.rs",
     ],
     edition = "2024",
-    visibility = ["//visibility:public"],
     proc_macro_deps = all_crate_deps(proc_macro = True),
     deps = all_crate_deps(normal = True),
+    visibility = ["//visibility:public"],
 )

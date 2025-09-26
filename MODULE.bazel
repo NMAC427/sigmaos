@@ -7,6 +7,7 @@ bazel_dep(name = "rules_rust", version = "0.65.0")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "gazelle", version = "0.45.0")
 bazel_dep(name = "protobuf", version = "32.1")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
@@ -63,14 +64,15 @@ use_repo(
     "org_mongodb_go_mongo_driver",
 )
 
-
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
-    versions = [ "1.85.0" ],
+    versions = ["1.85.0"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
+
 register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
 
 crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")

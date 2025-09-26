@@ -11,4 +11,5 @@ rust_shared_library(
         "//rs/proto",
         "//rs/sigmaos",
     ],
+    visibility = ["//visibility:public"],
 )
