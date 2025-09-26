@@ -4,6 +4,5 @@ cc_library(
     name = "iovec",
     srcs = ["iovec.cc"],
     hdrs = ["iovec.h"],
-    includes = ["."],
     visibility = ["//visibility:public"],
 )

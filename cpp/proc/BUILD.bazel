@@ -2,9 +2,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "proc",
-    srcs = [
-        "proc.cc",
-    ],
+    srcs = ["proc.cc"],
     hdrs = [
         "proc.h",
         "status.h",

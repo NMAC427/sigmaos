@@ -6,7 +6,6 @@ cc_library(
     hdrs = ["threadpool.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "//cpp/proxy/sigmap",
         "//cpp/serr",
         "//cpp/sigmap",
         "//cpp/util/log",

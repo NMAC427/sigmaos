@@ -10,7 +10,6 @@ cc_library(
         "clnt.h",
         "srv.h",
     ],
-    includes = ["."],
     visibility = ["//visibility:public"],
     deps = [
         "//cpp/io/conn",

@@ -4,7 +4,6 @@ cc_library(
     name = "serr",
     srcs = ["serr.cc"],
     hdrs = ["serr.h"],
-    includes = ["."],
     visibility = ["//visibility:public"],
     deps = ["@fmt"],
 )

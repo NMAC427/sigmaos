@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cpp/proxy/sigmap/sigmap.h"
 #include "cpp/serr/serr.h"
 #include "cpp/sigmap/const.h"
 #include "sigmap/sigmap.pb.h"

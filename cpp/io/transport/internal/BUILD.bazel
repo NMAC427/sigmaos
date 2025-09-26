@@ -4,9 +4,8 @@ cc_library(
     name = "internal",
     srcs = ["callmap.cc"],
     hdrs = ["callmap.h"],
-    visibility = ["//visibility:public"],
+    visibility = ["//cpp/io/transport:__pkg__"],
     deps = [
-        "//cpp/io/transport",
         "//cpp/serr",
     ],
 )

@@ -4,7 +4,6 @@ cc_library(
     name = "frame",
     srcs = ["frame.cc"],
     hdrs = ["frame.h"],
-    includes = ["."],
     visibility = ["//visibility:public"],
     deps = [
         "//cpp/io/conn",
