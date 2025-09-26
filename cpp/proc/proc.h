@@ -1,8 +1,8 @@
 #pragma once
 
 #include <google/protobuf/message.h>
-#include <google/protobuf/util/json_util.h>
 #include <google/protobuf/json/json.h>
+#include <google/protobuf/util/time_util.h>
 #include "proc/proc.pb.h"
 #include "cpp/sigmap/types.h"
 #include "cpp/util/log/log.h"

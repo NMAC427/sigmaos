@@ -15,5 +15,6 @@ cc_library(
         "//cpp/util/log",
         "//proc:proc_cc_proto",
         "@protobuf//src/google/protobuf/json",
+        "@protobuf//src/google/protobuf/util:time_util",
     ],
 )
