@@ -1,6 +1,7 @@
 use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
+use std::path::Path
 use nix::fcntl;
 use nix::fcntl::FcntlArg;
 use nix::fcntl::FdFlag;
@@ -53,6 +54,7 @@ fn main() {
     print_elapsed_time(&debug_pid, "trampoline.exec_trampoline", exec_time, false);
     let pid = env::args().nth(1).expect("no pid");
     let program = env::args().nth(2).expect("no program");
+    let is_python_proc = Path::new(&program).file_name().unwrap() == "python";
     let dialproxy = env::args().nth(3).expect("no dialproxy");
     let mut now = SystemTime::now();
     let aa = is_enabled_apparmor();
@@ -91,20 +93,22 @@ fn main() {
     // print_elapsed_time("trampoline.connect_spproxy", now, true);
     // now = SystemTime::now();
     // Connect to the pyproxy socket
-    let pyproxy_conn = UnixStream::connect("/tmp/spproxyd/spproxyd-pyproxy.sock").unwrap();
-    let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
-    fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
-    env::set_var("SIGMA_PYPROXY_FD", pyproxy_conn_fd.to_string());
-    log::info!("PYPROXY_FD: {}", pyproxy_conn_fd.to_string());
-    print_elapsed_time(&debug_pid, "trampoline.connect_pyproxy", now, false);
-    now = SystemTime::now();
-    // Connect to the pyapi socket
-    let pyapi_conn = UnixStream::connect("/tmp/spproxyd/spproxyd-pyapi.sock").unwrap();
-    let pyapi_conn_fd = pyapi_conn.into_raw_fd();
-    fcntl::fcntl(pyapi_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
-    env::set_var("SIGMA_PYAPI_FD", pyapi_conn_fd.to_string());
-    log::info!("PYAPI_FD: {}", pyapi_conn_fd.to_string());
-    print_elapsed_time(&debug_pid, "trampoline.connect_api", now, false);
+    if is_python_proc {
+      let pyproxy_conn = UnixStream::connect("/tmp/spproxyd/spproxyd-pyproxy.sock").unwrap();
+      let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
+      fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
+      env::set_var("SIGMA_PYPROXY_FD", pyproxy_conn_fd.to_string());
+      log::info!("PYPROXY_FD: {}", pyproxy_conn_fd.to_string());
+      print_elapsed_time(&debug_pid, "trampoline.connect_pyproxy", now, false);
+      now = SystemTime::now();
+      // Connect to the pyapi socket
+      let pyapi_conn = UnixStream::connect("/tmp/spproxyd/spproxyd-pyapi.sock").unwrap();
+      let pyapi_conn_fd = pyapi_conn.into_raw_fd();
+      fcntl::fcntl(pyapi_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
+      env::set_var("SIGMA_PYAPI_FD", pyapi_conn_fd.to_string());
+      log::info!("PYAPI_FD: {}", pyapi_conn_fd.to_string());
+      print_elapsed_time(&debug_pid, "trampoline.connect_api", now, false);
+    }
     now = SystemTime::now();
     //    seccomp_proc(dialproxy).expect("seccomp failed");
     print_elapsed_time(&debug_pid, "trampoline.seccomp_proc", now, false);
