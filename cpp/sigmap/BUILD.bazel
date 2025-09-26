@@ -2,14 +2,10 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "sigmap",
-    srcs = ["sigmap.pb.cc"],
     hdrs = [
         "const.h",
         "named.h",
-        "sigmap.pb.h",
         "types.h",
     ],
-    implementation_deps = ["//sigmap:sigmap_cc_proto"],
     visibility = ["//visibility:public"],
-    deps = ["@protobuf//src/google/protobuf/io"],
 )
