@@ -5,7 +5,7 @@ from pathlib import Path
 from textwrap import indent
 
 script_dir = Path(__file__).resolve().parent
-workspace_root = script_dir / ".."
+workspace_root = script_dir / ".." / ".."
 
 def bazel_query(*query):
     if "BUILD_WORKSPACE_DIRECTORY" in os.environ:
@@ -55,70 +55,58 @@ def main():
 
 # gazelle:ignore
 
-load("@rules_pkg//:pkg.bzl", "pkg_tar")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "pkg_attributes")
+load("//tools/build_rules:copy_directory.bzl", "copy_directory")
 
-pkg_files(
+filegroup(
     name = "user",
     srcs = [
 {user}
     ],
-    prefix = "/user",
-    attributes = pkg_attributes(mode = "0755"),
 )
 
-pkg_files(
+filegroup(
     name = "kernel",
     srcs = [
 {kernel}
     ],
-    prefix = "/kernel",
-    attributes = pkg_attributes(mode = "0755"),
 )
 
-pkg_files(
+filegroup(
     name = "wasm",
     srcs = [
 {wasm}
     ],
-    prefix = "/wasm",
-    attributes = pkg_attributes(mode = "0755"),
 )
 
-pkg_files(
+filegroup(
     name = "linux",
     srcs = [
         "//cmd/linux/bootkernel:bootkernel",
     ],
-    prefix = "/linux",
-    attributes = pkg_attributes(mode = "0755"),
 )
 
-pkg_files(
+filegroup(
     name = "npproxy",
     srcs = [
         "//cmd/npproxy/npproxyd:npproxyd",
     ],
-    prefix = "/npproxy",
-    attributes = pkg_attributes(mode = "0755"),
 )
 
-pkg_tar(
+copy_directory(
     name = "bin",
-    srcs = [
-        ":user",
-        ":kernel",
-        ":wasm",
-        ":npproxy",
-        ":linux",
-    ],
-    package_dir = "/bin",
-    stamp = 1,
+    out_dir = "bin",
+    mappings = {{
+        "/user": ":user",
+        "/kernel": ":kernel",
+        "/wasm": ":wasm",
+        "/linux": ":linux",
+        "/npproxy": ":npproxy",
+    }},
     visibility = ["//bin:__pkg__"],
 )
 """
 
-    out = script_dir / "gen" / "BUILD.bazel"
+    out = workspace_root / "bin" / "BUILD.bazel"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(build_content)
 
