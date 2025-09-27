@@ -18,6 +18,9 @@ git_override(
 )
 
 # Go
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.host()  # This will use the custom go sdk at GOROOT
+
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 go_deps.gazelle_override(
