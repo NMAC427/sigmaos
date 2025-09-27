@@ -28,6 +28,7 @@ def user_targets():
         bazel_query("kind('cc_binary', //cpp/user/...)") +
         [
             "//rs/spawn-latency",
+            "//cmd/kernel/named:named",  # This is also a user bin
         ]
     )
 
@@ -36,6 +37,7 @@ def kernel_targets():
         bazel_query("kind('go_binary', //cmd/kernel/...)") +
         [
             "//rs/uproc-trampoline",
+            "//:create-net.sh",
         ]
     )
 

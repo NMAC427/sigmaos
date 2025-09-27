@@ -75,6 +75,7 @@ filegroup(
         "//cpp/user/spawn-latency-cpp:spawn-latency-cpp",
         "//cpp/user/spin-srv-cpp:spin-srv-cpp",
         "//rs/spawn-latency",
+        "//cmd/kernel/named:named",
     ],
 )
 
@@ -95,6 +96,7 @@ filegroup(
         "//cmd/kernel/realmd:realmd",
         "//cmd/kernel/spproxyd:spproxyd",
         "//rs/uproc-trampoline",
+        "//:create-net.sh",
     ],
 )
 

@@ -17,3 +17,5 @@ gazelle(
     name = "gazelle",
     gazelle = ":gazelle_bin",
 )
+
+exports_files(["create-net.sh"])

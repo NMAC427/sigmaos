@@ -26,23 +26,22 @@ RUN curl -fSL "https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VER
     rm bazel-installer.sh
 
 # Download an initial version of Go
-RUN wget "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz" && \
-  tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
+ARG GO_VERSION=1.24.7
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -C /usr/local -xzf -
 
 # Set the PATH to include the new Go install.
 ENV PATH="${PATH}:/usr/local/go/bin"
 
-# Install custom version of go with larger minimum stack size.
-RUN git clone https://github.com/ArielSzekely/go.git go-custom && \
-  cd go-custom && \
-  git checkout bigstack-go1.22 && \
-  git config pull.rebase false && \
-  git pull && \
-  cd src && \
+# Install patched version of GO with a larger stack size
+# Default is 2048, increase to 8194
+RUN curl -fsSL "https://github.com/golang/go/archive/refs/tags/go${GO_VERSION}.tar.gz" | tar -C /tmp -xzf - && \
+  mv "/tmp/go-go${GO_VERSION}" "/go${GO_VERSION}-bigstack" && \
+  cd "/go${GO_VERSION}-bigstack/src" && \
+  sed -i -E 's/^\s*(stackMin\s*=\s*)2048/\18194/' runtime/stack.go && \
   ./make.bash && \
-  /go-custom/bin/go version
+  /go${GO_VERSION}-bigstack/bin/go version
 
-ENV GOROOT="/go-custom"
+ENV GOROOT="/go${GO_VERSION}-bigstack"
 
 # Install additional dependencies
 RUN apt install -y \

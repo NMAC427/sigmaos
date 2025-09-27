@@ -32,7 +32,7 @@ require (
 
 require (
 	github.com/ArielSzekely/corral v0.0.0-20230531153147-c7d559158f71
-	github.com/NMAC427/wasmer-go v0.0.0-20250924231452-27664ef84bbe
+	github.com/NMAC427/wasmer-go v0.0.0-20250927163448-bb2a8d0f177b
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.13
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/docker/go-connections v0.4.0
