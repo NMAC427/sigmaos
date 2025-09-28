@@ -1,0 +1,37 @@
+load("//tools/build_rules:docker.bzl", "dockerfile_image")
+
+dockerfile_image(
+    name = "sigmauser-local",
+    dockerfile = "//docker:target.Dockerfile",
+    dockerignore = "target.Dockerfile.dockerignore",
+    target = "sigmauser-local",
+)
+
+dockerfile_image(
+    name = "sigmauser-remote",
+    dockerfile = "//docker:target.Dockerfile",
+    dockerignore = "target.Dockerfile.dockerignore",
+    target = "sigmauser-remote",
+    buildargs = {},
+    buildargs_files = {
+        "BIN_DIR": "//bin:bin",
+    },
+)
+
+dockerfile_image(
+    name = "sigmaos-local",
+    dockerfile = "//docker:target.Dockerfile",
+    dockerignore = "target.Dockerfile.dockerignore",
+    target = "sigmaos-local",
+)
+
+dockerfile_image(
+    name = "sigmaos-remote",
+    dockerfile = "//docker:target.Dockerfile",
+    dockerignore = "target.Dockerfile.dockerignore",
+    target = "sigmaos-remote",
+    buildargs = {},
+    buildargs_files = {
+        "BIN_DIR": "//bin:bin",
+    },
+)

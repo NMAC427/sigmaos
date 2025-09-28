@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1-experimental
+# syntax=docker/dockerfile:1
 
 FROM ubuntu:24.04 AS base
 
@@ -19,7 +19,7 @@ RUN apt update && \
 RUN mkdir t && \
   cd t && \
   go mod init tmod && \
-  go get github.com/wasmerio/wasmer-go/wasmer@latest
+  go get github.com/NMAC427/wasmer-go/wasmer@latest
 
 WORKDIR /home/sigmaos
 RUN mkdir bin && \
@@ -35,41 +35,39 @@ RUN mkdir jail && \
 
 # ========== remote user image ==========
 FROM sigmauser-local AS sigmauser-remote
+ARG BIN_DIR
 # Copy procd, the entrypoint for this container, to the user image.
-COPY bin/kernel/procd bin/kernel/
+COPY ${BIN_DIR}/kernel/procd bin/kernel/
 # Copy spproxyd to the user image.
-COPY bin/kernel/spproxyd bin/kernel/
+COPY ${BIN_DIR}/kernel/spproxyd bin/kernel/
 ## Copy rust trampoline to the user image.
-COPY bin/kernel/uproc-trampoline /home/sigmaos/bin/kernel/
+COPY ${BIN_DIR}/kernel/uproc-trampoline bin/kernel/
 
 # ========== local kernel image ==========
 FROM base AS sigmaos-local
 WORKDIR /home/sigmaos
-ENV kernelid kernel
-ENV boot named
-ENV dbip x.x.x.x
-ENV mongoip x.x.x.x
-ENV buildtag "local-build"
-ENV dialproxy "false"
+ENV kernelid=kernel
+ENV boot=named
+ENV dbip=x.x.x.x
+ENV mongoip=x.x.x.x
+ENV buildtag="local-build"
+ENV dialproxy="false"
 # Install docker-cli
 RUN apt install -y docker.io
-ENV reserveMcpu "0"
-ENV netmode "host"
-ENV sigmauser "NOT_SET"
+ENV reserveMcpu="0"
+ENV netmode="host"
+ENV sigmauser="NOT_SET"
 
 # Make a directory for binaries shared between realms.
 RUN mkdir -p /home/sigmaos/bin/user/common
 CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser}"]
 
 # ========== remote kernel image ==========
-FROM sigmaos-local as sigmaos-remote
-ENV buildtag "remote-build"
+FROM sigmaos-local AS sigmaos-remote
+ARG BIN_DIR
+ENV buildtag="remote-build"
 # Copy linux bins
-COPY bin/linux /home/sigmaos/bin/linux/
+COPY ${BIN_DIR}/linux /home/sigmaos/bin/linux/
 # Copy kernel bins
-COPY bin/kernel /home/sigmaos/bin/kernel/
-# Copy script needed to set up network
-COPY create-net.sh /home/sigmaos/bin/kernel/create-net.sh
-# Copy named
-RUN cp /home/sigmaos/bin/kernel/named /home/sigmaos/bin/user/common/named
+COPY ${BIN_DIR}/kernel /home/sigmaos/bin/kernel/
 CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser}"]

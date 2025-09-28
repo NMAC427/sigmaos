@@ -50,7 +50,12 @@ if [[ $REBUILD_FLAG == "true" ]]; then
   fi
 
   echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/bazel.Dockerfile -t $BUILDER_IMAGE_NAME . 2>&1 | tee $BUILD_LOG/sig-bazel-builder.out
+  DOCKER_BUILDKIT=1 docker build \
+    --progress=plain \
+    --build-arg DOCKER_GID=$(getent group docker | cut -d: -f3) \
+    -f docker/bazel.Dockerfile \
+    -t $BUILDER_IMAGE_NAME . \
+    2>&1 | tee $BUILD_LOG/sig-bazel-builder.out
   echo "========== Done building builder =========="
 fi
 
@@ -63,6 +68,7 @@ if [[ "$(builder_running)" != "true" ]]; then
   echo "========== Starting builder container =========="
   mkdir -p /tmp/bazel_build_cache
   docker run --rm -d -it \
+    -v /var/run/docker.sock:/var/run/docker.sock \
     --name "${BUILDER_CONTAINER_NAME}" \
     --user "$(id -u):$(id -g)" \
     --mount "type=bind,src=/tmp/bazel_build_cache,dst=/tmp/bazel_build_cache" \

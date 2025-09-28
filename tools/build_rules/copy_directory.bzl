@@ -35,20 +35,6 @@ def _copy_directory_impl(ctx):
             commands.append("mkdir -p $(dirname %s)" % full_dest_path)
             commands.append("cp %s %s" % (src_file.path, full_dest_path))
 
-    # This part handles the older `srcs` attribute for simple, flat copying.
-    # It can be used in combination with `mappings`.
-    for src in ctx.files.srcs:
-        all_srcs.append(src)
-        dest_path = src.short_path
-        if ctx.attr.strip_prefix:
-            if dest_path.startswith(ctx.attr.strip_prefix):
-                dest_path = dest_path[len(ctx.attr.strip_prefix):].lstrip('/')
-
-        full_dest_path = output_dir.path + "/" + dest_path
-        commands.append("mkdir -p $(dirname %s)" % full_dest_path)
-        commands.append("cp %s %s" % (src.path, full_dest_path))
-
-
     # If no inputs were provided at all, we can stop.
     if not all_srcs:
         # It's good practice to handle this case, though an empty directory is also fine.
