@@ -3,8 +3,8 @@ import splib
 from time import time
 # from PIL import Image
 
-splib.Started()
+splib.started()
 print("IVY: A")
-splib.Stat("name/")
+splib.stat("name/")
 print("IVY: C")
-splib.Exited()
+splib.exited()

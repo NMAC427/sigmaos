@@ -1,6 +1,6 @@
 import splib
 import numpy
 
-splib.Started()
+splib.started()
 print(numpy.array([1, 2, 3]))
-splib.Exited(1, "Exited normally!")
+splib.exited(1, "Exited normally!")

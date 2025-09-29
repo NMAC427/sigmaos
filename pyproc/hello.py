@@ -1,5 +1,14 @@
+print("Hi")
+import time
+time.sleep(1)
+print("Wake")
+
+import faulthandler
+faulthandler.enable()
+time.sleep(1)
+
 import splib
 
-splib.Started()
+splib.started()
 print("Hello World!")
-splib.Exited(1, "Exited normally!")
+splib.exited(1, "Exited normally!")

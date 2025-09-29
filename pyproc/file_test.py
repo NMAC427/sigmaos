@@ -1,15 +1,15 @@
 import splib
 
-splib.Started()
+splib.started()
 # File creation
 pathname = "name/my_file"
-fd = splib.Create(pathname, 777, 0x01)
+fd = splib.create(pathname, 777, 0x01)
 print("Fd:", fd)
 # Write to file
 data = "hello"
-written = splib.Write(fd, data)
+written = splib.write(fd, data)
 print("Written:", written)
 # Get the file contents
-contents = splib.GetFile(pathname)
+contents = splib.get_file(pathname)
 print("Contents:", contents)
-splib.Exited(1, "Exited normally!")
+splib.exited(1, "Exited normally!")

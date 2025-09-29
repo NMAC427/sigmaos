@@ -1,6 +1,6 @@
 import splib
 import shlex
 
-splib.Started()
+splib.started()
 print(shlex.join(["Hello", "World"]))
-splib.Exited(1, "Exited normally!")
+splib.exited(1, "Exited normally!")
