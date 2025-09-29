@@ -41,12 +41,13 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
 
 	stringProg := uproc.GetVersionedProgram()
+	pn := binsrv.BinPath(stringProg)
 	if uproc.GetProgram() == "python" {
 		stringProg = "python"
 		pythonPath, _ := uproc.LookupEnv("PYTHONPATH")
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
+		pn = "/tmp/python/python"
 	}
-	pn := binsrv.BinPath(stringProg)
 	// Optionally strace the proc
 	stracing := false
 	if straceProcs[uproc.GetProgram()] {
