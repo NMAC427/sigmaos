@@ -57,8 +57,8 @@ cp /OpenBLAS-0.3.23/libopenblas64_p-r0.3.23.so $OUTPATH/kernel
 # Copy Python executable
 cp /cpython3.11/python "$OUTPATH/kernel"
 cp -r /cpython3.11 "$OUTPATH/kernel"                    # TODO: Is this needed?
-cp /cpython3.11/python "$OUTPATH/user/python"           # TODO: Why is this needed?
-cp /cpython3.11/python "$OUTPATH/user/python-$VERSION"  # TODO: Why is this needed?
+cp /cpython3.11/python "$OUTPATH/user"           # TODO: Why is this needed?
+cp /cpython3.11/python "$OUTPATH/user/python-v$VERSION"  # TODO: Why is this needed?
 echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
 
 cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF

@@ -150,10 +150,10 @@ if [ "${TARGET}" != "remote" ]; then
 fi
 
 # Check if a builder is running already
-buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
-rsbuildercid=$(docker ps -a | grep -E " $RS_BUILDER_NAME " | cut -d " " -f1)
-pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1)
-cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1)
+buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1 || true)
+rsbuildercid=$(docker ps -a | grep -E " $RS_BUILDER_NAME " | cut -d " " -f1 || true)
+pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1 || true)
+cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1 || true)
 
 # Optionally stop any existing builder container, so it will be rebuilt and
 # restarted.

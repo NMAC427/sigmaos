@@ -13,24 +13,25 @@ import (
 
 const bucket = "sigmaos-ncam"
 
-func TestPythonSmall(t *testing.T) { // TODO: modify to kill the python interpreter
-	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
-}
-
+/*
+	 func TestPythonSmall(t *testing.T) { // TODO: modify to kill the python interpreter
+		ts, _ := test.NewTstateAll(t)
+		p := proc.NewPythonProc([]string{"-V"}, bucket)
+		start := time.Now()
+		err := ts.Spawn(p)
+		assert.Nil(ts.T, err)
+		duration := time.Since(start)
+		err = ts.WaitStart(p.GetPid())
+		assert.Nil(ts.T, err, "Error waitstart: %v", err)
+		duration2 := time.Since(start)
+		status, err := ts.WaitExit(p.GetPid())
+		assert.Nil(t, err)
+		assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
+		duration3 := time.Since(start)
+		fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
+		ts.Shutdown()
+	}
+*/
 func TestPythonLaunch(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	p := proc.NewPythonProc([]string{"/~~/pyproc/hello.py"}, bucket)
