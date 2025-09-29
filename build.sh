@@ -90,5 +90,6 @@ fi
 
 docker exec $TTY_FLAG \
   -w "/home/builder/${ROOT}" \
+  -e "PATH_HASH=${PATH_HASH}" \
   "${BUILDER_CONTAINER_NAME}" \
   bazel "${BAZEL_ARGS[@]}"

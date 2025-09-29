@@ -1,7 +1,6 @@
 def _dockerfile_image_impl(ctx):
     """Implementation of the dockerfile_image rule."""
     # Declare the output file for the image tarball.
-    output_tar = ctx.actions.declare_file(ctx.label.name + ".tar")
 
     all_build_args = []
     all_input_files = [ctx.file.dockerfile]
@@ -35,26 +34,52 @@ def _dockerfile_image_impl(ctx):
         for file in target.files.to_list():
             all_input_files.append(file)
 
+    out_flags = ""
+    outputs = []
+    post_action = ""
+    if ctx.attr.tag:
+        tag_file = ctx.actions.declare_file(ctx.label.name + "_tag.txt")
+        outputs.append(tag_file)
+        out_flags += "--tag {tag}:$WORKSPACE_HASH ".format(
+            tag=ctx.attr.tag,
+        )
+        post_action += 'echo "{tag}:$WORKSPACE_HASH" > {output_path}\n'.format(
+            tag=ctx.attr.tag,
+            output_path=tag_file.path,
+        )
+    if ctx.attr.tar:
+        tar_file = ctx.actions.declare_file(ctx.label.name + ".tar")
+        outputs.append(tar_file)
+        out_flags += "--output type=tar,dest={output_path} ".format(
+           output_path=tar_file.path,
+        )
+
     # Construct the final docker build command.
     command = """
     sg docker << 'EOF'
-        set -ex
+        set -e
         export DOCKER_BUILDKIT=1
-        docker buildx build --target {target} -f {dockerfile} --output type=tar,dest={output_path} {build_args} .
+        export WORKSPACE_HASH=$(grep STABLE_WORKSPACE_HASH {status} | awk '{{print $2}}')
+        docker buildx build --target {target} -f {dockerfile} {out_flags} {build_args} .
+        {post_action}
 EOF
     """.format(
+        status=ctx.info_file.path,
         target=ctx.attr.target,
         dockerfile=ctx.file.dockerfile.path,
-        output_path=output_tar.path,
+        out_flags=out_flags,
         build_args=" ".join(all_build_args),
+        post_action=post_action,
     )
+
+    no_cache = "0"
 
     # Create the shell action to execute the command.
     ctx.actions.run_shell(
-        outputs=[output_tar],
+        outputs=outputs,
         inputs=all_input_files,
         command=command,
-        progress_message="Building Docker image tarball for %s" % ctx.label,
+        progress_message="Building Docker image %s" % ctx.label,
         execution_requirements = {
             "no-sandbox": "1",
             "no-remote": "1",
@@ -64,7 +89,7 @@ EOF
     )
 
     # Return the output file as the result of this rule.
-    return [DefaultInfo(files=depset([output_tar]))]
+    return [DefaultInfo(files=depset(outputs))]
 
 dockerfile_image = rule(
     implementation=_dockerfile_image_impl,
@@ -88,5 +113,13 @@ dockerfile_image = rule(
         "buildargs_files": attr.string_keyed_label_dict(
             doc="A dictionary mapping build argument names to file targets (labels).",
         ),
+        "tag": attr.string(
+            mandatory=False,
+            doc="If set, the docker image will be saved to this tag, with a workspace specific suffix."
+        ),
+        "tar": attr.bool(
+            default=False,
+            doc="If set, the docker image will be saved as a tar file."
+        )
     },
 )

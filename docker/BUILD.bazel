@@ -5,6 +5,7 @@ dockerfile_image(
     dockerfile = "//docker:target.Dockerfile",
     dockerignore = "target.Dockerfile.dockerignore",
     target = "sigmauser-local",
+    tag = "sigmauser-local",
 )
 
 dockerfile_image(
@@ -12,6 +13,7 @@ dockerfile_image(
     dockerfile = "//docker:target.Dockerfile",
     dockerignore = "target.Dockerfile.dockerignore",
     target = "sigmauser-remote",
+    tag = "sigmauser-remote",
     buildargs = {},
     buildargs_files = {
         "BIN_DIR": "//bin:bin",
@@ -23,6 +25,7 @@ dockerfile_image(
     dockerfile = "//docker:target.Dockerfile",
     dockerignore = "target.Dockerfile.dockerignore",
     target = "sigmaos-local",
+    tag = "sigmaos-local",
 )
 
 dockerfile_image(
@@ -30,6 +33,7 @@ dockerfile_image(
     dockerfile = "//docker:target.Dockerfile",
     dockerignore = "target.Dockerfile.dockerignore",
     target = "sigmaos-remote",
+    tag = "sigmaos-remote",
     buildargs = {},
     buildargs_files = {
         "BIN_DIR": "//bin:bin",

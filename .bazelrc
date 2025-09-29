@@ -3,5 +3,6 @@ import %workspace%/tools/preset.bazelrc
 startup --output_user_root=/tmp/bazel_build_cache
 startup --max_idle_secs=0
 build --cxxopt="-std=c++23"
+build --workspace_status_command=tools/workspace_status.sh
 
 common --incompatible_enable_proto_toolchain_resolution
