@@ -32,8 +32,8 @@ class sigmadebug_sink : public spdlog::sinks::base_sink<std::mutex> {
   sigmadebug_sink(std::string selector)
       : _enabled(false),
         _stdout_sink(std::make_shared<spdlog::sinks::stdout_sink_mt>()) {
-    std::string sigmadebug(std::getenv("SIGMADEBUG"));
-    std::string pid(std::getenv("SIGMADEBUGPID"));
+    std::string sigmadebug(sigmaos::util::common::get_env("SIGMADEBUG"));
+    std::string pid(sigmaos::util::common::get_env("SIGMADEBUGPID"));
     _stdout_sink->set_pattern(
         std::format("%H:%M:%S.%f {} {} %v", pid, selector));
     if (selector == ALWAYS || selector == FATAL) {

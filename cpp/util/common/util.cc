@@ -25,5 +25,13 @@ bool ContainsLabel(std::string env_var, std::string label) {
   return contains_label;
 }
 
+std::string get_env(const char* name) {
+    const char* value = std::getenv(name);
+    if (value) {
+        return std::string(value);
+    }
+    return "";
+}
+
 };  // namespace util::common
 };  // namespace sigmaos

@@ -10,6 +10,7 @@ add_library(proc_proto STATIC proc.pb.cc)
 
 target_link_libraries(proc_proto PUBLIC
   sigmap_proto
+  util_common
   absl::hash
   absl::status
 )
