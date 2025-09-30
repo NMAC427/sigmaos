@@ -19,3 +19,4 @@ env/user.sh
 # Artifact evaluation credential files
 *.priv
 cpp/build
+.vscode
