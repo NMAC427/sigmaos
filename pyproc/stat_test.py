@@ -3,6 +3,7 @@ import time
 import ctypes
 
 results = []
+bucket_name = "sigmaos-ncam"
 
 # ms_start = time.time() * 1000.0
 # splib.Open("name/msched/~local/", 2, False)
@@ -90,22 +91,22 @@ results.append(("Remove_Local", ms_end - ms_start))
 # Remote
 
 ms_start = time.time() * 1000.0
-splib.put_file("name/s3/~local/ivywu/pystat_file", 777, 0, "Hello World!", 0, 0)
+splib.put_file(f"name/s3/~local/{bucket_name}/pystat_file", 777, 0, "Hello World!", 0, 0)
 ms_end = time.time() * 1000.0
 results.append(("PutFile_Remote", ms_end - ms_start))
 
 ms_start = time.time() * 1000.0
-file_contents = splib.get_file("name/s3/~local/ivywu/pystat_file")
+file_contents = splib.get_file(f"name/s3/~local/{bucket_name}/pystat_file")
 ms_end = time.time() * 1000.0
 results.append(("GetFile_Remote", ms_end - ms_start))
 
 ms_start = time.time() * 1000.0
-splib.stat("name/s3/~local/ivywu/pystat_file")
+splib.stat(f"name/s3/~local/{bucket_name}/pystat_file")
 ms_end = time.time() * 1000.0
 results.append(("Stat_Remote", ms_end - ms_start))
 
 ms_start = time.time() * 1000.0
-splib.remove("name/s3/~local/ivywu/pystat_file")
+splib.remove(f"name/s3/~local/{bucket_name}/pystat_file")
 ms_end = time.time() * 1000.0
 results.append(("Remove_Remote", ms_end - ms_start))
 
