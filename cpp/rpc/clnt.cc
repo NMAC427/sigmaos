@@ -154,6 +154,10 @@ std::expected<int, sigmaos::serr::Error> Clnt::rpc(
   // Prepend 2 empty slots to the out iovec: one for the rpcproto.Rep
   // wrapper, and one for the marshaled res proto.Message
   out_iov->AddBuffers(2);
+  // If the reply is expected to contain a blob, add another buffer for it.
+  if (has_blob_field(rep)) {
+    out_iov->AddBuffers(1);
+  }
   // Extract any output IOVecs from the response RPC
   extract_blob_iov(rep, out_iov);
   log(RPCCLNT, "out_iov len {}", out_iov->Size());

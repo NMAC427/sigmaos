@@ -3,6 +3,17 @@
 namespace sigmaos {
 namespace rpc {
 
+bool has_blob_field(const google::protobuf::Message &msg) {
+  auto d = msg.GetDescriptor();
+  for (int i = 0; i < d->field_count(); i++) {
+    auto fd = d->field(i);
+    if (fd->name() == "blob") {
+      return true;
+    }
+  }
+  return false;
+}
+
 std::pair<Blob *, bool> extract_blob(google::protobuf::Message &msg) {
   Blob *blob = nullptr;
   bool has_blob = false;
@@ -71,12 +82,7 @@ void set_blob_iov(std::shared_ptr<sigmaos::io::iovec::IOVec> src,
   auto blob_iov = blob->mutable_iov();
   for (int i = 0; i < src->Size(); i++) {
     auto src_buf = src->GetBuffer(i);
-    // Sanity check: output buffers passed to proto library shouldn't be ref
-    // counted at this layer
-    if (src_buf->IsRefCounted()) {
-      fatal("Ref counted buffer moved to protobuf");
-    }
-    blob_iov->AddAllocated(src_buf->Get());
+    blob_iov->Add()->assign(*src_buf->Get());
   }
 }
 

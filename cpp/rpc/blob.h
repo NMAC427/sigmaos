@@ -14,6 +14,11 @@
 namespace sigmaos {
 namespace rpc {
 
+// Checks if a protobuf has a field named "blob"
+bool has_blob_field(const google::protobuf::Message &msg);
+
+// Extract a blob from a protobuf, if one exists. Returns the blob and a boolean
+// indicating whether a blob was found.
 // If the given RPC has a blob field, extract its IOVecs.
 void extract_blob_iov(google::protobuf::Message &msg,
                       std::shared_ptr<sigmaos::io::iovec::IOVec> dst);
