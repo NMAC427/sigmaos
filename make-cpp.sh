@@ -65,7 +65,7 @@ mkdir -p build
 
 # Generate build files
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Debug
 export EXIT_STATUS=$?
 if [ $EXIT_STATUS  -ne 0 ]; then
   exit $EXIT_STATUS
@@ -92,4 +92,4 @@ for p in $USERBUILD/* ; do
 done
 
 # Copy python
-cp $ROOT/cpp/build/python/libclntlib.so $ROOT/pylib/splib/
+cp $ROOT/cpp/build/python/_clntlib.*.so $ROOT/pylib/

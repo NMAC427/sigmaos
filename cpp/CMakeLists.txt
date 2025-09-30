@@ -24,6 +24,9 @@ find_package(Protobuf REQUIRED)
 find_package(absl REQUIRED)
 find_package(spdlog REQUIRED)
 
+find_package(Python 3.11 EXACT COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
+
 # SigmaOS packages
 add_subdirectory(serr)
 add_subdirectory(io)
