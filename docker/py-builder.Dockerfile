@@ -17,6 +17,7 @@ RUN apt update && \
   libspdlog-dev \
   libabsl-dev \
   libffi-dev \
+  libssl-dev \
   libprotoc-dev \
   protobuf-compiler
 
@@ -33,7 +34,10 @@ RUN wget https://github.com/python/cpython/archive/refs/tags/v3.11.13.tar.gz -O 
     rm /cpython.tar.gz && \
     mv /cpython-3.11.13 /cpython3.11 && \
     cd /cpython3.11 && \
-    ./configure --prefix=/home/sigmaos/bin/user --exec-prefix=/home/sigmaos/bin/user && \
+    ./configure \
+      --prefix=/home/sigmaos/bin/user \
+      --exec-prefix=/home/sigmaos/bin/user \
+      --with-ensurepip=install && \
     make -j
 
 WORKDIR /home/sigmaos

@@ -8,9 +8,6 @@
 #include <proxy/sigmap/proto/spproxy.pb.h>
 
 std::unique_ptr<sigmaos::proxy::sigmap::Clnt> clnt;
-// Store all pointers
-std::unordered_map<uintptr_t, CTstatProto*> stat_store;
-std::unordered_map<uintptr_t, char*> string_store;
 
 void init_socket() {
   clnt = std::make_unique<sigmaos::proxy::sigmap::Clnt>();
@@ -58,14 +55,7 @@ CTstatProto* stat_stub(char* pn) {
   if (result.has_value()) {
     std::shared_ptr<TstatProto> sptr = result.value();
     TstatProto* raw_ptr = sptr.get();
-
-    CTstatProto* py_res = convert_cstatproto(*raw_ptr);
-
-    uintptr_t key = reinterpret_cast<uintptr_t>(py_res);
-    stat_store[key] = py_res;
-    
-    // Convert to C definition
-    return py_res;
+    return convert_cstatproto(*raw_ptr);
   }
 
   log(sigmaos::proxy::sigmap::SPPROXYCLNT, "Stat failed");
@@ -81,13 +71,13 @@ int create_stub(char* pn, uint32_t perm, uint32_t mode) {
     return result_fd.value();
   }
 
-  return -1; 
+  return -1;
 }
 
 int open_stub(char *pn, uint32_t mode, bool wait) {
   std::string pathname = pn;
   sigmaos::sigmap::types::Tmode m = mode;
-  auto result_fd = clnt->Open(pathname, m, wait);  
+  auto result_fd = clnt->Open(pathname, m, wait);
   if (result_fd.has_value()) {
     return result_fd.value();
   }
@@ -110,18 +100,13 @@ char* get_file_stub(char* pn) {
   std::string pathname = pn;
   auto result = clnt->GetFile(pathname);
   if (result.has_value()) {
-    char* py_res = convert_cstr(result.value());
-
-    uintptr_t key = reinterpret_cast<uintptr_t>(py_res);
-    string_store[key] = py_res;
-
-    return py_res;
+    return convert_cstr(result.value());
   }
 
   return NULL;
 }
 
-uint32_t put_file_stub(char* pn, uint32_t perm, uint32_t mode, char* data, uint64_t o, uint64_t l) 
+uint32_t put_file_stub(char* pn, uint32_t perm, uint32_t mode, char* data, uint64_t o, uint64_t l)
 {
   std::string pathname = pn;
   sigmaos::sigmap::types::Tperm p = perm;
@@ -186,27 +171,13 @@ uint64_t clnt_id_stub() {
 
 // ========== ProcClnt API ==========
 
-void started() 
+void started()
 {
   clnt->Started();
 }
 
 void exited(uint32_t status, char* msg)
 {
-  for (auto& [_, ptr] : stat_store) {
-    free((void *) ptr->name);
-    free((void *) ptr->uid);
-    free((void *) ptr->gid);
-    free((void *) ptr->muid);
-    delete ptr;
-  }
-  stat_store.clear();
-
-  for (auto& [_, ptr] : string_store) {
-    free((void *) ptr);
-  }
-  string_store.clear();
-
   sigmaos::proc::Tstatus s = static_cast<sigmaos::proc::Tstatus>(status);
   std::string m = msg;
   clnt->Exited(s, m);
@@ -215,4 +186,22 @@ void exited(uint32_t status, char* msg)
 void wait_evict()
 {
   clnt->WaitEvict();
+}
+
+void free_stat(CTstatProto* stat)
+{
+  if (stat) {
+    free((void*) stat->name);
+    free((void*) stat->uid);
+    free((void*) stat->gid);
+    free((void*) stat->muid);
+    delete stat;
+  }
+}
+
+void free_string(char* s)
+{
+  if (s) {
+    free(s);
+  }
 }

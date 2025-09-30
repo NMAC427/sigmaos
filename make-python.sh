@@ -36,7 +36,7 @@ mkdir -p $OUTPATH/user
 
 # Inject custom Python lib
 LIBDIR="/cpython3.11/Lib"
-cp ./pylib/splib.py $LIBDIR
+cp -r ./pylib/splib $LIBDIR
 
 # Add checksum overrides for default libraries
 OVERRIDEFILE="sigmaos-checksum-override"

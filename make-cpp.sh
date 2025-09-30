@@ -92,4 +92,4 @@ for p in $USERBUILD/* ; do
 done
 
 # Copy python
-cp $ROOT/cpp/build/python/libclntlib.so $ROOT/bin/kernel/clntlib.so
+cp $ROOT/cpp/build/python/libclntlib.so $ROOT/pylib/splib/

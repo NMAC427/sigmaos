@@ -48,9 +48,9 @@ extern "C" {
   int create_stub(char* pn, uint32_t perm, uint32_t mode);
   int open_stub(char *pn, uint32_t mode, bool wait);
   void rename_stub(char* src, char* dst);
-  void remove_stub(char* pn); 
+  void remove_stub(char* pn);
   char* get_file_stub(char* pn);
-  uint32_t put_file_stub(char* pn, uint32_t perm, uint32_t mode, char* data, uint64_t o, uint64_t l); 
+  uint32_t put_file_stub(char* pn, uint32_t perm, uint32_t mode, char* data, uint64_t o, uint64_t l);
   uint32_t read_stub(int fd, char* b);
   uint32_t pread_stub(int fd, char* b, uint64_t o);
   uint32_t write_stub(int fd, char* b);
@@ -61,4 +61,7 @@ extern "C" {
   void started();
   void exited(uint32_t status, char* msg);
   void wait_evict();
+
+  void free_stat(CTstatProto* stat);
+  void free_string(char* s);
 }

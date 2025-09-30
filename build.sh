@@ -302,24 +302,6 @@ if [ "${NO_GO}" != "true" ]; then
   echo "========== Done building user bins =========="
 fi
 
-if [ "${NO_PY}" != "true" ]; then
-  echo "========== Building Python bins =========="
-  BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
-  docker exec -it $pybuildercid \
-    /usr/bin/time -f "Build time: %e sec" \
-    ./make-python.sh --version $VERSION \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
-  echo "========== Done building Python bins =========="
-fi
-
 RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
   $PARALLEL"
 
@@ -357,6 +339,24 @@ if [ "${NO_CPP}" != "true" ]; then
       exit 1
     fi
   echo "========== Done building CPP bins =========="
+fi
+
+if [ "${NO_PY}" != "true" ]; then
+  echo "========== Building Python bins =========="
+  BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
+  docker exec -it $pybuildercid \
+    /usr/bin/time -f "Build time: %e sec" \
+    ./make-python.sh --version $VERSION \
+    2>&1 | tee $BUILD_OUT_FILE && \
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
+        | tee -a $BUILD_OUT_FILE;
+    fi;
+    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
+      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
+      exit 1
+    fi
+  echo "========== Done building Python bins =========="
 fi
 
 if [ "${NO_DOCKER}" != "true" ]; then
