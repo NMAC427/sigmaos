@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 usage() {
   echo "Usage: $0 [--version VERSION]" 1>&2
 }
@@ -60,6 +62,9 @@ for entry in "$LIBDIR"/*; do
       touch "$entry/$OVERRIDEFILE"
     elif [[ -f "$entry" && "$entry" == *.py ]]; then
       filename=$(basename "$entry" .py)
+      touch "$LIBDIR/$filename-$OVERRIDEFILE"
+    elif [[ -f "$entry" && "$entry" == *.so ]]; then
+      filename=$(basename "$entry" .so)
       touch "$LIBDIR/$filename-$OVERRIDEFILE"
     fi
   fi

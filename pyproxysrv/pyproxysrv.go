@@ -255,7 +255,16 @@ func (pps *PyProxySrv) handleNewConn(conn *net.UnixConn) {
 						continue
 					}
 				} else {
-					libName := strings.TrimSuffix(file.Name(), ".py")
+					fileName := file.Name()
+					libName := ""
+					if strings.HasSuffix(fileName, ".py") {
+						libName = strings.TrimSuffix(fileName, ".py")
+					} else if strings.HasSuffix(fileName, ".so") {
+						libName = strings.TrimSuffix(fileName, ".so")
+					} else {
+						continue
+					}
+
 					_, checksumErr := os.Stat(filepath.Join(LIB, libName+"-"+CHECKSUM))
 					_, overrideErr := os.Stat(filepath.Join(LIB, libName+"-"+CHECKSUMOVERRIDE))
 					if (checksumErr != nil) && (overrideErr != nil) {

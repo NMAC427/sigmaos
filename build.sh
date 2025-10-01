@@ -386,13 +386,13 @@ fi
 if [ "${NO_DOCKER}" != "true" ]; then
   echo "========== Copying kernel bins for procd =========="
   if [ "${TARGET}" == "local" ]; then
-    sudo cp $ROOT/create-net.sh $KERNELBIN/
+    cp $ROOT/create-net.sh $KERNELBIN/
     cp $KERNELBIN/procd $PROCD_BIN/
     cp $KERNELBIN/spproxyd $PROCD_BIN/
     cp $KERNELBIN/uproc-trampoline $PROCD_BIN/
     # PYTHON
     cp $KERNELBIN/python $PROCD_BIN/
-    sudo rm -rf $PYTHON
+    rm -rf $PYTHON
     cp -r $KERNELBIN/cpython3.11 /tmp/
     mv /tmp/cpython3.11 $PYTHON
   fi
