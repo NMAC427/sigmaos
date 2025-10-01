@@ -19,7 +19,7 @@ RUN apt update && \
     libprotoc-dev \
     protobuf-compiler \
     software-properties-common && \
-  add-apt-repository ppa:deadsnakes/ppa && \
+  add-apt-repository -y ppa:deadsnakes/ppa && \
   apt install -y \
     python3-pybind11 \
     python3.11-dev
