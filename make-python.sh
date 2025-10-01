@@ -34,8 +34,21 @@ OUTPATH=./bin
 mkdir -p $OUTPATH/kernel
 mkdir -p $OUTPATH/user
 
-# Inject custom Python lib
-LIBDIR="/cpython3.11/Lib"
+# Copy Python executable
+cp /cpython3.11/python "$OUTPATH/kernel"
+cp -r /cpython3.11 "$OUTPATH/kernel"
+
+echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
+
+cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF
+home = /~~
+include-system-site-packages = false
+version = 3.11.13
+EOF
+
+# Copy libraries
+PY_OUTPATH=$OUTPATH/kernel/cpython3.11
+LIBDIR="$PY_OUTPATH/Lib"
 cp ./pylib/_clntlib.cpython-311-*.so $LIBDIR
 cp -r ./pylib/splib $LIBDIR
 
@@ -52,24 +65,8 @@ for entry in "$LIBDIR"/*; do
   fi
 done
 
-# Copy OpenBLAS-0.3.23
-cp /OpenBLAS-0.3.23/libopenblas64_p-r0.3.23.so $OUTPATH/kernel
-
-# Copy Python executable
-cp /cpython3.11/python "$OUTPATH/kernel"
-cp -r /cpython3.11 "$OUTPATH/kernel"                    # TODO: Is this needed?
-cp /cpython3.11/python "$OUTPATH/user"           # TODO: Why is this needed?
-cp /cpython3.11/python "$OUTPATH/user/python-v$VERSION"  # TODO: Why is this needed?
-echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
-
-cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF
-home = /~~
-include-system-site-packages = false
-version = 3.11.13
-EOF
-
 # Build python shim
-gcc -Wall -fPIC -shared -o $OUTPATH/kernel/ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
+gcc -Wall -fPIC -shared -o $PY_OUTPATH/ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
 
 # Copy Python user processes
-cp -r ./pyproc $OUTPATH/kernel
+cp -r ./pyproc $PY_OUTPATH

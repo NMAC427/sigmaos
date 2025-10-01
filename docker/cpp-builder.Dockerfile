@@ -24,6 +24,15 @@ RUN apt update && \
     python3-pybind11 \
     python3.11-dev
 
+# Set up builder user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} builder && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash builder
+
+USER builder
+
 WORKDIR /home/sigmaos
 
 CMD [ "/bin/bash", "-l" ]

@@ -187,7 +187,13 @@ fi
 if [ -z "$buildercid" ]; then
   # Build builder
   echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/builder.Dockerfile -t $BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-builder.out
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
+    --progress=plain \
+    --build-arg USER_ID=$(id -u) \
+    --build-arg GROUP_ID=$(id -g) \
+    -f docker/builder.Dockerfile \
+    -t $BUILDER_NAME \
+    . 2>&1 | tee $BUILD_LOG/sig-builder.out
   echo "========== Done building builder =========="
   # Start builder
   echo "========== Starting builder container =========="
@@ -203,10 +209,41 @@ if [ -z "$buildercid" ]; then
   echo "========== Done starting builder ========== "
 fi
 
+if [ -z "$cppbuildercid" ]; then
+  # Build builder
+  echo "========== Build CPP builder image =========="
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
+    --progress=plain \
+    --build-arg USER_ID=$(id -u) \
+    --build-arg GROUP_ID=$(id -g) \
+    -f docker/cpp-builder.Dockerfile \
+    -t $CPP_BUILDER_NAME \
+    . 2>&1 | tee $BUILD_LOG/sig-cpp-builder.out
+  echo "========== Done building CPP builder =========="
+  # Start builder
+  echo "========== Starting CPP builder container =========="
+  docker run --rm -d -it \
+    --name $CPP_BUILDER_NAME \
+    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
+    $CPP_BUILDER_NAME
+  cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1)
+  until [ "`docker inspect -f {{.State.Running}} $cppbuildercid`"=="true" ]; do
+      echo -n "." 1>&2
+      sleep 0.1;
+  done
+  echo "========== Done starting CPP builder ========== "
+fi
+
 if [ -z "$rsbuildercid" ]; then
   # Build builder
   echo "========== Build Rust builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/rs-builder.Dockerfile -t $RS_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
+    --progress=plain \
+    --build-arg USER_ID=$(id -u) \
+    --build-arg GROUP_ID=$(id -g) \
+    -f docker/rs-builder.Dockerfile \
+    -t $RS_BUILDER_NAME \
+    . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
   echo "========== Done building Rust builder =========="
   # Start builder
   echo "========== Starting Rust builder container =========="
@@ -225,7 +262,13 @@ fi
 if [ -z "$pybuildercid" ]; then
   # Build builder
   echo "========== Build Python builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE --progress=plain -f docker/py-builder.Dockerfile -t $PY_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-py-builder.out
+  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
+    --progress=plain \
+    --build-arg USER_ID=$(id -u) \
+    --build-arg GROUP_ID=$(id -g) \
+    -f docker/py-builder.Dockerfile \
+    -t $PY_BUILDER_NAME \
+    . 2>&1 | tee $BUILD_LOG/sig-py-builder.out
   echo "========== Done building Python builder =========="
   # Start builder
   echo "========== Starting Python builder container =========="
@@ -239,25 +282,6 @@ if [ -z "$pybuildercid" ]; then
       sleep 0.1;
   done
   echo "========== Done starting Python builder ========== "
-fi
-
-if [ -z "$cppbuildercid" ]; then
-  # Build builder
-  echo "========== Build CPP builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/cpp-builder.Dockerfile -t $CPP_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-cpp-builder.out
-  echo "========== Done building CPP builder =========="
-  # Start builder
-  echo "========== Starting CPP builder container =========="
-  docker run --rm -d -it \
-    --name $CPP_BUILDER_NAME \
-    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $CPP_BUILDER_NAME
-  cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $cppbuildercid`"=="true" ]; do
-      echo -n "." 1>&2
-      sleep 0.1;
-  done
-  echo "========== Done starting CPP builder ========== "
 fi
 
 BUILD_ARGS="\
@@ -366,16 +390,11 @@ if [ "${NO_DOCKER}" != "true" ]; then
     cp $KERNELBIN/procd $PROCD_BIN/
     cp $KERNELBIN/spproxyd $PROCD_BIN/
     cp $KERNELBIN/uproc-trampoline $PROCD_BIN/
-    # OpenBLAS
-    cp $KERNELBIN/libopenblas64_p-r0.3.23.so $PYTHON_DEPENDENCIES/libopenblas64_p-r0-25e23498.3.23.so
     # PYTHON
     cp $KERNELBIN/python $PROCD_BIN/
     sudo rm -rf $PYTHON
     cp -r $KERNELBIN/cpython3.11 /tmp/
     mv /tmp/cpython3.11 $PYTHON
-    cp -r $KERNELBIN/pyproc $PYTHON/
-    cp $KERNELBIN/ld_fstatat.so $PYTHON/
-    cp $KERNELBIN/clntlib.so $PYTHON/
   fi
   echo "========== Done copying kernel bins for uproc =========="
 fi

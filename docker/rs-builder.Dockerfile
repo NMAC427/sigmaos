@@ -1,17 +1,15 @@
 # syntax=docker/dockerfile:1-experimental
 
-FROM alpine
+FROM ubuntu:24.04
 
-RUN apk add --no-cache libseccomp \
-  gcompat \
-  musl-dev \
+RUN apt-get update && apt-get install -y \
   curl \
-  bash \
   gcc \
-  libc-dev \
+  time \
   parallel \
+  libseccomp-dev \
   binaryen \
-  libseccomp-static
+  build-essential
 
 RUN echo 'will cite' | parallel --citation || true
 
@@ -19,20 +17,26 @@ WORKDIR /home/sigmaos
 RUN mkdir -p bin/kernel && \
   mkdir -p bin/user
 
-# Install rust
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
-RUN source $HOME/.bashrc
-ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup update
-RUN cargo install \
-  wasm-pack \
-  protobuf-codegen
-RUN rustup target add wasm32-unknown-unknown
-
 # Copy rust trampoline
-COPY rs rs 
+COPY rs rs
+
+# Set up builder user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} builder && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash builder
+
+USER builder
+
+# Install rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/home/builder/.cargo/bin:${PATH}"
+RUN rustup update \
+    && cargo install wasm-pack protobuf-codegen \
+    && rustup target add wasm32-unknown-unknown
+
 ENV LIBSECCOMP_LINK_TYPE=static
-ENV LIBSECCOMP_LIB_PATH="/usr/lib"
+ENV LIBSECCOMP_LIB_PATH="/usr/lib/x86_64-linux-gnu"
 
 CMD [ "/bin/bash", "-l" ]

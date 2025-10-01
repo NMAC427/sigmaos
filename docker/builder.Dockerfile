@@ -4,19 +4,19 @@ FROM ubuntu:24.04 AS base
 
 RUN apt update && \
   apt install -y \
-  git \
-  wget \
-  gcc \
-  pkg-config \
-  parallel \
-  time \
-  cmake \
-  libprotobuf-dev \
-  libseccomp-dev \
-  libspdlog-dev \
-  libabsl-dev \
-  libprotoc-dev \
-  protobuf-compiler
+    git \
+    wget \
+    gcc \
+    pkg-config \
+    parallel \
+    time \
+    cmake \
+    libprotobuf-dev \
+    libseccomp-dev \
+    libspdlog-dev \
+    libabsl-dev \
+    libprotoc-dev \
+    protobuf-compiler
 
 # Download an initial version of Go
 RUN wget "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz" && \
@@ -34,6 +34,15 @@ RUN git clone https://github.com/ArielSzekely/go.git go-custom && \
   cd src && \
   ./make.bash && \
   /go-custom/bin/go version
+
+# Set up builder user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} builder && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash builder
+
+USER builder
 
 WORKDIR /home/sigmaos
 

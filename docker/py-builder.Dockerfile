@@ -4,29 +4,26 @@ FROM ubuntu:24.04
 
 RUN apt update && \
   apt install -y \
-  git \
-  wget \
-  gcc \
-  pkg-config \
-  parallel \
-  time \
-  cmake \
-  ccache \
-  libprotobuf-dev \
-  libseccomp-dev \
-  libspdlog-dev \
-  libabsl-dev \
-  libffi-dev \
-  libssl-dev \
-  libprotoc-dev \
-  protobuf-compiler
-
-# Install specific version of OpenBLAS
-RUN wget -P / https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz && \
-  tar -xzf /OpenBLAS-0.3.23.tar.gz && \
-  rm /OpenBLAS-0.3.23.tar.gz && \
-  cd /OpenBLAS-0.3.23 && \
-  make -j 8 USE_THREAD=1 INTERFACE64=1 DYNAMIC_ARCH=1 SYMBOLSUFFIX=64_ CFLAGS="-fcommon -Wno-error=incompatible-pointer-types"
+    git \
+    wget \
+    gcc \
+    pkg-config \
+    parallel \
+    time \
+    cmake \
+    ccache \
+    libprotobuf-dev \
+    libseccomp-dev \
+    libspdlog-dev \
+    libabsl-dev \
+    libffi-dev \
+    libssl-dev \
+    uuid-dev \
+    lzma-dev \
+    liblzma-dev \
+    libbz2-dev \
+    libprotoc-dev \
+    protobuf-compiler
 
 # Install Python
 RUN wget https://github.com/python/cpython/archive/refs/tags/v3.11.13.tar.gz -O /cpython.tar.gz && \
@@ -39,6 +36,15 @@ RUN wget https://github.com/python/cpython/archive/refs/tags/v3.11.13.tar.gz -O 
       --exec-prefix=/home/sigmaos/bin/user \
       --with-ensurepip=install && \
     make -j
+
+# Set up builder user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g ${GROUP_ID} builder && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash builder
+
+USER builder
 
 WORKDIR /home/sigmaos
 

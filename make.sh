@@ -141,3 +141,16 @@ for k in $WHAT; do
     fi
   fi
 done
+
+# Copy shared libraries (libwasmer.so)
+if [[ " $WHAT " == *" linux "* ]]; then
+  lib_path=$(ldd $OUTPATH/linux/bootkernel | grep "libwasmer.so" | grep -v "not found" | awk '{print $3}')
+
+  if [ -z "$lib_path" ]; then
+    echo "Error: libwasmer.so not found or path could not be determined." >&2
+    exit 1
+  else
+    mkdir -p $OUTPATH/kernel/lib
+    cp "$lib_path" $OUTPATH/kernel/lib/
+  fi
+fi

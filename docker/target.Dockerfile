@@ -15,18 +15,14 @@ RUN apt update && \
   curl \
   golang
 
-# Install wasmer go pkg
-RUN mkdir t && \
-  cd t && \
-  go mod init tmod && \
-  go get github.com/wasmerio/wasmer-go/wasmer@latest
-
 WORKDIR /home/sigmaos
 RUN mkdir bin && \
     mkdir all-realm-bin && \
     mkdir bin/user && \
     mkdir bin/kernel && \
     mkdir bin/linux
+
+COPY bin/kernel/lib/libwasmer.so /usr/lib/x86_64-linux-gnu
 
 # ========== local user image ==========
 FROM base AS sigmauser-local

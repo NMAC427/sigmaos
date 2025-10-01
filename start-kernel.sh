@@ -4,12 +4,14 @@
 # Start kernel container
 #
 
+set -x
+
 usage() {
     echo "Usage: $0 [--pull TAG] [--boot all|all_no_besched|node|node_no_besched|minnode|besched_node|named|realm_no_besched|spproxyd] [--named ADDRs] [--dbip DBIP] [--mongoip MONGOIP] [--usedialproxy] [--reserveMcpu rmcpu] [--homedir HOMEDIR] [--projectroot PROJECT_ROOT] [--sigmauser SIGMAUSER] [--net NETNAME] kernelid"  1>&2
 }
 
 UPDATE=""
-TAG="XXX"
+TAG="local-build"
 BOOT="named"
 NAMED="127.0.0.1"
 DBIP="x.x.x.x"
@@ -62,7 +64,7 @@ while [[ "$#" -gt 1 ]]; do
             usage
             exit 1
             ;;
-    esac            
+    esac
     shift
     ;;
   --pull)
