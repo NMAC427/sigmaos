@@ -5,6 +5,7 @@
 #include <serr/serr.h>
 #include <util/log/log.h>
 
+#include <condition_variable>
 #include <expected>
 #include <memory>
 #include <mutex>

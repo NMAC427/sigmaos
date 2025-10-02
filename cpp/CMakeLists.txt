@@ -22,7 +22,7 @@ endif()
 # External packages
 find_package(Protobuf REQUIRED)
 find_package(absl REQUIRED)
-find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 find_package(Python 3.11 EXACT COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
@@ -80,7 +80,7 @@ add_library(sigmaos_core STATIC
 
 target_link_libraries(sigmaos_core PUBLIC
   ${Protobuf_LIBRARIES}
-  spdlog::spdlog
+  fmt::fmt
   absl::hash
   absl::status
 )

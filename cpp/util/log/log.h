@@ -1,16 +1,15 @@
 #pragma once
 
-#include <spdlog/common.h>
-#include <spdlog/sinks/base_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
 #include <util/common/util.h>
 
-#include <format>
+#include <chrono>
+#include <fmt/format.h>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 // Some common debug selectors
 const std::string TEST = "TEST";
@@ -27,32 +26,78 @@ bool init_logger(std::string selector);
 
 const std::string ERR = "_ERR";
 
-class sigmadebug_sink : public spdlog::sinks::base_sink<std::mutex> {
+class Logger {
  public:
-  sigmadebug_sink(std::string selector)
-      : _enabled(false),
-        _stdout_sink(std::make_shared<spdlog::sinks::stdout_sink_mt>()) {
-    std::string sigmadebug(sigmaos::util::common::get_env("SIGMADEBUG"));
-    std::string pid(sigmaos::util::common::get_env("SIGMADEBUGPID"));
-    _stdout_sink->set_pattern(
-        std::format("%H:%M:%S.%f {} {} %v", pid, selector));
-    if (selector == ALWAYS || selector == FATAL) {
-      _enabled = true;
-    } else {
-      _enabled = sigmaos::util::common::ContainsLabel(sigmadebug, selector);
-    }
-  }
-  void sink_it_(const spdlog::details::log_msg &msg) override {
-    if (_enabled) {
-      _stdout_sink->log(msg);
-    }
-  }
-  void flush_() override { _stdout_sink->flush(); }
+  Logger(const std::string& selector);
 
- protected:
+  template <typename... Args>
+  void info(fmt::format_string<Args...> fmt, Args &&...args) {
+    if (_enabled) {
+      log_message(fmt, std::forward<Args>(args)...);
+    }
+  }
+
+  void flush() {
+    std::cout.flush();
+  }
+
  private:
+  template <typename... Args>
+  void log_message(fmt::format_string<Args...> fmt, Args &&...args) {
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+
+    // Get microseconds
+    auto duration = now.time_since_epoch();
+    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(duration) % 1000000;
+
+    // Format timestamp and message
+    std::string formatted_msg = fmt::format(fmt, std::forward<Args>(args)...);
+
+    std::cout << std::setfill('0')
+              << std::setw(2) << tm.tm_hour << ":"
+              << std::setw(2) << tm.tm_min << ":"
+              << std::setw(2) << tm.tm_sec << "."
+              << std::setw(6) << micros.count() << " "
+              << _pid << " " << _selector << " "
+              << formatted_msg << std::endl;
+  }
+
   bool _enabled;
-  std::shared_ptr<spdlog::sinks::stdout_sink_mt> _stdout_sink;
+  std::string _selector;
+  std::string _pid;
+  std::mutex _mutex;
+};
+
+// Logger registry
+class LoggerRegistry {
+ public:
+  static LoggerRegistry& instance() {
+    static LoggerRegistry registry;
+    return registry;
+  }
+
+  std::shared_ptr<Logger> get_logger(const std::string& selector) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    auto it = _loggers.find(selector);
+    if (it != _loggers.end()) {
+      return it->second;
+    }
+    return nullptr;
+  }
+
+  void register_logger(const std::string& selector, std::shared_ptr<Logger> logger) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    _loggers[selector] = logger;
+  }
+
+ private:
+  std::mutex _mutex;
+  std::unordered_map<std::string, std::shared_ptr<Logger>> _loggers;
 };
 
 // Used to initialize some common debug selectors
@@ -66,6 +111,7 @@ class _log {
   static bool _l_fatal;
   static bool _l_test;
   static bool _l_spawn_lat;
+  static bool _l_proxy_rpc_lat;
 };
 
 };  // namespace util::log
@@ -73,23 +119,24 @@ class _log {
 
 // Write a log line given a selector
 template <typename... Args>
-void log(std::string selector, spdlog::format_string_t<Args...> fmt,
-         Args &&...args) {
-  auto logger = spdlog::get(selector);
+void log(std::string selector, fmt::format_string<Args...> fmt, Args &&...args) {
+  auto& registry = sigmaos::util::log::LoggerRegistry::instance();
+  auto logger = registry.get_logger(selector);
   if (logger == nullptr) {
     sigmaos::util::log::init_logger(selector);
-    logger = spdlog::get(selector);
+    logger = registry.get_logger(selector);
   }
   logger->info(fmt, std::forward<Args>(args)...);
 }
 
 // Write a log line given a selector
 template <typename... Args>
-[[noreturn]] void fatal(spdlog::format_string_t<Args...> fmt, Args &&...args) {
-  auto logger = spdlog::get(FATAL);
+[[noreturn]] void fatal(fmt::format_string<Args...> fmt, Args &&...args) {
+  auto& registry = sigmaos::util::log::LoggerRegistry::instance();
+  auto logger = registry.get_logger(FATAL);
   if (logger == nullptr) {
     sigmaos::util::log::init_logger(FATAL);
-    logger = spdlog::get(FATAL);
+    logger = registry.get_logger(FATAL);
   }
   logger->info(fmt, std::forward<Args>(args)...);
   throw std::runtime_error("FATAL CPP");
