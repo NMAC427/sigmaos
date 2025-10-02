@@ -1,6 +1,6 @@
 message(STATUS "Building net library")
 
-add_library(io_net STATIC
+add_library(io_net OBJECT
   clnt.cc
   srv.cc
 )

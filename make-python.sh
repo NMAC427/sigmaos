@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 usage() {
   echo "Usage: $0 [--version VERSION]" 1>&2
 }

@@ -1,6 +1,6 @@
 message(STATUS "Building rpc_spchannel library")
 
-add_library(rpc_spchannel STATIC
+add_library(rpc_spchannel OBJECT
   spchannel.cc
 )
 

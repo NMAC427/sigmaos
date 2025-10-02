@@ -36,8 +36,48 @@ add_subdirectory(proxy)
 add_subdirectory(python)
 add_subdirectory(sigmap)
 add_subdirectory(rpc)
-add_subdirectory(apps)
 add_subdirectory(threadpool)
 
-# Procs
+# TODO: Maybe it would be worth turning this into a shared library?
+message(STATUS "Building sigmaos core library")
+add_library(sigmaos_core STATIC
+  $<TARGET_OBJECTS:serr>
+  $<TARGET_OBJECTS:util_common>
+  $<TARGET_OBJECTS:util_codec>
+  $<TARGET_OBJECTS:util_log>
+  $<TARGET_OBJECTS:util_perf>
+  $<TARGET_OBJECTS:util_tracing_proto>
+  $<TARGET_OBJECTS:threadpool>
+  $<TARGET_OBJECTS:io_iovec>
+  $<TARGET_OBJECTS:io_frame>
+  $<TARGET_OBJECTS:io_conn>
+  $<TARGET_OBJECTS:io_conn_tcp>
+  $<TARGET_OBJECTS:io_conn_unix>
+  $<TARGET_OBJECTS:io_transport_internal>
+  $<TARGET_OBJECTS:io_transport>
+  $<TARGET_OBJECTS:io_demux_internal>
+  $<TARGET_OBJECTS:io_demux>
+  $<TARGET_OBJECTS:io_net>
+  $<TARGET_OBJECTS:proc>
+  $<TARGET_OBJECTS:proc_proto>
+  $<TARGET_OBJECTS:rpc_proto>
+  $<TARGET_OBJECTS:rpc_delegation>
+  $<TARGET_OBJECTS:rpc_spchannel>
+  $<TARGET_OBJECTS:rpc>
+  $<TARGET_OBJECTS:sigmap_proto>
+  $<TARGET_OBJECTS:sigmap_proxy_proto>
+  $<TARGET_OBJECTS:sigmap_proxy>
+)
+
+target_link_libraries(sigmaos_core PUBLIC
+  ${Protobuf_LIBRARIES}
+  spdlog::spdlog
+  absl::hash
+  absl::status
+)
+
+target_include_directories(sigmaos_core PUBLIC ${CMAKE_SOURCE_DIR})
+
+# User procs
+add_subdirectory(apps)
 add_subdirectory(user)

@@ -10,9 +10,8 @@ bool _log::_l_fatal = init_logger(FATAL);
 bool _log::_l_test = init_logger(TEST);
 bool _log::_l_spawn_lat = init_logger(SPAWN_LAT);
 
-std::mutex _mu;
-
 bool init_logger(std::string selector) {
+  static std::mutex _mu;
   std::lock_guard<std::mutex> guard(_mu);
   auto log = spdlog::get(selector);
   // If this logger hasn't already been initialized, create a new one and

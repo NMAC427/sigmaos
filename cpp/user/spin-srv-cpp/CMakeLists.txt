@@ -5,16 +5,13 @@ add_executable(spin-srv-cpp
 )
 
 target_link_libraries(spin-srv-cpp PRIVATE 
-  io_net
-  io_conn_tcp
-  io_conn_unix
-  util_log
-  util_perf
-  sigmap_proxy
+  sigmaos_core
   spin_proto
   app_spin
-  rpc
-  rpc_spchannel
+  epcache_proto
   app_epcache
+  cache_proto
   app_cache
 )
+
+target_include_directories(spin-srv-cpp PRIVATE ${CMAKE_SOURCE_DIR})

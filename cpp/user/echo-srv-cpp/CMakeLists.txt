@@ -5,12 +5,9 @@ add_executable(echo-srv-cpp
 )
 
 target_link_libraries(echo-srv-cpp PRIVATE 
-  io_net
-  io_conn_tcp
-  io_conn_unix
-  util_log
-  sigmap_proxy
+  sigmaos_core
   echo_proto
   app_echo
-  rpc
 )
+
+target_include_directories(echo-srv-cpp PRIVATE ${CMAKE_SOURCE_DIR})

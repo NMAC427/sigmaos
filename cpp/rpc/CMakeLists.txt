@@ -4,7 +4,7 @@ add_subdirectory(proto)
 add_subdirectory(spchannel)
 add_subdirectory(delegation)
 
-add_library(rpc STATIC
+add_library(rpc OBJECT
   blob.cc
   clnt.cc
   srv.cc

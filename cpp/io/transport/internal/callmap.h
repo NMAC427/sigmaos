@@ -1,6 +1,5 @@
 #pragma once
 
-#include <io/transport/call.h>
 #include <serr/serr.h>
 
 #include <expected>
@@ -10,6 +9,10 @@
 #include <optional>
 
 namespace sigmaos {
+namespace io::transport {
+class Call;
+};  // namespace io::transport
+
 namespace io::transport::internal {
 
 class CallMap {

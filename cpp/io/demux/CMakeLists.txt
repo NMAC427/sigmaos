@@ -2,7 +2,7 @@ message(STATUS "Building demux library")
 
 add_subdirectory(internal)
 
-add_library(io_demux STATIC
+add_library(io_demux OBJECT
   clnt.cc
   srv.cc
 )

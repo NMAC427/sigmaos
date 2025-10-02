@@ -1,6 +1,6 @@
 message(STATUS "Building demux internal library")
 
-add_library(io_demux_internal STATIC
+add_library(io_demux_internal OBJECT
   callmap.cc
 )
 

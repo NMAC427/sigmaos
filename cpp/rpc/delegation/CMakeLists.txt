@@ -1,6 +1,6 @@
 message(STATUS "Building rpc delegation library")
 
-add_library(rpc_delegation STATIC
+add_library(rpc_delegation OBJECT
   cache.cc
 )
 

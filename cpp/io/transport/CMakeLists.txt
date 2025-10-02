@@ -2,7 +2,7 @@ message(STATUS "Building transport library")
 
 add_subdirectory(internal)
 
-add_library(io_transport STATIC
+add_library(io_transport OBJECT
   transport.cc
 )
 

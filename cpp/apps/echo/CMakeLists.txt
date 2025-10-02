@@ -2,7 +2,7 @@ message(STATUS "Building echo app library")
 
 add_subdirectory(proto)
 
-add_library(app_echo STATIC
+add_library(app_echo OBJECT
   srv.cc
 )
 

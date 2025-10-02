@@ -2,7 +2,7 @@ message(STATUS "Building cache library")
 
 add_subdirectory(proto)
 
-add_library(app_cache STATIC
+add_library(app_cache OBJECT
   clnt.cc
   srv.cc
   cache.cc

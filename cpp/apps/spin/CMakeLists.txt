@@ -2,7 +2,7 @@ message(STATUS "Building spin app library")
 
 add_subdirectory(proto)
 
-add_library(app_spin STATIC
+add_library(app_spin OBJECT
   srv.cc
 )
 

@@ -1,6 +1,6 @@
 message(STATUS "Building common util library")
 
-add_library(util_common STATIC util.cc)
+add_library(util_common OBJECT util.cc)
 
 target_link_libraries(util_common PUBLIC)
 

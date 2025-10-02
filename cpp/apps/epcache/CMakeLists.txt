@@ -2,7 +2,7 @@ message(STATUS "Building epcache library")
 
 add_subdirectory(proto)
 
-add_library(app_epcache STATIC clnt.cc)
+add_library(app_epcache OBJECT clnt.cc)
 
 target_link_libraries(app_epcache PUBLIC
   serr

@@ -2,7 +2,7 @@ message(STATUS "Building sigmap proxy library")
 
 add_subdirectory(proto)
 
-add_library(sigmap_proxy STATIC
+add_library(sigmap_proxy OBJECT
   sigmap.cc
 )
 

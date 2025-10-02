@@ -2,7 +2,7 @@ message(STATUS "Building cossim app library")
 
 add_subdirectory(proto)
 
-add_library(app_cossim STATIC
+add_library(app_cossim OBJECT
   srv.cc
   vec.cc
 )

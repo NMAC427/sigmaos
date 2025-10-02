@@ -1,6 +1,6 @@
 message(STATUS "Building threadpool library")
 
-add_library(threadpool STATIC
+add_library(threadpool OBJECT
   threadpool.cc
 )
 

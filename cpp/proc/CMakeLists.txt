@@ -1,12 +1,12 @@
 message(STATUS "Building proc proto library")
 
-add_library(proc STATIC proc.cc)
+add_library(proc OBJECT proc.cc)
 
 target_link_libraries(proc PUBLIC
   sigmap_proto
 )
 
-add_library(proc_proto STATIC proc.pb.cc)
+add_library(proc_proto OBJECT proc.pb.cc)
 
 target_link_libraries(proc_proto PUBLIC
   sigmap_proto

@@ -1,6 +1,6 @@
 message(STATUS "Building sigmap proxy proto library")
 
-add_library(sigmap_proxy_proto STATIC spproxy.pb.cc)
+add_library(sigmap_proxy_proto OBJECT spproxy.pb.cc)
 
 target_link_libraries(sigmap_proxy_proto PUBLIC
   ${Protobuf_LIBRARIES}

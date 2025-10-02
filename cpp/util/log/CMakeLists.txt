@@ -1,6 +1,6 @@
 message(STATUS "Building logging library")
 
-add_library(util_log STATIC log.cc)
+add_library(util_log OBJECT log.cc)
 
 target_link_libraries(util_log PUBLIC
   util_common

@@ -65,7 +65,7 @@ mkdir -p build
 
 # Generate build files
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug
+cmake ..
 export EXIT_STATUS=$?
 if [ $EXIT_STATUS  -ne 0 ]; then
   exit $EXIT_STATUS

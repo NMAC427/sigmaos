@@ -1,6 +1,6 @@
 message(STATUS "Building frame library")
 
-add_library(io_frame STATIC frame.cc)
+add_library(io_frame OBJECT frame.cc)
 
 target_link_libraries(io_frame PUBLIC
   serr
