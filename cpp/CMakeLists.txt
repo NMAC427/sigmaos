@@ -27,6 +27,15 @@ find_package(spdlog REQUIRED)
 find_package(Python 3.11 EXACT COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
+# backward-cpp provides pretty backtraces for segfaults and other crashes
+include(FetchContent)
+FetchContent_Declare(backward
+    GIT_REPOSITORY https://github.com/bombela/backward-cpp
+    GIT_TAG master
+    SYSTEM
+)
+FetchContent_MakeAvailable(backward)
+
 # SigmaOS packages
 add_subdirectory(serr)
 add_subdirectory(io)

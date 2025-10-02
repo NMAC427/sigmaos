@@ -12,6 +12,7 @@ RUN apt update && \
     time \
     cmake \
     ccache \
+    binutils-dev \
     libprotobuf-dev \
     libseccomp-dev \
     libspdlog-dev \
