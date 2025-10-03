@@ -59,7 +59,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 			args = append([]string{"--signal=!SIGSEGV"}, args...)
 		}
 		if uproc.GetProgram() == "python" {
-			args = append([]string{"-E", "LD_PRELOAD=/tmp/python/ld_fstatat.so"}, args...)
+			args = append([]string{"-E", "LD_PRELOAD=/tmp/python/ld_preload.so"}, args...)
 		}
 		args = append(args, uproc.Args...)
 		cmd = exec.Command("strace", args...)
@@ -78,7 +78,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	uproc.AppendEnv("SIGMA_SPAWN_TIME", strconv.FormatInt(uproc.GetSpawnTime().UnixMicro(), 10))
 	uproc.AppendEnv(proc.SIGMAPERF, uproc.GetProcEnv().GetPerf())
 	if uproc.GetProgram() == "python" && !stracing {
-		uproc.AppendEnv("LD_PRELOAD", "/tmp/python/ld_fstatat.so")
+		uproc.AppendEnv("LD_PRELOAD", "/tmp/python/ld_preload.so")
 	}
 	// uproc.AppendEnv("RUST_BACKTRACE", "1")
 	cmd.Env = uproc.GetEnv()

@@ -69,7 +69,8 @@ for entry in "$LIBDIR"/*; do
 done
 
 # Build python shim
-gcc -Wall -fPIC -shared -o $PY_OUTPATH/ld_fstatat.so ./ld_preload/ld_fstatat.c -ldl
+make -C ld_preload --no-print-directory
+cp $ROOT/ld_preload/ld_preload.so $PY_OUTPATH/
 
 # Copy Python user processes
 cp -r ./pyproc $PY_OUTPATH
