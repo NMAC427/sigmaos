@@ -3,10 +3,10 @@
 set -eo pipefail
 
 usage() {
-  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--parallel] [--rebuildbuilder] [--nocache]" 1>&2
+  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [-j NJOBS] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--rebuildbuilder] [--nocache] [--debug]" 1>&2
 }
 
-PARALLEL=""
+NJOBS="$(nproc)"
 REBUILD_BUILDER="false"
 NO_CACHE=""
 TAG=""
@@ -19,11 +19,13 @@ NO_GO="false"
 NO_PY="false"
 NO_DOCKER="false"
 NORACE="--norace"
+DEBUG=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
-  --parallel)
+  -j)
     shift
-    PARALLEL="--parallel"
+    NJOBS="$1"
+    shift
     ;;
   --rebuildbuilder)
     shift
@@ -72,6 +74,10 @@ while [[ "$#" -gt 0 ]]; do
     shift
     NORACE=""
     shift
+    ;;
+  --debug)
+    shift
+    DEBUG="true"
     ;;
   --userbin)
     shift
@@ -284,13 +290,13 @@ if [ -z "$pybuildercid" ]; then
   echo "========== Done starting Python builder ========== "
 fi
 
-BUILD_ARGS="\
-  $NORACE \
-  --gopath /go-custom/bin/go \
-  --target $TARGET \
-  $PARALLEL"
-
 if [ "${NO_GO}" != "true" ]; then
+  BUILD_ARGS="\
+    $NORACE \
+    --gopath /go-custom/bin/go \
+    --target $TARGET \
+    -j $NJOBS"
+
   echo "========== Building kernel bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-kernel.out
   docker exec -it $buildercid \
@@ -326,10 +332,10 @@ if [ "${NO_GO}" != "true" ]; then
   echo "========== Done building user bins =========="
 fi
 
-RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
-  $PARALLEL"
-
 if [ "${NO_RS}" != "true" ]; then
+  RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
+    -j $NJOBS"
+
   echo "========== Building Rust bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-rs.out
   docker exec -it $rsbuildercid \
@@ -348,6 +354,9 @@ if [ "${NO_RS}" != "true" ]; then
 fi
 
 if [ "${NO_CPP}" != "true" ]; then
+  CPP_BUILD_ARGS="$( if [ "$DEBUG" == "true" ]; then echo "--build_type Debug"; fi )\
+    -j $NJOBS"
+
   echo "========== Building CPP bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-cpp.out
   docker exec -it $cppbuildercid \
@@ -396,7 +405,7 @@ if [ "${NO_DOCKER}" != "true" ]; then
     cp -r $KERNELBIN/cpython3.11 /tmp/
     mv /tmp/cpython3.11 $PYTHON
   fi
-  echo "========== Done copying kernel bins for uproc =========="
+  echo "========== Done copying kernel bins for proc =========="
 fi
 
 # Now, prepare to build final containers which will actually run.
@@ -405,18 +414,10 @@ if [ "${TARGET}" == "local" ]; then
   targets="sigmauser-local sigmaos-local"
 fi
 
-njobs=1
-if ! [ -z "$PARALLEL" ]; then
-  # Optionally build the docker images in parallel.
-  njobs=$(echo $targets | wc -w)
-fi
-
-build_targets="parallel -j$njobs \"DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/target.Dockerfile --target {} -t {}$BUILD_TARGET_SUFFIX . 2>&1 | tee $BUILD_LOG/{}.out\" ::: $targets"
-
 if [ "${NO_DOCKER}" != "true" ]; then
-  printf "\nBuilding Docker image targets\n$build_targets\n\n"
   echo "========== Start Docker targets build =========="
-  eval $build_targets
+  parallel --verbose -j"$NJOBS" --tag \
+    "DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/target.Dockerfile --target {} -t {}$BUILD_TARGET_SUFFIX . 2>&1 | tee $BUILD_LOG/{}.out" ::: $targets
   echo "========== Done building Docker targets =========="
 fi
 
@@ -437,7 +438,7 @@ fi
 if [ "${NO_GO}" != "true" ]; then
   # Build npproxy for host
   echo "========== Building proxy =========="
-  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy
+  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace -j $NJOBS npproxy
   echo "========== Done building proxy =========="
 fi
 

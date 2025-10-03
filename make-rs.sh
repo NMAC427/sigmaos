@@ -1,12 +1,12 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 [--rustpath RUST] [--version VERSION] [--parallel]" 1>&2
+  echo "Usage: $0 [--rustpath RUST] [--version VERSION] [-j NJOBS]" 1>&2
 }
 
 CARGO="cargo"
 VERSION="1.0"
-PARALLEL=""
+NJOBS=$(nproc)
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
   --rustpath)
@@ -19,9 +19,10 @@ while [[ "$#" -gt 0 ]]; do
     VERSION="$1"
     shift
     ;;
-  --parallel)
+  -j)
     shift
-    PARALLEL="--parallel"
+    NJOBS="$1"
+    shift
     ;;
   -help)
     usage
@@ -55,7 +56,7 @@ LDF="-X sigmaos/sigmap.Target=$TARGET -s -w"
 
 TARGETS="uproc-trampoline spawn-latency"
 
-parallel --verbose --tag -j$(nproc) \
+parallel --verbose --tag -j"$NJOBS" \
   --halt now,fail=1 \
   "$CARGO" build --manifest-path=rs/{1}/Cargo.toml --release \
   ::: $TARGETS
@@ -72,7 +73,7 @@ cp rs/spawn-latency/target/release/spawn-latency bin/user/spawn-latency-v$VERSIO
 
 # Build wasm scripts
 TARGETS=$(ls rs/wasm)
-parallel --verbose --tag -j$(nproc) \
+parallel --verbose --tag -j"$NJOBS" \
   --halt now,fail=1 \
   "$CARGO" build --manifest-path=rs/wasm/{1}/Cargo.toml --target=wasm32-unknown-unknown --release \
   ::: $TARGETS

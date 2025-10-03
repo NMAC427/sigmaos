@@ -4,5 +4,4 @@ pybind11_add_module(_clntlib clntlib.cc)
 
 target_link_libraries(_clntlib PRIVATE
     sigmaos_core
-    Backward::Object
 )

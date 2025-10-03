@@ -93,6 +93,12 @@ target_link_libraries(sigmaos_core PUBLIC
   absl::status
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(sigmaos_core PUBLIC
+    Backward::Backward
+  )
+endif()
+
 target_include_directories(sigmaos_core PUBLIC ${CMAKE_SOURCE_DIR})
 
 # User procs

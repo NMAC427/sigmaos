@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 [--norace] [--vet] [--parallel] [--gopath GO] [--target local|remote] [--version VERSION] [--userbin USERBIN] kernel|user|npproxy" 1>&2
+  echo "Usage: $0 [--norace] [--vet] [-j NJOBS] [--gopath GO] [--target local|remote] [--version VERSION] [--userbin USERBIN] kernel|user|npproxy" 1>&2
 }
 
 RACE="-race"
@@ -10,7 +10,7 @@ TARGET="local"
 VERSION="1.0"
 USERBIN="all"
 GO="go"
-PARALLEL=""
+NJOBS="$(nproc)"
 WHAT=""
 BINS=""
 while [[ "$#" -gt 0 ]]; do
@@ -43,9 +43,10 @@ while [[ "$#" -gt 0 ]]; do
     USERBIN="$1"
     shift
     ;;
-  --parallel)
+  -j)
     shift
-    PARALLEL="--parallel"
+    NJOBS="$1"
+    shift
     ;;
   --bins)
     shift
@@ -111,34 +112,17 @@ for k in $WHAT; do
      FILES="$(echo "$USERBIN" | tr "," " ")"
      echo "Only building userbin $USERBIN files $FILES"
    fi
-  if [ -z "$PARALLEL" ]; then
-    for f in $FILES;  do
-      if [ $CMD == "vet" ]; then
-        echo "$GO vet cmd/$k/$f/main.go"
-        $GO vet cmd/$k/$f/main.go
-      else
-        build="$GO build -ldflags=\"$LDF\" $RACE -o $OUTPATH/$k/$f$VERSION cmd/$k/$f/main.go"
-        echo $build
-        eval "$build"
-        # Bail out early on build error
-        export EXIT_STATUS=$?
-        if [ $EXIT_STATUS  -ne 0 ]; then
-          exit $EXIT_STATUS
-        fi
-      fi
-    done
-  else
-    parallel --verbose --tag -j$(nproc) \
-      --halt now,fail=1 \
-      "$GO" build -ldflags=\"$LDF\" "$RACE" \
-      -o "$OUTPATH/$k/{1}$VERSION" "cmd/$k/{1}/main.go" \
-      ::: $FILES
 
-    # Bail out early on build error
-    export EXIT_STATUS=$?
-    if [ $EXIT_STATUS  -ne 0 ]; then
-      exit $EXIT_STATUS
-    fi
+  parallel --verbose --tag -j$NJOBS \
+    --halt now,fail=1 \
+    "$GO" build -ldflags=\"$LDF\" "$RACE" \
+    -o "$OUTPATH/$k/{1}$VERSION" "cmd/$k/{1}/main.go" \
+    ::: $FILES
+
+  # Bail out early on build error
+  export EXIT_STATUS=$?
+  if [ $EXIT_STATUS -ne 0 ]; then
+    exit $EXIT_STATUS
   fi
 done
 

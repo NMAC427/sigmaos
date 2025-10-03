@@ -1,15 +1,27 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 [--version VERSION]" 1>&2
+  echo "Usage: $0 [--version VERSION] [-j NJOBS] [--build_type BUILD_TYPE]" 1>&2
 }
 
 VERSION="1.0"
+NJOBS=$(nproc)
+CMAKE_BUILD_TYPE=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
   --version)
     shift
     VERSION="$1"
+    shift
+    ;;
+  -j)
+    shift
+    NJOBS="$1"
+    shift
+    ;;
+  --build_type)
+    shift
+    BUILD_TYPE="$1"
     shift
     ;;
   -help)
@@ -52,7 +64,7 @@ proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/epcache/proto --proto_path apps/e
 proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cache/proto --proto_path apps/cache/proto cache.proto")
 proto_cmds+=("protoc -I=. --cpp_out=./cpp util/tracing/proto/tracing.proto")
 
-printf "%s\n" "${proto_cmds[@]}" | parallel -j"$(nproc)" --verbose
+printf "%s\n" "${proto_cmds[@]}" | parallel -j"$NJOBS" --verbose
 
 # Make a build directory
 cd cpp
@@ -60,8 +72,8 @@ mkdir -p build
 
 # Run the build
 cd build
-cmake .. && \
-  cmake --build . -j $(nproc)
+cmake .. -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" && \
+  cmake --build . -j "$NJOBS"
 
 export EXIT_STATUS=$?
 if [ $EXIT_STATUS  -ne 0 ]; then

@@ -1,11 +1,11 @@
 #pragma once
 
+#include <fmt/format.h>
 #include <util/common/util.h>
 
 #include <chrono>
-#include <fmt/format.h>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -31,19 +31,17 @@ class Logger {
   Logger(const std::string& selector);
 
   template <typename... Args>
-  void info(fmt::format_string<Args...> fmt, Args &&...args) {
+  void info(fmt::format_string<Args...> fmt, Args&&... args) {
     if (_enabled) {
       log_message(fmt, std::forward<Args>(args)...);
     }
   }
 
-  void flush() {
-    std::cout.flush();
-  }
+  void flush() { std::cout.flush(); }
 
  private:
   template <typename... Args>
-  void log_message(fmt::format_string<Args...> fmt, Args &&...args) {
+  void log_message(fmt::format_string<Args...> fmt, Args&&... args) {
     std::lock_guard<std::mutex> lock(_mutex);
 
     // Get current time
@@ -53,18 +51,17 @@ class Logger {
 
     // Get microseconds
     auto duration = now.time_since_epoch();
-    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(duration) % 1000000;
+    auto micros =
+        std::chrono::duration_cast<std::chrono::microseconds>(duration) %
+        1000000;
 
     // Format timestamp and message
     std::string formatted_msg = fmt::format(fmt, std::forward<Args>(args)...);
 
-    std::cout << std::setfill('0')
-              << std::setw(2) << tm.tm_hour << ":"
-              << std::setw(2) << tm.tm_min << ":"
-              << std::setw(2) << tm.tm_sec << "."
-              << std::setw(6) << micros.count() << " "
-              << _pid << " " << _selector << " "
-              << formatted_msg << std::endl;
+    std::cout << std::setfill('0') << std::setw(2) << tm.tm_hour << ":"
+              << std::setw(2) << tm.tm_min << ":" << std::setw(2) << tm.tm_sec
+              << "." << std::setw(6) << micros.count() << " " << _pid << " "
+              << _selector << " " << formatted_msg << std::endl;
   }
 
   bool _enabled;
@@ -90,7 +87,8 @@ class LoggerRegistry {
     return nullptr;
   }
 
-  void register_logger(const std::string& selector, std::shared_ptr<Logger> logger) {
+  void register_logger(const std::string& selector,
+                       std::shared_ptr<Logger> logger) {
     std::lock_guard<std::mutex> lock(_mutex);
     _loggers[selector] = logger;
   }
@@ -119,7 +117,8 @@ class _log {
 
 // Write a log line given a selector
 template <typename... Args>
-void log(std::string selector, fmt::format_string<Args...> fmt, Args &&...args) {
+void log(std::string selector, fmt::format_string<Args...> fmt,
+         Args&&... args) {
   auto& registry = sigmaos::util::log::LoggerRegistry::instance();
   auto logger = registry.get_logger(selector);
   if (logger == nullptr) {
@@ -131,7 +130,7 @@ void log(std::string selector, fmt::format_string<Args...> fmt, Args &&...args) 
 
 // Write a log line given a selector
 template <typename... Args>
-[[noreturn]] void fatal(fmt::format_string<Args...> fmt, Args &&...args) {
+[[noreturn]] void fatal(fmt::format_string<Args...> fmt, Args&&... args) {
   auto& registry = sigmaos::util::log::LoggerRegistry::instance();
   auto logger = registry.get_logger(FATAL);
   if (logger == nullptr) {
