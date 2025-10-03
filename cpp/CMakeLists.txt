@@ -56,7 +56,7 @@ add_subdirectory(shmem)
 add_subdirectory(threadpool)
 
 message(STATUS "Building sigmaos core library")
-add_library(sigmaos_core SHARED
+add_library(sigmaos_core STATIC
   $<TARGET_OBJECTS:serr>
   $<TARGET_OBJECTS:util_common>
   $<TARGET_OBJECTS:util_codec>
