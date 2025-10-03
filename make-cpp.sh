@@ -32,35 +32,30 @@ ROOT=$(pwd)
 USERBIN=$ROOT/bin/user
 
 # Compile protobufs
-for P in sigmap proc ; do
-  echo "protoc (cpp) $P"
-  protoc -I=. --cpp_out=./cpp $P/$P.proto
+find cpp -iname "*.pb.cc" -o -iname "*.pb.h" -delete
+
+proto_cmds=()
+
+for P in \
+  sigmap/*.proto \
+  proc/*.proto \
+  proxy/sigmap/proto/*.proto \
+  rpc/proto/*.proto;
+do
+  proto_cmds+=("protoc -I=. --cpp_out=./cpp $P")
 done
 
-for PP in proxy/sigmap ; do
-  for P in $PP/proto/*.proto ; do
-    echo "protoc (cpp) $P cpp"
-    protoc -I=. --cpp_out=./cpp $P
-  done
-done
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/echo/proto --proto_path example/example_echo_server/proto example_echo_server.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/spin/proto --proto_path apps/spin/proto spin.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cossim/proto --proto_path apps/cossim/proto cossim.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/epcache/proto --proto_path apps/epcache/proto epcache.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cache/proto --proto_path apps/cache/proto cache.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp util/tracing/proto/tracing.proto")
 
-for PP in rpc ; do
-  for P in $PP/proto/*.proto ; do
-    echo "protoc (cpp) $P cpp"
-    protoc -I=. --cpp_out=./cpp $P
-  done
-done
-
-protoc -I=. --cpp_out="./cpp/apps/echo/proto" --proto_path example/example_echo_server/proto example_echo_server.proto
-protoc -I=. --cpp_out="./cpp/apps/spin/proto" --proto_path apps/spin/proto spin.proto
-protoc -I=. --cpp_out="./cpp/apps/cossim/proto" --proto_path apps/cossim/proto cossim.proto
-protoc -I=. --cpp_out="./cpp/apps/epcache/proto" --proto_path apps/epcache/proto epcache.proto
-protoc -I=. --cpp_out="./cpp/apps/cache/proto" --proto_path apps/cache/proto cache.proto
-protoc -I=. --cpp_out=./cpp util/tracing/proto/tracing.proto
-
-cd cpp
+printf "%s\n" "${proto_cmds[@]}" | parallel -j"$(nproc)" --verbose
 
 # Make a build directory
+cd cpp
 mkdir -p build
 
 # Run the build
@@ -86,5 +81,6 @@ for p in $USERBUILD/* ; do
   cp $p/$name $USERBIN/$name-v$VERSION
 done
 
-# Copy python
+# Copy shared libs
+cp $ROOT/cpp/build/libsigmaos_core.so $ROOT/bin/kernel/lib/
 cp $ROOT/cpp/build/python/_clntlib.*.so $ROOT/pylib/
