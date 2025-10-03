@@ -128,12 +128,11 @@ for k in $WHAT; do
       fi
     done
   else
-    # If building in parallel, build with (n - 1) threads.
-    njobs=$(nproc)
-    njobs="$(($njobs-1))"
-    build="parallel -j$njobs $GO \"build -ldflags='$LDF' $RACE -o $OUTPATH/$k/{}$VERSION cmd/$k/{}/main.go\" ::: $FILES"
-    echo $build
-    eval $build
+    parallel --verbose --tag -j$(nproc) \
+      "$GO" build -ldflags=\"$LDF\" "$RACE" \
+      -o "$OUTPATH/$k/{1}$VERSION" "cmd/$k/{1}/main.go" \
+      ::: $FILES
+
     # Bail out early on build error
     export EXIT_STATUS=$?
     if [ $EXIT_STATUS  -ne 0 ]; then
@@ -152,5 +151,6 @@ if [[ " $WHAT " == *" linux "* ]]; then
   else
     mkdir -p $OUTPATH/kernel/lib
     cp "$lib_path" $OUTPATH/kernel/lib/
+    chmod 755 $OUTPATH/kernel/lib/$(basename $lib_path)
   fi
 fi

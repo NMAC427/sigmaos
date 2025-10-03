@@ -1,8 +1,11 @@
 package srv
 
 import (
-	"sigmaos/apps/cache"
 	"sync"
+
+	"sigmaos/apps/cache"
+	cacheproto "sigmaos/apps/cache/proto"
+	rpcproto "sigmaos/rpc/proto"
 )
 
 type shard struct {
@@ -85,6 +88,25 @@ func (s *shard) dump(empty bool) cache.Tcache {
 		s.cache = make(cache.Tcache)
 	}
 	return m
+}
+
+func (s *shard) dumpInto(rep *cacheproto.MultiShardRep, shardIdx int) {
+	s.Lock()
+	defer s.Unlock()
+
+	vals := make([][]byte, 0, len(s.cache))
+	// Count the number of bytes needed to serialize this shard, and store
+	// its keys
+	for k, v := range s.cache {
+		rep.Keys = append(rep.Keys, k)
+		vals = append(vals, v)
+		l := len(v)
+		rep.Lens = append(rep.Lens, uint32(l))
+	}
+	// Make room for the shard's values
+	rep.Blob.SplitIov[shardIdx] = &rpcproto.SplitIoVec{
+		Iov: vals,
+	}
 }
 
 func (s *shard) getHitCnt() uint64 {

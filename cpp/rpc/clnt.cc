@@ -53,26 +53,40 @@ std::expected<int, sigmaos::serr::Error> Clnt::BatchFetchDelegatedRPCs(
 
 // Retrieve the result of a delegated RPC
 std::expected<int, sigmaos::serr::Error> Clnt::DelegatedRPC(
-    uint64_t rpc_idx, google::protobuf::Message &delegated_rep) {
+    uint64_t rpc_idx, google::protobuf::Message &delegated_rep,
+    std::shared_ptr<std::vector<std::shared_ptr<std::string_view>>> views) {
   log(RPCCLNT, "DelegatedRPC {}", (int)rpc_idx);
+  // Sanity check
+  if ((_shmem && !views) || (!_shmem && views)) {
+    fatal("Try delegated RPC with mismatching shmem & views");
+  }
   auto out_iov = std::make_shared<sigmaos::io::iovec::IOVec>();
-  // Prepend empty slots to the out iovec for the marshaled delegated reply and
-  // its RPC wrapper
-  out_iov->AddBuffers(2);
+  if (!_shmem) {
+    // Prepend empty slots to the out iovec for the marshaled delegated reply
+    // and its RPC wrapper
+    out_iov->AddBuffers(2);
+  }
   // Extract any output IOVecs from the delegated reply RPC
   extract_blob_iov(delegated_rep, out_iov);
   // Create the delegated request
   SigmaDelegatedRPCReq req;
   req.set_rpcidx(rpc_idx);
+  req.set_useshmem(_shmem != nullptr);
   auto rep = std::make_shared<SigmaDelegatedRPCRep>();
   Blob blob;
+  // Set IOVec buffers if not using shared memory
   auto iov = blob.mutable_iov();
-  // Add the delegated reply's blob output buffers to the RPC's blob
-  for (int i = 0; i < out_iov->Size(); i++) {
-    iov->AddAllocated(out_iov->GetBuffer(i)->Get());
+  if (!_shmem) {
+    // Add the output buffers for the RPC wrapper & serialized RPC reply, as
+    // well as the delegated reply's blob output buffers to the RPC's blob
+    for (int i = 0; i < out_iov->Size(); i++) {
+      iov->AddAllocated(out_iov->GetBuffer(i)->Get());
+    }
   }
   rep->set_allocated_blob(&blob);
   bool reply_cached = false;
+  // TODO: remove TS
+  auto start = GetCurrentTime();
   {
     auto res = _cache.Get(rpc_idx, out_iov);
     if (!res.has_value()) {
@@ -90,18 +104,44 @@ std::expected<int, sigmaos::serr::Error> Clnt::DelegatedRPC(
       return res;
     }
   }
+  // If using shared memory
+  if (_shmem) {
+    if (rep->useshmem()) {
+      // Sanity check that enough buffers were supplied
+      if (views->size() != (rep->shmoffs().size() - 2)) {
+        fatal("Wrong num buffers supplied for shared-memory delRPC: {} != {}",
+              views->size(), rep->shmoffs().size());
+      }
+      log(RPCCLNT, "DelegatedRPC({}) using shared memory", (int)rpc_idx);
+      // Set the output buffers for the RPC wrapper & serialized RPC reply
+      for (int i = 0; i < 2; i++) {
+        uint64_t off = rep->shmoffs(i);
+        size_t len = (size_t)rep->shmlens(i);
+        auto b =
+            std::make_shared<std::string>((char *)_shmem->GetBuf() + off, len);
+        out_iov->AppendBuffer(std::make_shared<sigmaos::io::iovec::Buffer>(b));
+      }
+      // Skip the first two IOVs since those are the RPC wrapper & RPC struct
+      for (int i = 2; i < rep->shmoffs().size(); i++) {
+        uint64_t off = rep->shmoffs(i);
+        size_t len = (size_t)rep->shmlens(i);
+        views->at(i - 2) = std::make_shared<std::string_view>(
+            (char *)_shmem->GetBuf() + off, len);
+      }
+      log(RPCCLNT, "DelegatedRPC({}) using shared memory set views successful",
+          (int)rpc_idx);
+    }
+  }
   // Process the delegated, wrapped RPC reply
+  start = GetCurrentTime();
   auto res = process_wrapped_reply(rpc_idx, out_iov, delegated_rep);
+  log(ALWAYS, "DelegatedRPC({}) process wrapped reply latency {}ms",
+      (int)rpc_idx, LatencyMS(start));
   log(RPCCLNT, "DelegatedRPC done {}", (int)rpc_idx);
   {
     // Release ownership of blob (which is a local stack variable declared
     // above)
     auto blob = rep->release_blob();
-//    // Release ownership of buffers, which are owned by out_iov above
-//    int n_buf = blob->iov().size();
-//    for (int i = 0; i < n_buf; i++) {
-//      auto _ = blob->mutable_iov()->ReleaseLast();
-//    }
   }
   return res;
 }

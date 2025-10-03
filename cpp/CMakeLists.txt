@@ -45,6 +45,7 @@ add_subdirectory(proxy)
 add_subdirectory(python)
 add_subdirectory(sigmap)
 add_subdirectory(rpc)
+add_subdirectory(shmem)
 add_subdirectory(threadpool)
 
 # TODO: Maybe it would be worth turning this into a shared library?
@@ -76,6 +77,7 @@ add_library(sigmaos_core STATIC
   $<TARGET_OBJECTS:sigmap_proto>
   $<TARGET_OBJECTS:sigmap_proxy_proto>
   $<TARGET_OBJECTS:sigmap_proxy>
+  $<TARGET_OBJECTS:shmem>
 )
 
 target_link_libraries(sigmaos_core PUBLIC

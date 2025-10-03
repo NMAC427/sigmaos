@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail -x
+set -eo pipefail
 
 usage() {
   echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--parallel] [--rebuildbuilder] [--nocache]" 1>&2

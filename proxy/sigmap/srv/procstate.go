@@ -9,15 +9,21 @@ import (
 	epcacheclnt "sigmaos/apps/epcache/clnt"
 	db "sigmaos/debug"
 	dialproxyclnt "sigmaos/dialproxy/clnt"
+	"sigmaos/malloc"
 	"sigmaos/proc"
 	wasmrt "sigmaos/proxy/wasm/rpc/wasmer"
 	rpcchan "sigmaos/rpc/clnt/channel"
 	sessp "sigmaos/session/proto"
+	"sigmaos/shmem"
 	"sigmaos/sigmaclnt"
 	"sigmaos/sigmaclnt/fidclnt"
 	"sigmaos/sigmaclnt/procclnt"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/perf"
+)
+
+const (
+	SHMEM_SIZE = 40 * sp.MBYTE
 )
 
 // Manages sigmaclnts on behalf of procs
@@ -62,6 +68,12 @@ func (psm *ProcStateMgr) DelProcState(p *proc.Proc) {
 	psm.mu.Lock()
 	defer psm.mu.Unlock()
 
+	ps, ok := psm.ps[p.GetPid()]
+	if ok {
+		if err := ps.Destroy(); err != nil {
+			db.DFatalf("Err destroy proc state: %v", err)
+		}
+	}
 	delete(psm.ps, p.GetPid())
 }
 
@@ -83,7 +95,16 @@ func (psm *ProcStateMgr) GetSigmaClnt(pid sp.Tpid) (*sigmaclnt.SigmaClnt, *epcac
 	return ps.GetSigmaClnt()
 }
 
-func (psm *ProcStateMgr) InsertReply(p *proc.Proc, rpcIdx uint64, iov sessp.IoVec, err error, start time.Time) {
+func (psm *ProcStateMgr) GetShmemAllocator(pid sp.Tpid) (malloc.Allocator, error) {
+	ps, ok := psm.getProcState(pid)
+	if !ok {
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to get shmalloc for unknown proc: %v", pid)
+		return nil, fmt.Errorf("Try to get shmalloc for unknown proc: %v", pid)
+	}
+	return ps.GetShmemAllocator(), nil
+}
+
+func (psm *ProcStateMgr) InsertReply(p *proc.Proc, rpcIdx uint64, iov *sessp.IoVec, err error, start time.Time) {
 	db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.InsertReply(%v) lat=%v", p.GetPid(), rpcIdx, time.Since(start))
 	perf.LogSpawnLatency("DelegatedRPC(%v)", p.GetPid(), p.GetSpawnTime(), start, rpcIdx)
 	ps, ok := psm.getProcState(p.GetPid())
@@ -94,7 +115,7 @@ func (psm *ProcStateMgr) InsertReply(p *proc.Proc, rpcIdx uint64, iov sessp.IoVe
 	ps.rpcReps.InsertReply(rpcIdx, iov, err)
 }
 
-func (psm *ProcStateMgr) GetReply(pid sp.Tpid, rpcIdx uint64) (sessp.IoVec, error) {
+func (psm *ProcStateMgr) GetReply(pid sp.Tpid, rpcIdx uint64) (*sessp.IoVec, error) {
 	db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.GetReply(%v)", pid, rpcIdx)
 	defer db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.GetReply(%v) done", pid, rpcIdx)
 
@@ -104,6 +125,18 @@ func (psm *ProcStateMgr) GetReply(pid sp.Tpid, rpcIdx uint64) (sessp.IoVec, erro
 		return nil, fmt.Errorf("Try to get delegated RPC reply for unknown proc: %v", pid)
 	}
 	return ps.rpcReps.GetReply(rpcIdx)
+}
+
+func (psm *ProcStateMgr) GetShmemBuf(pid sp.Tpid) ([]byte, error) {
+	db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.GetShmemBuf", pid)
+	defer db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.GetShmemBuf done", pid)
+
+	ps, ok := psm.getProcState(pid)
+	if !ok {
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to get shmem buf for unknown proc: %v", pid)
+		return nil, fmt.Errorf("Try to get shmem buf for unknown proc: %v", pid)
+	}
+	return ps.shm.GetBuf(), nil
 }
 
 func (psm *ProcStateMgr) GetRPCChannel(sc *sigmaclnt.SigmaClnt, pid sp.Tpid, rpcIdx uint64, pn string) (rpcchan.RPCChannel, error) {
@@ -116,16 +149,18 @@ func (psm *ProcStateMgr) GetRPCChannel(sc *sigmaclnt.SigmaClnt, pid sp.Tpid, rpc
 }
 
 type procState struct {
-	mu      sync.Mutex
-	cond    *sync.Cond
-	done    bool // done creating the proc state?
-	pe      *proc.ProcEnv
-	p       *proc.Proc
-	rpcReps *RPCState
-	wrt     *wasmrt.WasmerRuntime
-	sc      *sigmaclnt.SigmaClnt
-	epcc    *epcacheclnt.EndpointCacheClnt
-	err     error // Creation result
+	mu       sync.Mutex
+	cond     *sync.Cond
+	done     bool // done creating the proc state?
+	pe       *proc.ProcEnv
+	p        *proc.Proc
+	rpcReps  *RPCState
+	wrt      *wasmrt.WasmerRuntime
+	sc       *sigmaclnt.SigmaClnt
+	epcc     *epcacheclnt.EndpointCacheClnt
+	shm      *shmem.Segment
+	shmAlloc malloc.Allocator
+	err      error // Creation result
 }
 
 func newProcState(spps *SPProxySrv, pe *proc.ProcEnv, p *proc.Proc) *procState {
@@ -136,8 +171,22 @@ func newProcState(spps *SPProxySrv, pe *proc.ProcEnv, p *proc.Proc) *procState {
 		done:    false,
 	}
 	ps.cond = sync.NewCond(&ps.mu)
+	if pe.GetUseShmem() {
+		var err error
+		start := time.Now()
+		ps.shm, err = shmem.NewSegment(pe.GetPID().String(), SHMEM_SIZE)
+		if err != nil {
+			db.DFatalf("Err shmem NewSegment: %v", err)
+		}
+		ps.shmAlloc = shmem.NewAllocator(ps.shm)
+		perf.LogSpawnLatency("SPProxySrv.shmem.NewSegment", ps.pe.GetPID(), ps.pe.GetSpawnTime(), start)
+	}
 	go ps.createSigmaClnt(spps)
 	return ps
+}
+
+func (psm *procState) GetShmemAllocator() malloc.Allocator {
+	return psm.shmAlloc
 }
 
 func (ps *procState) GetSigmaClnt() (*sigmaclnt.SigmaClnt, *epcacheclnt.EndpointCacheClnt, error) {
@@ -161,6 +210,13 @@ func (ps *procState) setSigmaClnt(sc *sigmaclnt.SigmaClnt, epcc *epcacheclnt.End
 	ps.done = true
 
 	ps.cond.Broadcast()
+}
+
+func (ps *procState) Destroy() error {
+	if ps.shm != nil {
+		return ps.shm.Destroy()
+	}
+	return nil
 }
 
 func (ps *procState) createSigmaClnt(spps *SPProxySrv) {

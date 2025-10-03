@@ -9,6 +9,8 @@
 #include <proc/status.h>
 #include <rpc/clnt.h>
 #include <serr/serr.h>
+#include <shmem/segment.h>
+#include <shmem/shmem.h>
 #include <sigmap/const.h>
 #include <sigmap/named.h>
 #include <sigmap/types.h>
@@ -52,6 +54,17 @@ class Clnt {
     _rpcc = std::make_shared<sigmaos::rpc::Clnt>(_demux);
     LogSpawnLatency(_env->GetPID(), _env->GetSpawnTime(), start,
                     "Create rpcclnt");
+    if (_env->GetUseShmem()) {
+      start = GetCurrentTime();
+      _shmem = std::make_shared<sigmaos::shmem::Segment>(
+          _env->GetPID(), sigmaos::shmem::SEGMENT_SZ);
+      auto res = _shmem->Init();
+      if (!res.has_value()) {
+        fatal("Err init shmem: {}", res.error().String());
+      }
+      LogSpawnLatency(_env->GetPID(), _env->GetSpawnTime(), start,
+                      "Create shmem segment");
+    }
     start = GetCurrentTime();
     log(SPPROXYCLNT, "Initializing proxy conn");
     // Initialize the sigmaproxyd connection
@@ -70,6 +83,7 @@ class Clnt {
   std::expected<int, sigmaos::serr::Error> Test();
   std::shared_ptr<sigmaos::proc::ProcEnv> ProcEnv() { return _env; }
   std::shared_ptr<sigmaos::rpc::Channel> GetSPProxyChannel() { return _demux; }
+  std::shared_ptr<sigmaos::shmem::Segment> GetShmemSegment() { return _shmem; }
 
   // Stubs
 
@@ -157,6 +171,7 @@ class Clnt {
   std::shared_ptr<sigmaos::io::demux::Clnt> _demux;
   std::shared_ptr<sigmaos::rpc::Clnt> _rpcc;
   std::shared_ptr<sigmaos::proc::ProcEnv> _env;
+  std::shared_ptr<sigmaos::shmem::Segment> _shmem;
   bool _disconnected;
   // Used for logger initialization
   static bool _l;

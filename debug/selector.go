@@ -285,6 +285,8 @@ const (
 	DIALPROXYSRV_ERR           = "DIALPROXYSRV" + ERR
 	PYPROXYSRV                 = "PYPROXYSRV"
 	PYPROXYSRV_ERR             = "PYPROXYSRV" + ERR
+	SHMEM                      = "SHMEM"
+	SHMEM_ERR                  = "SHMEM" + ERR
 )
 
 // Networking
