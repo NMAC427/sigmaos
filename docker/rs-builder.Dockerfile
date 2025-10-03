@@ -13,7 +13,7 @@ RUN apk add --no-cache libseccomp \
   binaryen \
   libseccomp-static
 
-RUN echo 'will cite' | parallel --citation || true
+RUN yes will cite | parallel --citation
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
