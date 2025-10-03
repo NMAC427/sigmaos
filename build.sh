@@ -129,13 +129,11 @@ fi
 
 BUILD_LOG="${TMP_BASE}/sigmaos-build"
 PROCD_BIN="${TMP_BASE}/sigmaos-procd-bin"
-PYTHON_DEPENDENCIES="${TMP_BASE}/pysl"
 PYTHON="${TMP_BASE}/python"
 
 # tests uses host's /tmp, which mounted in kernel container.
 mkdir -p $TMP_BASE
 mkdir -p $BUILD_LOG
-mkdir -p $PYTHON_DEPENDENCIES
 mkdir -p $PYTHON
 
 # Make a dir to hold user proc build output

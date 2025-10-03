@@ -120,13 +120,6 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 			Target:   chunksrv.ROOTBINCONTAINER,
 			ReadOnly: false,
 		},
-		// Python shared libraries
-		mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   path.Join("/tmp/pysl"),
-			Target:   path.Join("/tmp/pysl"),
-			ReadOnly: false,
-		},
 		// Python mounts
 		mount.Mount{
 			Type:     mount.TypeBind,
@@ -214,20 +207,6 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 	if err != nil {
 		return nil, err
 	}
-
-/* 	// Set up OpenBLAS and GCC libraries for numpy
-	numpyCmd := "cp /tmp/pysl/* /usr/lib && cp /usr/lib/libgcc_s.so.1 /usr/lib/libgcc_s-a04fdf82.so.1"
-	err = execInContainer(ctx, cli, resp.ID, numpyCmd)
-	if err != nil {
-		return nil, err
-	}
-
-	// PIL setup
-	pilCmd := "ln -s /usr/lib/libtiff.so.6.1.0 /usr/lib/libtiff-f7c4a081.so.6.0.2 && ln -s /usr/lib/libjpeg.so.8.3.2 /usr/lib/libjpeg-fd78c7ba.so.62.4.0 && ln -s /usr/lib/libopenjp2.so.2.5.2 /usr/lib/libopenjp2-88597bfd.so.2.5.3 && ln -s /usr/lib/libxcb.so.1.1.0 /usr/lib/libxcb-b63aee95.so.1.1.0"
-	err = execInContainer(ctx, cli, resp.ID, pilCmd)
-	if err != nil {
-		return nil, err
-	} */
 
 	json, err1 := cli.ContainerInspect(ctx, resp.ID)
 	if err1 != nil {

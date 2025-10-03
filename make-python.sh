@@ -38,14 +38,6 @@ mkdir -p $OUTPATH/user
 cp /cpython3.11/python "$OUTPATH/kernel"
 cp -r /cpython3.11 "$OUTPATH/kernel"
 
-echo "/tmp/python/Lib" > "$OUTPATH/kernel/python.pth"
-
-cat > "$OUTPATH/kernel/pyvenv.cfg" <<EOF
-home = /~~
-include-system-site-packages = false
-version = 3.11.13
-EOF
-
 # Copy libraries
 PY_OUTPATH=$OUTPATH/kernel/cpython3.11
 LIBDIR="$PY_OUTPATH/Lib"
