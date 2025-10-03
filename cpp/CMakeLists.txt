@@ -55,9 +55,8 @@ add_subdirectory(rpc)
 add_subdirectory(shmem)
 add_subdirectory(threadpool)
 
-# TODO: Maybe it would be worth turning this into a shared library?
 message(STATUS "Building sigmaos core library")
-add_library(sigmaos_core STATIC
+add_library(sigmaos_core SHARED
   $<TARGET_OBJECTS:serr>
   $<TARGET_OBJECTS:util_common>
   $<TARGET_OBJECTS:util_codec>

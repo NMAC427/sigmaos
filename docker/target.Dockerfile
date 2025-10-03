@@ -22,7 +22,7 @@ RUN mkdir bin && \
     mkdir bin/kernel && \
     mkdir bin/linux
 
-COPY bin/kernel/lib/libwasmer.so /usr/lib/x86_64-linux-gnu
+COPY bin/kernel/lib/*.so /usr/lib/x86_64-linux-gnu
 
 # ========== local user image ==========
 FROM base AS sigmauser-local
