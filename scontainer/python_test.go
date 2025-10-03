@@ -119,7 +119,6 @@ func TestPythonNumpyImport(t *testing.T) {
 	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
 	duration3 := time.Since(start)
 	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	return
 	ts.Shutdown()
 }
 
@@ -138,7 +137,6 @@ func TestImageProcessing(t *testing.T) {
 	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
 	duration3 := time.Since(start)
 	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	return
 	ts.Shutdown()
 }
 
