@@ -129,6 +129,7 @@ for k in $WHAT; do
     done
   else
     parallel --verbose --tag -j$(nproc) \
+      --halt now,fail=1 \
       "$GO" build -ldflags=\"$LDF\" "$RACE" \
       -o "$OUTPATH/$k/{1}$VERSION" "cmd/$k/{1}/main.go" \
       ::: $FILES

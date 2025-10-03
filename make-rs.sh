@@ -55,12 +55,10 @@ LDF="-X sigmaos/sigmap.Target=$TARGET -s -w"
 
 TARGETS="uproc-trampoline spawn-latency"
 
-# If building in parallel, build with (n - 1) threads.
-njobs=$(nproc)
-njobs="$(($njobs-1))"
-build="parallel -j$njobs $CARGO \"build --manifest-path=rs/{}/Cargo.toml --release\" ::: $TARGETS"
-echo $build
-eval $build
+parallel --verbose --tag -j$(nproc) \
+  --halt now,fail=1 \
+  "$CARGO" build --manifest-path=rs/{1}/Cargo.toml --release \
+  ::: $TARGETS
 
 # Bail out early on build error
 export EXIT_STATUS=$?
@@ -74,9 +72,10 @@ cp rs/spawn-latency/target/release/spawn-latency bin/user/spawn-latency-v$VERSIO
 
 # Build wasm scripts
 TARGETS=$(ls rs/wasm)
-build="parallel -j$njobs $CARGO \"build --manifest-path=rs/wasm/{}/Cargo.toml --target=wasm32-unknown-unknown --release\" ::: $TARGETS"
-echo $build
-eval $build
+parallel --verbose --tag -j$(nproc) \
+  --halt now,fail=1 \
+  "$CARGO" build --manifest-path=rs/wasm/{1}/Cargo.toml --target=wasm32-unknown-unknown --release \
+  ::: $TARGETS
 
 # Bail out early on build error
 export EXIT_STATUS=$?

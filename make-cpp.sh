@@ -64,7 +64,10 @@ cd cpp
 mkdir -p build
 
 # Run the build
-cmake --build .. -j $(nproc)
+cd build
+cmake .. && \
+  cmake --build . -j $(nproc)
+
 export EXIT_STATUS=$?
 if [ $EXIT_STATUS  -ne 0 ]; then
   exit $EXIT_STATUS
