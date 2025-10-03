@@ -22,7 +22,6 @@ RUN apt update && \
     software-properties-common && \
   add-apt-repository -y ppa:deadsnakes/ppa && \
   apt install -y \
-    python3-pybind11 \
     python3.11-dev
 
 # Set up builder user

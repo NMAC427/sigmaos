@@ -20,15 +20,22 @@ if(CCACHE_PROGRAM)
 endif()
 
 # External packages
+include(FetchContent)
+
 find_package(Protobuf REQUIRED)
 find_package(absl REQUIRED)
 find_package(fmt REQUIRED)
 
 find_package(Python 3.11 EXACT COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11
+    GIT_TAG        v3.0.1
+)
+FetchContent_MakeAvailable(pybind11)
 
 # backward-cpp provides pretty backtraces for segfaults and other crashes
-include(FetchContent)
 FetchContent_Declare(backward
     GIT_REPOSITORY https://github.com/bombela/backward-cpp
     GIT_TAG master

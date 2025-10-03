@@ -1,133 +1,237 @@
+#include <proc/status.h>
+#include <proxy/sigmap/proto/spproxy.pb.h>
+#include <proxy/sigmap/sigmap.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h> // Required for automatic conversion of STL containers
+#include <pybind11/stl.h>
 
 #include <memory>
 #include <string>
 
-#include <proc/status.h>
-#include <proxy/sigmap/sigmap.h>
-#include <proxy/sigmap/proto/spproxy.pb.h>
-
 namespace py = pybind11;
 
-// Global client object, mirroring the original design.
 std::unique_ptr<sigmaos::proxy::sigmap::Clnt> clnt;
 
-// This function initializes the client. It will be called from Python.
-void init_socket() {
-  clnt = std::make_unique<sigmaos::proxy::sigmap::Clnt>();
+void check_clnt() {
+  if (!clnt) {
+    throw std::runtime_error(
+        "SigmaOS Client not initialized. Call splib.init_socket() first.");
+  }
 }
 
-// Wrapper for the Stat function to return a Python object.
-py::object stat_wrapper(const std::string& pn) {
-    auto result = clnt->Stat(pn);
-    if (result.has_value()) {
-        // pybind11 will automatically convert the TstatProto object to a Python object.
-        return py::cast(*result.value());
-    }
-    // Return None if the stat fails.
-    return py::none();
+template <typename T>
+T unwrap(std::expected<T, sigmaos::serr::Error> result) {
+  if (result.has_value()) {
+    return result.value();
+  } else {
+    throw result.error();
+  }
 }
-
-// Wrapper for GetFile to return a Python string (or bytes).
-py::object get_file_wrapper(const std::string& pn) {
-    auto result = clnt->GetFile(pn);
-    if (result.has_value()) {
-        // Return the file content as a Python string.
-        return py::cast(*result.value());
-    }
-    return py::none();
-}
-
-// A more Pythonic read implementation that returns bytes.
-py::bytes read_wrapper(int fd, size_t len) {
-    std::string buffer(len, '\0');
-    auto result = clnt->Read(fd, &buffer);
-    if (result.has_value()) {
-        buffer.resize(result.value());
-        return py::bytes(buffer);
-    }
-    return py::bytes("");
-}
-
-// A more Pythonic pread implementation that returns bytes.
-py::bytes pread_wrapper(int fd, size_t len, uint64_t offset) {
-    std::string buffer(len, '\0');
-    sigmaos::sigmap::types::Toffset off = offset;
-    auto result = clnt->Pread(fd, &buffer, off);
-    if (result.has_value()) {
-        buffer.resize(result.value());
-        return py::bytes(buffer);
-    }
-    return py::bytes("");
-}
-
 
 PYBIND11_MODULE(_clntlib, m) {
-    m.doc() = "SigmaOS Python client library";
+  m.doc() = "SigmaOS Python client library";
 
-    py::class_<TqidProto>(m, "Qid")
-        .def(py::init<>())
-        .def_property("type", &TqidProto::type, &TqidProto::set_type)
-        .def_property("version", &TqidProto::version, &TqidProto::set_version)
-        .def_property("path", &TqidProto::path, &TqidProto::set_path);
+  PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>
+      sigmaos_error_storage;
+  sigmaos_error_storage.call_once_and_store_result(
+      [&]() { return py::exception<sigmaos::serr::Error>(m, "SigmaOSError"); });
+  py::register_exception_translator([](std::exception_ptr p) {
+    try {
+      if (p) std::rethrow_exception(p);
+    } catch (const sigmaos::serr::Error& e) {
+      py::set_error(sigmaos_error_storage.get_stored(), e.PyMessage().c_str());
+    }
+  });
 
-    py::class_<TstatProto>(m, "Stat")
-        .def(py::init<>())
-        .def_property("type", &TstatProto::type, &TstatProto::set_type)
-        .def_property("dev", &TstatProto::dev, &TstatProto::set_dev)
-        .def_property("qid", [](const TstatProto& p) { return p.qid(); }, [](TstatProto& p, const TqidProto& q) { *p.mutable_qid() = q; })
-        .def_property("mode", &TstatProto::mode, &TstatProto::set_mode)
-        .def_property("atime", &TstatProto::atime, &TstatProto::set_atime)
-        .def_property("mtime", &TstatProto::mtime, &TstatProto::set_mtime)
-        .def_property("length", &TstatProto::length, &TstatProto::set_length)
-        .def_property("name", [](const TstatProto& p) { return p.name(); }, [](TstatProto& p, const std::string& s) { p.set_name(s); })
-        .def_property("uid", [](const TstatProto& p) { return p.uid(); }, [](TstatProto& p, const std::string& s) { p.set_uid(s); })
-        .def_property("gid", [](const TstatProto& p) { return p.gid(); }, [](TstatProto& p, const std::string& s) { p.set_gid(s); })
-        .def_property("muid", [](const TstatProto& p) { return p.muid(); }, [](TstatProto& p, const std::string& s) { p.set_muid(s); });
+  py::class_<TqidProto, py::smart_holder>(m, "Qid")
+      .def(py::init<>())
+      .def_property_readonly("type", &TqidProto::type)
+      .def_property_readonly("version", &TqidProto::version)
+      .def_property_readonly("path", &TqidProto::path);
 
+  py::class_<TstatProto, py::smart_holder>(m, "Stat")
+      .def(py::init<>())
+      .def_property_readonly("type", &TstatProto::type)
+      .def_property_readonly("dev", &TstatProto::dev)
+      .def_property_readonly("qid", &TstatProto::qid)
+      .def_property_readonly("mode", &TstatProto::mode)
+      .def_property_readonly("atime", &TstatProto::atime)
+      .def_property_readonly("mtime", &TstatProto::mtime)
+      .def_property_readonly("length", &TstatProto::length)
+      .def_property_readonly("name", &TstatProto::name)
+      .def_property_readonly("uid", &TstatProto::uid)
+      .def_property_readonly("gid", &TstatProto::gid)
+      .def_property_readonly("muid", &TstatProto::muid);
 
-    // ======== ProcClnt API ========
-    m.def("init_socket", &init_socket, "Initialize the connection socket.");
-    m.def("started", []() { clnt->Started(); }, "Signal that the process has started.");
-    m.def("exited", [](uint32_t status, const std::string& msg) {
-        sigmaos::proc::Tstatus s = static_cast<sigmaos::proc::Tstatus>(status);
+  py::enum_<sigmaos::proc::Tstatus>(m, "Status")
+      .value("Ok", sigmaos::proc::Tstatus::StatusOK)
+      .value("Evicted", sigmaos::proc::Tstatus::StatusEvicted)
+      .value("Err", sigmaos::proc::Tstatus::StatusErr)
+      .value("Fatal", sigmaos::proc::Tstatus::StatusFatal)
+      .value("Crash", sigmaos::proc::Tstatus::CRASH)
+      .export_values();
+
+  // ======== ProcClnt API ========
+  m.def(
+      "init_socket",
+      []() { clnt = std::make_unique<sigmaos::proxy::sigmap::Clnt>(); },
+      "Initialize the connection socket.");
+
+  m.def(
+      "started",
+      []() {
+        check_clnt();
+        unwrap(clnt->Started());
+      },
+      "Signal that the process has started.");
+
+  m.def(
+      "exited",
+      [](const sigmaos::proc::Tstatus& status, const std::string& msg) {
+        check_clnt();
         std::string msg_copy = msg;
-        clnt->Exited(s, msg_copy);
-    }, "Signal that the process has exited.");
-    m.def("wait_evict", []() { clnt->WaitEvict(); }, "Wait for an eviction event.");
+        unwrap(clnt->Exited(status, msg_copy));
+      },
+      "Signal that the process has exited.");
 
+  m.def(
+      "wait_evict",
+      []() {
+        check_clnt();
+        unwrap(clnt->WaitEvict());
+      },
+      "Wait for an eviction event.");
 
-    // ============== SPProxy API Stubs =============
-    m.def("close", [](int fd) { clnt->CloseFD(fd); });
-    m.def("stat", &stat_wrapper);
-    m.def("create", [](const std::string& pn, uint32_t perm, uint32_t mode) {
-        auto result = clnt->Create(pn, perm, mode);
-        return result.has_value() ? result.value() : -1;
-    });
-    m.def("open", [](const std::string& pn, uint32_t mode, bool wait) {
-        auto result = clnt->Open(pn, mode, wait);
-        return result.has_value() ? result.value() : -1;
-    });
-    m.def("rename", [](const std::string& src, const std::string& dst) { clnt->Rename(src, dst); });
-    m.def("remove", [](const std::string& pn) { clnt->Remove(pn); });
-    m.def("get_file", &get_file_wrapper);
-    m.def("put_file", [](const std::string& pn, uint32_t perm, uint32_t mode, const std::string& data, uint64_t offset, uint64_t leaseID) {
+  // ============== SPProxy API Stubs =============
+  m.def(
+      "close",
+      [](int fd) {
+        check_clnt();
+        unwrap(clnt->CloseFD(fd));
+      },
+      "Close a file descriptor.", py::arg("fd"));
+
+  m.def(
+      "stat",
+      [](const std::string& pn) {
+        check_clnt();
+        auto stat = *unwrap(clnt->Stat(pn));
+        return stat;
+      },
+      "Get file status.", py::arg("path"));
+
+  m.def(
+      "create",
+      [](const std::string& pn, uint32_t perm, uint32_t mode) {
+        check_clnt();
+        auto fd = unwrap(clnt->Create(pn, perm, mode));
+        return fd;
+      },
+      "Create a file and return its file descriptor.", py::arg("path"),
+      py::arg("perm"), py::arg("mode"));
+
+  m.def(
+      "open",
+      [](const std::string& pn, uint32_t mode, bool wait) {
+        check_clnt();
+        auto fd = unwrap(clnt->Open(pn, mode, wait));
+        return fd;
+      },
+      "Open a file and return its file descriptor.", py::arg("path"),
+      py::arg("mode"), py::arg("wait"));
+
+  m.def(
+      "rename",
+      [](const std::string& src, const std::string& dst) {
+        check_clnt();
+        unwrap(clnt->Rename(src, dst));
+      },
+      "Rename a file from src to dst.", py::arg("src"), py::arg("dst"));
+
+  m.def(
+      "remove",
+      [](const std::string& pn) {
+        check_clnt();
+        unwrap(clnt->Remove(pn));
+      },
+      "Remove a file.", py::arg("path"));
+
+  m.def(
+      "get_file",
+      [](const std::string& pn) {
+        check_clnt();
+        auto contents = unwrap(clnt->GetFile(pn));
+        return py::bytes(*contents);
+      },
+      "Get the contents of a file.", py::arg("path"));
+
+  m.def(
+      "put_file",
+      [](const std::string& pn, uint32_t perm, uint32_t mode,
+         const std::string& data, uint64_t offset, uint64_t leaseID) {
+        check_clnt();
         std::string d = data;
-        auto result = clnt->PutFile(pn, perm, mode, &d, offset, leaseID);
-        return result.has_value() ? result.value() : -1;
-    });
-    m.def("read", &read_wrapper);
-    m.def("pread", &pread_wrapper);
-    m.def("write", [](int fd, const std::string& bytes) {
+        auto size = unwrap(clnt->PutFile(pn, perm, mode, &d, offset, leaseID));
+        return size;
+      },
+      "Put data into a file, returns number of bytes written.", py::arg("path"),
+      py::arg("perm"), py::arg("mode"), py::arg("data"), py::arg("offset"),
+      py::arg("leaseID"));
+
+  m.def(
+      "read",
+      [](int fd, size_t len) {
+        check_clnt();
+        std::string buffer(len, '\0');
+        auto size = unwrap(clnt->Read(fd, &buffer));
+        buffer.resize(size);
+        return py::bytes(buffer);
+      },
+      "Read the specified number of bytes from a file descriptor.",
+      py::arg("fd"), py::arg("len"));
+
+  m.def(
+      "pread",
+      [](int fd, size_t len, uint64_t offset) {
+        check_clnt();
+        std::string buffer(len, '\0');
+        sigmaos::sigmap::types::Toffset off = offset;
+        auto size = unwrap(clnt->Pread(fd, &buffer, off));
+        buffer.resize(size);
+        return py::bytes(buffer);
+      },
+      "Read the specified number of bytes from a file descriptor at a given "
+      "offset.",
+      py::arg("fd"), py::arg("len"), py::arg("offset"));
+
+  m.def(
+      "write",
+      [](int fd, const std::string& bytes) {
+        check_clnt();
         std::string b = bytes;
-        auto result = clnt->Write(fd, &b);
-        return result.has_value() ? result.value() : -1;
-    });
-    m.def("seek", [](int fd, uint64_t offset) { clnt->Seek(fd, offset); });
-    m.def("clnt_id", []() {
-        auto result = clnt->ClntID();
-        return result.has_value() ? result.value() : (uint64_t)-1;
-    });
+        auto written = unwrap(clnt->Write(fd, &b));
+        return written;
+      },
+      "Write bytes to a file descriptor, returns number of bytes written.",
+      py::arg("fd"), py::arg("bytes"));
+
+  m.def(
+      "seek",
+      [](int fd, uint64_t offset) {
+        check_clnt();
+        unwrap(clnt->Seek(fd, offset));
+      },
+      "Seek to a specific offset in a file descriptor.", py::arg("fd"),
+      py::arg("offset"));
+
+  m.def(
+      "clnt_id",
+      []() {
+        check_clnt();
+        return unwrap(clnt->ClntID());
+      },
+      "Get the client ID.");
   // TODO: everything after Seek in cpp/proxy/sigmap/sigmap.h
+  // TODO: proper handling of std::expected
+  //       have functions raise instead of returning -1
+  //       also: check if clnt is initialized
 }

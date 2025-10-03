@@ -71,13 +71,17 @@ class Error {
   Error(Terror err, std::string msg) : _err(err), _msg(msg) {}
   ~Error() {}
 
-  Terror GetError() { return _err; }
-  std::string GetMsg() { return _msg; }
-  std::string String() {
+  Terror GetError() const { return _err; }
+  std::string GetMsg() const { return _msg; }
+  std::string String() const {
     std::ostringstream out;
     out << "{Err: \"" << sigmaos::serr::TerrorToString(_err) << "\" Obj: \""
         << _msg << "\" (<nil>)}";
     return out.str();
+  }
+
+  std::string PyMessage() const {
+    return fmt::format("{} ({})", sigmaos::serr::TerrorToString(_err), _msg);
   }
 
  private:

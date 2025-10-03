@@ -12,4 +12,4 @@ print("Written:", written)
 # Get the file contents
 contents = splib.get_file(pathname)
 print("Contents:", contents)
-splib.exited(1, "Exited normally!")
+splib.exited(splib.Status.Ok, "Exited normally!")

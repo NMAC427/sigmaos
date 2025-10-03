@@ -68,8 +68,7 @@ ms_end = time.time() * 1000.0
 results.append(("Seek_Local", ms_end - ms_start))
 
 ms_start = time.time() * 1000.0
-buf = ctypes.create_string_buffer(10)
-splib.read(fd, buf)
+splib.read(fd, 10)
 ms_end = time.time() * 1000.0
 results.append(("Read_Local", ms_end - ms_start))
 
@@ -111,7 +110,7 @@ ms_end = time.time() * 1000.0
 results.append(("Remove_Remote", ms_end - ms_start))
 
 ms_start = time.time() * 1000.0
-splib.exited(1, "Exited normally!")
+splib.exited(splib.Status.Ok, "Exited normally!")
 ms_end = time.time() * 1000.0
 results.append(("Exited", ms_end - ms_start))
 
