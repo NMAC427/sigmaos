@@ -34,7 +34,7 @@ const bucket = "sigmaos-ncam"
 */
 func TestPythonLaunch(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/hello.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/hello/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -52,7 +52,7 @@ func TestPythonLaunch(t *testing.T) {
 
 func TestPythonBasicImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/basic_import.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/basic_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -70,7 +70,7 @@ func TestPythonBasicImport(t *testing.T) {
 
 func TestPythonAWSImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -88,7 +88,7 @@ func TestPythonAWSImport(t *testing.T) {
 
 func TestPythonNeighborImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/neighbor_import/neighbor_import.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/neighbor_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -106,7 +106,7 @@ func TestPythonNeighborImport(t *testing.T) {
 
 func TestPythonNumpyImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -124,7 +124,7 @@ func TestPythonNumpyImport(t *testing.T) {
 
 func TestImageProcessing(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/imgprocessing/imgprocessing.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/imgprocessing/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -143,7 +143,7 @@ func TestImageProcessing(t *testing.T) {
 func TestPythonChecksumVerification(t *testing.T) {
 	fmt.Printf("Starting 1st proc...\n")
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -164,7 +164,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 
 	fmt.Printf("Starting 2nd proc (cached lib)...\n")
 	ts, _ = test.NewTstateAll(t)
-	p2 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import.py"}, bucket)
+	p2 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
 	start2 := time.Now()
 	err = ts.Spawn(p2)
 	assert.Nil(ts.T, err)
@@ -188,7 +188,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 
 	fmt.Printf("Starting 3rd proc (invalid cache)...\n")
 	ts, _ = test.NewTstateAll(t)
-	p3 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import.py"}, bucket)
+	p3 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
 	start3 := time.Now()
 	err = ts.Spawn(p3)
 	assert.Nil(ts.T, err)
@@ -208,7 +208,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 
 func TestPythonStat(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/stat_test.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/stat_test/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)
@@ -226,7 +226,7 @@ func TestPythonStat(t *testing.T) {
 
 func TestPythonFiles(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/file_test.py"}, bucket)
+	p := proc.NewPythonProc([]string{"/~~/pyproc/file_test/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.T, err)

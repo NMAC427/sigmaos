@@ -65,7 +65,7 @@ PYBIND11_MODULE(_clntlib, m) {
   py::enum_<sigmaos::proc::Tstatus>(m, "Status")
       .value("Ok", sigmaos::proc::Tstatus::StatusOK)
       .value("Evicted", sigmaos::proc::Tstatus::StatusEvicted)
-      .value("Err", sigmaos::proc::Tstatus::StatusErr)
+      .value("Error", sigmaos::proc::Tstatus::StatusErr)
       .value("Fatal", sigmaos::proc::Tstatus::StatusFatal)
       .value("Crash", sigmaos::proc::Tstatus::CRASH)
       .export_values();
