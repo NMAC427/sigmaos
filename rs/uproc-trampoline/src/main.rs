@@ -259,7 +259,6 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
             .fstype("none")
             .flags(MountFlags::BIND)
             .mount("/tmp/sigmaos-perf", "tmp/sigmaos-perf")?;
-        //            .mount("/tmp/sigmaos-perf", "tmp/sigmaos-perf")?;
         if VERBOSE {
             log::info!("PERF {}", "mounting perf dir");
         }

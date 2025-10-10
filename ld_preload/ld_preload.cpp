@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <functional>
+#include <iostream>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -80,6 +81,9 @@ class PathInterceptor final {
     }
 
     std::string TransformPath(const char *filename) {
+        std::cout << "TransformPath called with: "
+                  << (filename ? filename : "null") << std::endl;
+
         const std::string OLD_PREFIX = "/~~";
         const std::string NEW_PREFIX = "/tmp/python";
         const std::string LIB_PREFIX = "/tmp/python/Lib";
@@ -89,6 +93,10 @@ class PathInterceptor final {
             return "";
 
         std::string_view path(filename);
+
+        if (path.starts_with(NEW_PREFIX)) {
+            return std::string(path);
+        }
 
         // Python's initial call to obtain all present libraries
         if (path == "/~~/Lib" || path == "/tmp/python/Lib") {

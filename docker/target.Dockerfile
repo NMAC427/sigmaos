@@ -6,7 +6,8 @@ RUN apt update && \
   apt install -y \
   libseccomp-dev \
   strace \
-  fuse \
+  fuse3 \
+  fuse-overlayfs \
   libspdlog-dev \
   libprotobuf-dev \
   valgrind \

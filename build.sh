@@ -3,7 +3,7 @@
 set -eo pipefail
 
 usage() {
-  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [-j NJOBS] [--no_go] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--rebuildbuilder] [--nocache] [--debug]" 1>&2
+  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [-j NJOBS] [--no_go] [--no_go_user] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--rebuildbuilder] [--nocache] [--debug]" 1>&2
 }
 
 NJOBS="$(nproc)"
@@ -16,6 +16,7 @@ USERBIN="all"
 NO_CPP="false"
 NO_RS="false"
 NO_GO="false"
+NO_GO_USER="false"
 NO_PY="false"
 NO_DOCKER="false"
 NORACE="--norace"
@@ -38,6 +39,10 @@ while [[ "$#" -gt 0 ]]; do
   --no_go)
     shift
     NO_GO="true"
+    ;;
+  --no_go_user)
+    shift
+    NO_GO_USER="true"
     ;;
   --no_rs)
     shift
@@ -313,21 +318,23 @@ if [ "${NO_GO}" != "true" ]; then
     cp $KERNELBIN/named $USRBIN/named
   echo "========== Done building kernel bins =========="
 
-  echo "========== Building user bins =========="
-  BUILD_OUT_FILE=$BUILD_LOG/make-user.out
-  docker exec -it $buildercid \
-    /usr/bin/time -f "Build time: %e sec" \
-    ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
-  echo "========== Done building user bins =========="
+  if [ "${NO_GO_USER}" != "true" ]; then
+    echo "========== Building user bins =========="
+    BUILD_OUT_FILE=$BUILD_LOG/make-user.out
+    docker exec -it $buildercid \
+      /usr/bin/time -f "Build time: %e sec" \
+      ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION \
+      2>&1 | tee $BUILD_OUT_FILE && \
+      if [ ${PIPESTATUS[0]} -ne 0 ]; then
+        printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
+          | tee -a $BUILD_OUT_FILE;
+      fi;
+      if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
+        echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
+        exit 1
+      fi
+    echo "========== Done building user bins =========="
+  fi
 fi
 
 if [ "${NO_RS}" != "true" ]; then

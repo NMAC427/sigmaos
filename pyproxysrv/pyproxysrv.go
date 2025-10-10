@@ -31,10 +31,9 @@ const (
 
 // PyProxySrv maintains the state of the pyproxysrv.
 type PyProxySrv struct {
-	pe         *proc.ProcEnv
-	sc         *sigmaclnt.SigmaClnt
-	bn         string // Name of AWS bucket
-	relImports bool
+	pe *proc.ProcEnv
+	sc *sigmaclnt.SigmaClnt
+	bn string // Name of AWS bucket
 }
 
 // Creates and returns a new PyProxySrv object to be used by Python programs
@@ -61,9 +60,8 @@ func NewPyProxySrv(pe *proc.ProcEnv, bn string) (*PyProxySrv, error) {
 	db.DPrintf(db.TEST, "runServer: pyproxysrv API listening on %v\n", sp.SIGMA_PYAPI_SOCKET)
 
 	pps := &PyProxySrv{
-		pe:         pe,
-		bn:         bn,
-		relImports: false,
+		pe: pe,
+		bn: bn,
 	}
 	sc, err := sigmaclnt.NewSigmaClnt(pe)
 	if err != nil {

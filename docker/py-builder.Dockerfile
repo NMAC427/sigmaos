@@ -6,6 +6,7 @@ RUN apt update && \
   apt install -y \
     git \
     wget \
+    zip \
     gcc \
     pkg-config \
     parallel \

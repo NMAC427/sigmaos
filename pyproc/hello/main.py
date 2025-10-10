@@ -1,7 +1,11 @@
 import os, sys, sysconfig, site, platform, pprint
 
 def dump_python_env():
-    print("=== Environment Variables ===")
+    print("=== General ===")
+    print("Working Directory:", os.getcwd())
+    print("File Directory:", os.path.dirname(os.path.abspath(__file__)))
+
+    print("\n=== Environment Variables ===")
     pprint.pprint(dict(os.environ))
 
     print("\n=== sys.path ===")
