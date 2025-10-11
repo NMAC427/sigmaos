@@ -40,6 +40,7 @@ func runSpawnLatency(ts *test.RealmTstate, kernels []string, evict bool, ncore p
 	p := proc.NewProc("spawn-latency-cpp", args)
 	p.SetMcpu(ncore)
 	p.GetProcEnv().UseSPProxy = true
+	p.GetProcEnv().UseSPProxyProcClnt = true
 	start1 := time.Now()
 	err := ts.Spawn(p)
 	assert.Nil(ts.Ts.T, err, "Spawn")
@@ -146,6 +147,7 @@ func TestEchoServerProc(t *testing.T) {
 
 	p := proc.NewProc("echo-srv-cpp", nil)
 	p.GetProcEnv().UseSPProxy = true
+	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.SetMcpu(SERVER_PROC_MCPU)
 	db.DPrintf(db.TEST, "Spawn server proc %v", p)
 	start := time.Now()
@@ -215,6 +217,7 @@ func TestSpinServerProc(t *testing.T) {
 
 	p := proc.NewProc("spin-srv-cpp", nil)
 	p.GetProcEnv().UseSPProxy = true
+	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.SetMcpu(SERVER_PROC_MCPU)
 	db.DPrintf(db.TEST, "Spawn server proc %v", p)
 	start := time.Now()
@@ -301,6 +304,7 @@ func TestSpinServerSpawnLatency(t *testing.T) {
 
 	p := proc.NewProc("spin-srv-cpp", []string{strconv.FormatBool(USE_EPCACHE)})
 	p.GetProcEnv().UseSPProxy = true
+	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.SetMcpu(MCPU_PER_PROC)
 	if USE_EPCACHE {
 		p.SetCachedEndpoint(epcache.EPCACHE, epcsrvEP)
@@ -323,6 +327,7 @@ func TestSpinServerSpawnLatency(t *testing.T) {
 			<-parallelCh
 			p := proc.NewProc("spin-srv-cpp", []string{strconv.FormatBool(USE_EPCACHE)})
 			p.GetProcEnv().UseSPProxy = true
+			p.GetProcEnv().UseSPProxyProcClnt = true
 			p.SetMcpu(MCPU_PER_PROC)
 			if USE_EPCACHE {
 				p.SetCachedEndpoint(epcache.EPCACHE, epcsrvEP)
@@ -350,6 +355,7 @@ func TestSpinServerExec(t *testing.T) {
 	for i := 0; i < N_TRIALS; i++ {
 		p := proc.NewProc("spin-srv-cpp", nil)
 		p.GetProcEnv().UseSPProxy = true
+		p.GetProcEnv().UseSPProxyProcClnt = true
 		p.SetSpawnTime(time.Now())
 		homedir, err := os.UserHomeDir()
 		if !assert.Nil(t, err, "Err homedir: %v", err) {

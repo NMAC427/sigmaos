@@ -117,7 +117,7 @@ class _log {
 
 // Write a log line given a selector
 template <typename... Args>
-void log(std::string selector, fmt::format_string<Args...> fmt,
+void log(const std::string& selector, spdlog::format_string_t<Args...> fmt,
          Args&&... args) {
   auto& registry = sigmaos::util::log::LoggerRegistry::instance();
   auto logger = registry.get_logger(selector);
