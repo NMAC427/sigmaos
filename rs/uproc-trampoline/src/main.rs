@@ -159,7 +159,6 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         "proc",
         "bin",
         "mnt",
-        "tmp",
         "tmp/sigmaos-perf",
         "tmp/python",
         "tmp/spproxyd",
@@ -234,13 +233,6 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         .flags(MountFlags::BIND | MountFlags::RDONLY)
         .mount("/mnt/binfs/", "mnt/binfs")?;
 
-    // For /tmp/sigmaos-perf?
-    Mount::builder()
-        .fstype("none")
-        .flags(MountFlags::BIND | MountFlags::RDONLY)
-        .mount("/tmp/", "tmp")?;
-
-    // Python
     Mount::builder()
         .fstype("none")
         .flags(MountFlags::BIND | MountFlags::RDONLY)

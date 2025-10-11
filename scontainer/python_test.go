@@ -120,6 +120,22 @@ func TestPythonNumpyImport(t *testing.T) {
 	duration3 := time.Since(start)
 	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
 	ts.Shutdown()
+
+	ts, _ = test.NewTstateAll(t)
+	p2 := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
+	start2 := time.Now()
+	err = ts.Spawn(p2)
+	assert.Nil(ts.T, err)
+	duration4 := time.Since(start2)
+	err = ts.WaitStart(p2.GetPid())
+	assert.Nil(ts.T, err, "Error waitstart: %v", err)
+	duration5 := time.Since(start2)
+	status2, err := ts.WaitExit(p2.GetPid())
+	assert.Nil(t, err)
+	assert.True(t, status2.IsStatusOK(), "Bad exit status: %v", status2)
+	duration6 := time.Since(start2)
+	fmt.Printf("warm spawn %v, start %v, exit %v\n", duration4, duration5, duration6)
+	ts.Shutdown()
 }
 
 func TestImageProcessing(t *testing.T) {

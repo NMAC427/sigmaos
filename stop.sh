@@ -92,7 +92,7 @@ if docker ps -a | grep -qE "$USER_IMAGE_NAME|$KERNEL_IMAGE_NAME|$DB_IMAGE_NAME|$
       fi
     fi
     stop="
-      docker stop $container 
+      docker stop $container
       docker rm $container
     "
     if [ -z "$PARALLEL" ]; then
@@ -114,6 +114,9 @@ fi
 
 sudo rm -rf $TMP_BASE/sigmaos-bin/*
 sudo rm -rf $TMP_BASE/sigmaos-kernel-start-logs
+
+sudo rm -rf "${TMP_BASE}/python"
+sudo rm -rf "${TMP_BASE}/python-package-cache"
 
 # delete all keys from etcd
 if docker ps | grep -q $ETCD_CTR_NAME ; then

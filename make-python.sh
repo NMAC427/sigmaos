@@ -68,6 +68,47 @@ for tag in packaging.tags.sys_tags():
     print(tag)
 EOF
 
+# Generate environment markers file
+# https://packaging.python.org/en/latest/specifications/dependency-specifiers/#environment-markers
+py > "$PY_OUTPATH/sigmaos/env_markers.json" <<EOF
+import os
+import sys
+import platform
+import json
+
+def format_full_version(info):
+    """Format sys.implementation.version per PEP 508."""
+    version = f"{info.major}.{info.minor}.{info.micro}"
+    if info.releaselevel != "final":
+        version += info.releaselevel[0] + str(info.serial)
+    return version
+
+def collect_markers():
+    markers = {
+        "os_name": os.name,
+        "sys_platform": sys.platform,
+        "platform_machine": platform.machine(),
+        "platform_python_implementation": platform.python_implementation(),
+        "platform_release": platform.release(),
+        "platform_system": platform.system(),
+        "platform_version": platform.version(),
+        "python_version": ".".join(platform.python_version_tuple()[:2]),
+        "python_full_version": platform.python_version(),
+    }
+
+    if hasattr(sys, "implementation"):
+        markers["implementation_name"] = sys.implementation.name
+        markers["implementation_version"] = format_full_version(sys.implementation.version)
+    else:
+        markers["implementation_name"] = ""
+        markers["implementation_version"] = "0"
+
+    return markers
+
+markers = collect_markers()
+json.dump(markers, sys.stdout, indent=2, sort_keys=True)
+EOF
+
 cp "$ROOT/scontainer/python/install_wheel.py" "$PY_OUTPATH/sigmaos/kernel"
 
 # Add checksum overrides for default libraries

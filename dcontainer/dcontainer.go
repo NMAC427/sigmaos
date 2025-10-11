@@ -25,6 +25,7 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	chunksrv "sigmaos/sched/msched/proc/chunk/srv"
+	"sigmaos/scontainer/python"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/linux/mem"
 	"sigmaos/util/perf"
@@ -132,6 +133,12 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 			Source:   path.Join("/tmp/python"),
 			Target:   path.Join("/python/lower"),
 			ReadOnly: true,
+		},
+		mount.Mount{
+			Type:     mount.TypeBind,
+			Source:   python.PYTHON_PACKAGE_CACHE_DIR,
+			Target:   python.PYTHON_PACKAGE_CACHE_DIR,
+			ReadOnly: false,
 		},
 		// perf output dir
 		mount.Mount{

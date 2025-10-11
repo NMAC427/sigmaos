@@ -47,7 +47,6 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	if uproc.GetProgram() == "python" {
 		stringProg = "python"
 		pythonPath, _ := uproc.LookupEnv("PYTHONPATH")
-		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 		pn = "/tmp/python/python"
 
 		if pythonFile, err := python.GetPythonFileArg(uproc); err == nil {
@@ -57,23 +56,25 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 			}
 
 			if pylockPath, err := python.GetPylockPath(pythonFile); err == nil {
-				fmt.Printf("Setting up python site-packages from %v\n", pylockPath)
-				jailPath := jailPath(uproc.GetPid())
-				sitePackagesDir, err := python.SetupSitePackages(filepath.Join(jailPath, "venv"), pylockPath)
+				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
+				sitePackagesDir, err := python.SetupSitePackages(pyVenvPath(uproc.GetPid()), pylockPath)
 				if err != nil {
-					fmt.Printf("Failed to set up python site-packages: %v\n", err)
-					return nil, err
+					return nil, fmt.Errorf("setting up python site-packages failed: %w", err)
 				}
 
+				jailPath := jailPath(uproc.GetPid())
 				pythonPath = pythonPath + ":" + strings.TrimPrefix(sitePackagesDir, jailPath)
 				uproc.AppendEnv("PYTHONPATH", pythonPath)
 			} else {
-				fmt.Printf("Warning: could not find pylock file: %v\n", err)
+				db.DPrintf(db.CONTAINER, "No pylock.toml file found\n")
 			}
 		} else {
-			fmt.Printf("Warning: could not find python file argument: %v\n", err)
+			db.DPrintf(db.CONTAINER, "No python file argument found\n")
 		}
+
+		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 	}
+
 	// Optionally strace the proc
 	stracing := false
 	if straceProcs[uproc.GetProgram()] {
@@ -151,6 +152,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 }
 
 func CleanupUProc(pid sp.Tpid) {
+	python.CleanSitePackages(pyVenvPath(pid))
 	if err := os.RemoveAll(jailPath(pid)); err != nil {
 		db.DPrintf(db.ALWAYS, "Error cleanupJail: %v", err)
 	}
@@ -160,4 +162,8 @@ func CleanupUProc(pid sp.Tpid) {
 
 func jailPath(pid sp.Tpid) string {
 	return filepath.Join(sp.SIGMAHOME, "jail", pid.String())
+}
+
+func pyVenvPath(pid sp.Tpid) string {
+	return filepath.Join(jailPath(pid), "py-venv")
 }

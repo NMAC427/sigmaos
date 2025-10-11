@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	db "sigmaos/debug"
 	"sigmaos/proc"
 	"sigmaos/scontainer/python/pylock"
 
@@ -19,13 +20,17 @@ import (
 )
 
 const (
-	PYTHON_VERSION     = "cpython3.11"
-	PACKAGES_CACHE_DIR = "/tmp/python-packages-cache"
-	TMP_INSTALL_DIR    = PACKAGES_CACHE_DIR + "/tmp"
+	PYTHON_VERSION           = "cpython3.11"
+	PYTHON_PACKAGE_CACHE_DIR = "/tmp/python-package-cache"
+	PYTHON_TMP_INSTALL_DIR   = PYTHON_PACKAGE_CACHE_DIR + "/tmp"
+
+	PYTHON_SYS_TAGS_FILE      = "/tmp/python/sigmaos/sys_tags"
+	PYTHON_ENV_MARKERS_FILE   = "/tmp/python/sigmaos/env_markers.json"
+	PYTHON_INSTALL_WHL_SCRIPT = "/tmp/python/sigmaos/kernel/install_wheel.py"
 )
 
 func getSupportedCompatibilityTags() ([]string, error) {
-	file, err := os.Open("/tmp/python/sigmaos/sys_tags")
+	file, err := os.Open(PYTHON_SYS_TAGS_FILE)
 
 	if err != nil {
 		return []string{}, err
@@ -98,8 +103,23 @@ func getRequiredWheels(lock *pylock.Pylock) ([]pylock.Wheel, error) {
 		return nil, err
 	}
 
+	env_markers, err := pylock.LoadPythonEnvironmentMarkers(PYTHON_ENV_MARKERS_FILE)
+	if err != nil {
+		return nil, err
+	}
+
 	var wheels []pylock.Wheel
 	for _, pkg := range lock.Packages {
+		is_required, err := pylock.EvaluateMarker(pkg.Marker, env_markers)
+		if err != nil {
+			return nil, err
+		}
+
+		db.DPrintf(db.CONTAINER, "Python package %v (%v) required: %v (%v)", pkg.Name, pkg.Version, is_required, pkg.Marker)
+		if !is_required {
+			continue
+		}
+
 		wheel, err := getBestWheel(pkg, compatibilityTags)
 		if err != nil {
 			return nil, err
@@ -112,6 +132,8 @@ func getRequiredWheels(lock *pylock.Pylock) ([]pylock.Wheel, error) {
 }
 
 func downloadWheel(wheel pylock.Wheel) (string, error) {
+	db.DPrintf(db.CONTAINER, "downloading python wheel: %v", wheel.Name)
+
 	sha256, found := wheel.Hashes["sha256"]
 	if !found {
 		return "", fmt.Errorf("wheel %q has no sha256 hash", wheel.Name)
@@ -198,23 +220,24 @@ func getWheelInstallPath(wheel *pylock.Wheel) (string, error) {
 	if !found {
 		return "", fmt.Errorf("wheel %q has no sha256 hash", wheel.Name)
 	}
-	return filepath.Join(PACKAGES_CACHE_DIR, PYTHON_VERSION, fmt.Sprintf("%s-%s", base, sha256)), nil
+	return filepath.Join(PYTHON_PACKAGE_CACHE_DIR, PYTHON_VERSION, fmt.Sprintf("%s-%s", base, sha256)), nil
 }
 
 func installWheel(wheelPath string, installPath string) error {
+	db.DPrintf(db.CONTAINER, "installing python wheel: %v", filepath.Base(wheelPath))
 	if err := os.MkdirAll(filepath.Dir(installPath), 0777); err != nil {
 		return err
 	}
 
 	// Install into temporary directory first, and then move to final location
 	// to avoid partially installed wheels if installation fails.
-	tmpInstallDir := filepath.Join(TMP_INSTALL_DIR, uuid.New().String())
+	tmpInstallDir := filepath.Join(PYTHON_TMP_INSTALL_DIR, uuid.New().String())
 	if err := os.MkdirAll(tmpInstallDir, 0777); err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpInstallDir)
 
-	cmd := exec.Command("/tmp/python/python", "/tmp/python/sigmaos/kernel/install_wheel.py", wheelPath, tmpInstallDir)
+	cmd := exec.Command("/tmp/python/python", PYTHON_INSTALL_WHL_SCRIPT, wheelPath, tmpInstallDir)
 	cmd.Env = append(cmd.Env, "PYTHONPATH=/tmp/python/sigmaos/kernel/site-packages")
 	err := cmd.Run()
 	if err != nil {
@@ -235,30 +258,63 @@ func SetupSitePackages(workingDir string, pylockPath string) (string, error) {
 		return "", err
 	}
 
-	wheelInstallPaths := []string{}
+	totalSize := int64(0)
 	for _, wheel := range wheels {
-		installPath, err := getWheelInstallPath(&wheel)
-		if err != nil {
-			return "", err
-		}
-		wheelInstallPaths = append(wheelInstallPaths, installPath)
-
-		if s, err := os.Stat(installPath); err == nil && s.IsDir() {
-			// Already installed, skip
-			continue
-		}
-
-		wheelPath, err := downloadWheel(wheel)
-		if err != nil {
-			return "", err
-		}
-
-		if err := installWheel(wheelPath, installPath); err != nil {
-			return "", err
+		if wheel.Size != nil {
+			totalSize += *wheel.Size
 		}
 	}
+	db.DPrintf(db.CONTAINER, "Total size of required python wheels: %d bytes", totalSize)
 
-	fmt.Printf("Installed wheels: %v\n", wheelInstallPaths)
+	type result struct {
+		idx         int
+		installPath string
+		err         error
+	}
+	results := make(chan result, len(wheels))
+	maxConcurrentInstalls := 4
+	sem := make(chan struct{}, maxConcurrentInstalls)
+
+	for i, wheel := range wheels {
+		sem <- struct{}{}
+		go func(idx int, wheel pylock.Wheel) {
+			defer func() { <-sem }()
+
+			installPath, err := getWheelInstallPath(&wheel)
+			if err != nil {
+				results <- result{idx, "", err}
+				return
+			}
+
+			if s, err := os.Stat(installPath); err == nil && s.IsDir() {
+				// Already installed, skip
+				results <- result{idx, installPath, nil}
+				return
+			}
+
+			wheelPath, err := downloadWheel(wheel)
+			if err != nil {
+				results <- result{idx, "", err}
+				return
+			}
+
+			if err := installWheel(wheelPath, installPath); err != nil {
+				results <- result{idx, "", err}
+				return
+			}
+
+			results <- result{idx, installPath, nil}
+		}(i, wheel)
+	}
+
+	wheelInstallPaths := make([]string, len(wheels))
+	for i := 0; i < len(wheels); i++ {
+		res := <-results
+		if res.err != nil {
+			return "", res.err
+		}
+		wheelInstallPaths[res.idx] = res.installPath
+	}
 
 	// Create overlayFS with all the wheels
 	overlayDir, err := mountOverlayFS(workingDir, wheelInstallPaths)
@@ -283,6 +339,7 @@ func mountOverlayFS(workingDir string, lowerdirs []string) (string, error) {
 	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
 		strings.Join(lowerdirs, ":"), upperdir, workdir)
 
+	// Use fuse-overlayfs to allow creating an overlayFS inside the docker overlayFS
 	cmd := exec.Command("fuse-overlayfs", "-o", opts, target)
 	if err := cmd.Run(); err != nil {
 		// fuse.overlayfs tends to return non-zero exit code even on success
@@ -320,7 +377,6 @@ func GetPylockPath(pythonFile string) (string, error) {
 	for {
 		for _, name := range pylockFileNames {
 			lockPath := filepath.Join(dir, name)
-			fmt.Printf("Looking for pylock file at %v\n", lockPath)
 			if _, err := os.Stat(lockPath); err == nil {
 				return lockPath, nil
 			}
