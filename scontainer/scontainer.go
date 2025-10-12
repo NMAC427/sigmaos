@@ -157,7 +157,6 @@ func CleanupUProc(pid sp.Tpid) {
 		db.DPrintf(db.ALWAYS, "Error cleanupJail: %v", err)
 	}
 	os.RemoveAll(sp.SIGMA_PYPROXY_SOCKET)
-	os.RemoveAll(sp.SIGMA_PYAPI_SOCKET)
 }
 
 func jailPath(pid sp.Tpid) string {

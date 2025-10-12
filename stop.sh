@@ -72,13 +72,11 @@ sudo rm -f $TMP_BASE/spproxyd/spproxyd.sock
 sudo rm -f $TMP_BASE/spproxyd/spproxyd-ctrl.sock
 sudo rm -f $TMP_BASE/spproxyd/spproxyd-dialproxy.sock
 sudo rm -f $TMP_BASE/spproxyd/spproxyd-pyproxy.sock
-sudo rm -f $TMP_BASE/spproxyd/spproxyd-pyapi.sock
 if [[ "$ALL" == "true" ]]; then
   sudo rm -f /tmp/spproxyd/spproxyd.sock
   sudo rm -f /tmp/spproxyd/spproxyd-ctrl.sock
   sudo rm -f /tmp/spproxyd/spproxyd-dialproxy.sock
   sudo rm -f /tmp/spproxyd/spproxyd-pyproxy.sock
-  sudo rm -f /tmp/spproxyd/spproxyd-pyapi.sock
 fi
 
 if docker ps -a | grep -qE "$USER_IMAGE_NAME|$KERNEL_IMAGE_NAME|$DB_IMAGE_NAME|$MONGO_IMAGE_NAME|procd|spproxyd-sigma|sigma-"; then
