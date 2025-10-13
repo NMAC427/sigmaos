@@ -13,95 +13,51 @@ import (
 
 const bucket = "sigmaos-ncam"
 
-/*
-	 func TestPythonSmall(t *testing.T) { // TODO: modify to kill the python interpreter
-		ts, _ := test.NewTstateAll(t)
-		p := proc.NewPythonProc([]string{"-V"}, bucket)
-		start := time.Now()
-		err := ts.Spawn(p)
-		assert.Nil(ts.T, err)
-		duration := time.Since(start)
-		err = ts.WaitStart(p.GetPid())
-		assert.Nil(ts.T, err, "Error waitstart: %v", err)
-		duration2 := time.Since(start)
-		status, err := ts.WaitExit(p.GetPid())
-		assert.Nil(t, err)
-		assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-		duration3 := time.Since(start)
-		fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-		ts.Shutdown()
-	}
-*/
-func TestPythonLaunch(t *testing.T) {
-	ts, _ := test.NewTstateAll(t)
-	p := proc.NewPythonProc([]string{"/~~/pyproc/hello/main.py"}, bucket)
+func runBasicPythonTest(ts *test.Tstate, spawn_type string, proc *proc.Proc) {
 	start := time.Now()
-	err := ts.Spawn(p)
+	err := ts.Spawn(proc)
 	assert.Nil(ts.T, err)
 	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
+	err = ts.WaitStart(proc.GetPid())
 	assert.Nil(ts.T, err, "Error waitstart: %v", err)
 	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
+	status, err := ts.WaitExit(proc.GetPid())
+	assert.Nil(ts.T, err)
+	assert.True(ts.T, status.IsStatusOK(), "Bad exit status: %v", status)
 	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	fmt.Printf("%s spawn %v, start %v, exit %v\n", spawn_type, duration, duration2, duration3)
+}
+
+func TestPythonLaunch(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	p := proc.NewPythonProc([]string{"/~~/pyproc/hello/main.py"}, bucket)
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonBasicImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/basic_import/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonAWSImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonNeighborImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/neighbor_import/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonNumpyImport(t *testing.T) {
@@ -109,90 +65,35 @@ func TestPythonNumpyImport(t *testing.T) {
 	defer ts.Shutdown()
 
 	p := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
+	runBasicPythonTest(ts, "cold", p)
 
 	p2 := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
-	start2 := time.Now()
-	err = ts.Spawn(p2)
-	assert.Nil(ts.T, err)
-	duration4 := time.Since(start2)
-	err = ts.WaitStart(p2.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration5 := time.Since(start2)
-	status2, err := ts.WaitExit(p2.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status2.IsStatusOK(), "Bad exit status: %v", status2)
-	duration6 := time.Since(start2)
-	fmt.Printf("warm spawn %v, start %v, exit %v\n", duration4, duration5, duration6)
+	runBasicPythonTest(ts, "warm", p2)
 }
 
 func TestImageProcessing(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/imgprocessing/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonChecksumVerification(t *testing.T) {
-	fmt.Printf("Starting 1st proc...\n")
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	fmt.Printf("Starting 1st proc...\n")
 	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 
 	checksumPath := "/tmp/python/Lib/dummy_package-sigmaos-checksum"
-	_, err = os.Stat(checksumPath)
+	_, err := os.Stat(checksumPath)
 	assert.Nil(t, err)
 
 	fmt.Printf("Starting 2nd proc (cached lib)...\n")
-	ts, _ = test.NewTstateAll(t)
 	p2 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
-	start2 := time.Now()
-	err = ts.Spawn(p2)
-	assert.Nil(ts.T, err)
-	duration4 := time.Since(start2)
-	err = ts.WaitStart(p2.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration5 := time.Since(start2)
-	status, err = ts.WaitExit(p2.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration6 := time.Since(start2)
-	fmt.Printf("warm spawn %v, start %v, exit %v\n", duration4, duration5, duration6)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "warm", p2)
 
 	_, err = os.Stat(checksumPath)
 	assert.Nil(t, err)
@@ -202,57 +103,24 @@ func TestPythonChecksumVerification(t *testing.T) {
 	assert.NotNil(t, err)
 
 	fmt.Printf("Starting 3rd proc (invalid cache)...\n")
-	ts, _ = test.NewTstateAll(t)
 	p3 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
-	start3 := time.Now()
-	err = ts.Spawn(p3)
-	assert.Nil(ts.T, err)
-	duration7 := time.Since(start3)
-	err = ts.WaitStart(p3.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration8 := time.Since(start3)
-	status, err = ts.WaitExit(p3.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration9 := time.Since(start3)
-	fmt.Printf("warm spawn %v, start %v, exit %v\n", duration7, duration8, duration9)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "warm", p3)
 }
 
 // SigmaOS API Tests
 
 func TestPythonStat(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/stat_test/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
 
 func TestPythonFiles(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/file_test/main.py"}, bucket)
-	start := time.Now()
-	err := ts.Spawn(p)
-	assert.Nil(ts.T, err)
-	duration := time.Since(start)
-	err = ts.WaitStart(p.GetPid())
-	assert.Nil(ts.T, err, "Error waitstart: %v", err)
-	duration2 := time.Since(start)
-	status, err := ts.WaitExit(p.GetPid())
-	assert.Nil(t, err)
-	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
-	duration3 := time.Since(start)
-	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
+	runBasicPythonTest(ts, "cold", p)
 }
