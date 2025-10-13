@@ -106,6 +106,8 @@ func TestPythonNeighborImport(t *testing.T) {
 
 func TestPythonNumpyImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
 	p := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
 	start := time.Now()
 	err := ts.Spawn(p)
@@ -119,9 +121,7 @@ func TestPythonNumpyImport(t *testing.T) {
 	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
 	duration3 := time.Since(start)
 	fmt.Printf("cold spawn %v, start %v, exit %v\n", duration, duration2, duration3)
-	ts.Shutdown()
 
-	ts, _ = test.NewTstateAll(t)
 	p2 := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
 	start2 := time.Now()
 	err = ts.Spawn(p2)
@@ -135,7 +135,6 @@ func TestPythonNumpyImport(t *testing.T) {
 	assert.True(t, status2.IsStatusOK(), "Bad exit status: %v", status2)
 	duration6 := time.Since(start2)
 	fmt.Printf("warm spawn %v, start %v, exit %v\n", duration4, duration5, duration6)
-	ts.Shutdown()
 }
 
 func TestImageProcessing(t *testing.T) {

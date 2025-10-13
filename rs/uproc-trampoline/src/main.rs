@@ -86,7 +86,7 @@ fn main() {
     now = SystemTime::now();
     // Connect to the pyproxy socket
     if is_python_proc {
-        let pyproxy_conn = UnixStream::connect("/tmp/spproxyd/spproxyd-pyproxy.sock").unwrap();
+        let pyproxy_conn = UnixStream::connect("/python/spproxyd-pyproxy.sock").unwrap();
         let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
         fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
         env::set_var("SIGMA_PYPROXY_FD", pyproxy_conn_fd.to_string());

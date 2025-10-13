@@ -31,33 +31,38 @@ const (
 
 // PyProxySrv maintains the state of the pyproxysrv.
 type PyProxySrv struct {
-	pe *proc.ProcEnv
-	sc *sigmaclnt.SigmaClnt
-	bn string // Name of AWS bucket
+	pe          *proc.ProcEnv
+	sc          *sigmaclnt.SigmaClnt
+	bn          string // Name of AWS bucket
+	socket      net.Listener
+	socket_path string
 }
 
 // Creates and returns a new PyProxySrv object to be used by Python programs
 // for fetching Python libraries.
-func NewPyProxySrv(pe *proc.ProcEnv, bn string) (*PyProxySrv, error) {
+func NewPyProxySrv(pe *proc.ProcEnv, bn string, socket_path string) (*PyProxySrv, error) {
 	// Create the proxy socket
-	socket, err := net.Listen("unix", sp.SIGMA_PYPROXY_SOCKET)
+	socket, err := net.Listen("unix", socket_path)
 	if err != nil {
 		return nil, err
 	}
-	if err := os.Chmod(sp.SIGMA_PYPROXY_SOCKET, 0777); err != nil {
+	if err := os.Chmod(socket_path, 0777); err != nil {
 		db.DFatalf("Err chmod sigmasocket: %v", err)
 	}
-	db.DPrintf(db.TEST, "runServer: pyproxysrv listening on %v\n", sp.SIGMA_PYPROXY_SOCKET)
+	db.DPrintf(db.TEST, "runServer: pyproxysrv listening on %v\n", socket_path)
 
-	pps := &PyProxySrv{
-		pe: pe,
-		bn: bn,
-	}
 	sc, err := sigmaclnt.NewSigmaClnt(pe)
 	if err != nil {
 		return nil, err
 	}
-	pps.sc = sc
+
+	pps := &PyProxySrv{
+		pe:          pe,
+		sc:          sc,
+		bn:          bn,
+		socket:      socket,
+		socket_path: socket_path,
+	}
 
 	go pps.runServer(socket)
 
@@ -66,7 +71,10 @@ func NewPyProxySrv(pe *proc.ProcEnv, bn string) (*PyProxySrv, error) {
 
 func (pps *PyProxySrv) Shutdown() {
 	db.DPrintf(db.PYPROXYSRV, "Shutdown")
-	os.Remove(sp.SIGMA_PYPROXY_SOCKET)
+	if pps.socket != nil {
+		pps.socket.Close()
+	}
+	os.Remove(pps.socket_path)
 }
 
 // Computes the checksum for the given file
@@ -309,7 +317,10 @@ func (pps *PyProxySrv) runServer(l net.Listener) {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			db.DFatalf("Error pyproxysrv Accept: %v", err)
+			if err == net.ErrClosed {
+				return
+			}
+			db.DPrintf(db.PYPROXYSRV_ERR, "Error pyproxysrv Accept: %v", err)
 			return
 		}
 		// Handle incoming connection

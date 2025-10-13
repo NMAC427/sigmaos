@@ -397,7 +397,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	if err != nil {
 		db.DPrintf(db.PROCD, "[%v] Proc Run cmd.Wait err %v", uproc.GetPid(), err)
 	}
-	scontainer.CleanupUProc(uproc.GetPid())
+	scontainer.CleanupUProc(cmd)
 	ps.procs.Delete(pid)
 	if uproc.GetProcEnv().UseSPProxy {
 		if err := ps.spc.InformProcDone(uproc); err != nil {
