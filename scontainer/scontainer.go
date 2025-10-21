@@ -46,17 +46,22 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	straceProcs := proc.GetLabels(uproc.GetProcEnv().GetStrace())
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
 
-	stringProg := uproc.GetVersionedProgram()
-	pn := binsrv.BinPath(stringProg)
-	if uproc.GetProgram() == "python" {
-		stringProg = "python"
-		pythonPath, _ := uproc.LookupEnv("PYTHONPATH")
-		pn = "/tmp/python/python"
+	pn := binsrv.BinPath(uproc.GetVersionedProgram())
+	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram())
+	if isPythonProc {
+		pythonVersion := uproc.GetProgram()
+		pythonPath := python.PythonPath(pythonVersion)
 
-		os.MkdirAll(filepath.Join(uprocCmd.jailPath, "python"), 0777)
+		// uproc-trampoline will mount the correct python interpreter files
+		// from /home/sigmaos/bin/kernel/<python-version> to the sigma container
+		// python dir /tmp/python/python.
+		pn = "/tmp/python/python/python"
 
-		if pythonFile, err := python.GetPythonFileArg(uproc); err == nil {
+		os.MkdirAll(filepath.Join(uprocCmd.jailPath, "tmp/python"), 0777)
+
+		if pythonFile, err := python.GetPythonFileArg(uproc.Args); err == nil {
 			// TODO ncam: Is the /~~/ hack still needed?
+			db.DPrintf(db.CONTAINER, "pythonFile %v\n", pythonFile)
 			if strings.HasPrefix(pythonFile, "/~~/") {
 				pythonFile = "/tmp/python/" + strings.TrimPrefix(pythonFile, "/~~/")
 			}
@@ -69,7 +74,6 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 				}
 
 				pythonPath = pythonPath + ":" + strings.TrimPrefix(sitePackagesDir, uprocCmd.jailPath)
-				uproc.AppendEnv("PYTHONPATH", pythonPath)
 			} else {
 				db.DPrintf(db.CONTAINER, "No pylock.toml file found\n")
 			}
@@ -78,6 +82,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 		}
 
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
+		uproc.AppendEnv("PYTHONPATH", pythonPath)
 	}
 
 	// Optionally strace the proc
@@ -112,7 +117,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	if uproc.GetProgram() == "python" && !stracing {
 		uproc.AppendEnv("LD_PRELOAD", "/tmp/python/sigmaos/ld_preload.so")
 	}
-	// uproc.AppendEnv("RUST_BACKTRACE", "1")
+	uproc.AppendEnv("RUST_BACKTRACE", "full")
 	uprocCmd.cmd.Env = uproc.GetEnv()
 
 	uprocCmd.cmd.Stdout = os.Stdout
@@ -126,7 +131,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	}
 	db.DPrintf(db.CONTAINER, "exec cmd %v", uprocCmd.cmd)
 
-	if uproc.GetProgram() == "python" {
+	if isPythonProc {
 		bucketName, ok := uproc.LookupEnv(proc.SIGMAPYBUCKET)
 		if !ok {
 			err := errors.New("nil SIGMAPYBUCKET")
@@ -135,7 +140,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 			return nil, err
 		}
 
-		pps_socket_path := filepath.Join(uprocCmd.jailPath, "python", "spproxyd-pyproxy.sock")
+		pps_socket_path := filepath.Join(uprocCmd.jailPath, "tmp/python/spproxyd-pyproxy.sock")
 		pps, err := pyproxysrv.NewPyProxySrv(uproc.GetProcEnv(), bucketName, pps_socket_path)
 		if err != nil {
 			db.DPrintf(db.PYPROXYSRV_ERR, "Error NewPyProxySrv: %v", err)

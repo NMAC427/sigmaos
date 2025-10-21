@@ -54,7 +54,6 @@ fn main() {
     print_elapsed_time(&debug_pid, "trampoline.exec_trampoline", exec_time, false);
     let pid = env::args().nth(1).expect("no pid");
     let program = env::args().nth(2).expect("no program");
-    let is_python_proc = Path::new(&program).file_name().unwrap() == "python";
     let dialproxy = env::args().nth(3).expect("no dialproxy");
     let mut now = SystemTime::now();
     let aa = is_enabled_apparmor();
@@ -85,8 +84,9 @@ fn main() {
     print_elapsed_time(&debug_pid, "trampoline.connect_dialproxy", now, false);
     now = SystemTime::now();
     // Connect to the pyproxy socket
+    let is_python_proc = Path::new(&program).file_name().unwrap() == "python";
     if is_python_proc {
-        let pyproxy_conn = UnixStream::connect("/python/spproxyd-pyproxy.sock").unwrap();
+        let pyproxy_conn = UnixStream::connect("/tmp/python/spproxyd-pyproxy.sock").unwrap();
         let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
         fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
         env::set_var("SIGMA_PYPROXY_FD", pyproxy_conn_fd.to_string());
@@ -145,8 +145,8 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         "bin",
         "mnt",
         "tmp/sigmaos-perf",
-        "tmp/python",
         "tmp/spproxyd",
+        "tmp/python/python",
     ];
 
     let newroot = "/home/sigmaos/jail/";
@@ -218,10 +218,11 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         .flags(MountFlags::BIND | MountFlags::RDONLY)
         .mount("/mnt/binfs/", "mnt/binfs")?;
 
+    // TODO: Mount the correct python version
     Mount::builder()
         .fstype("none")
         .flags(MountFlags::BIND | MountFlags::RDONLY)
-        .mount("/tmp/python", "tmp/python")?;
+        .mount("/home/sigmaos/bin/kernel/cpython3.11", "tmp/python/python")?;
 
     Mount::builder()
         .fstype("none")

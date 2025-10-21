@@ -67,17 +67,11 @@ func NewProc(program string, args []string) *Proc {
 }
 
 func NewPythonProc(args []string, bucket string) *Proc {
-	program := "python"
+	program := "python3.11"
 	pid := sp.GenPid(program)
 	p := NewProcPid(pid, program, args)
 	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.AppendEnv(SIGMAPYBUCKET, bucket)
-
-	// PYTHONPATH is an environment variable in Python that specifies a list of
-	// directories where the interpreter looks for modules and packages when
-	// importing them.
-	pythonPath := "/tmp/python/build/lib.linux-x86_64-3.11:/tmp/python/Lib:/tmp/python/sigmaos/user/site-packages"
-	p.AppendEnv("PYTHONPATH", pythonPath)
 	return p
 }
 

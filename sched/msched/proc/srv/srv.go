@@ -25,6 +25,7 @@ import (
 	"sigmaos/sched/msched/proc/proto"
 	"sigmaos/sched/msched/proc/srv/binsrv"
 	"sigmaos/scontainer"
+	"sigmaos/scontainer/python"
 	"sigmaos/sigmaclnt"
 	sp "sigmaos/sigmap"
 	"sigmaos/sigmasrv"
@@ -346,6 +347,7 @@ func (ps *ProcSrv) prefetchProcFileStat(realm sp.Trealm, upid sp.Tpid, prog stri
 // Run a proc inside of an sigma container
 func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc := proc.NewProcFromProto(req.ProcProto)
+	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram())
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
 	// Spawn, but don't actually run the dummy proc
@@ -357,7 +359,9 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		return fmt.Errorf("Dummy")
 	}
 	// Prefetch file stats
-	go ps.prefetchProcFileStat(uproc.GetRealm(), uproc.GetPid(), uproc.GetVersionedProgram(), uproc.GetSigmaPath(), uproc.GetSecrets()["s3"], uproc.GetNamedEndpoint())
+	if !isPythonProc {
+		go ps.prefetchProcFileStat(uproc.GetRealm(), uproc.GetPid(), uproc.GetVersionedProgram(), uproc.GetSigmaPath(), uproc.GetSecrets()["s3"], uproc.GetNamedEndpoint())
+	}
 	uproc.FinalizeEnv(ps.pe.GetInnerContainerIP(), ps.pe.GetOuterContainerIP(), ps.pe.GetPID())
 	// If this proc uses SPProxy, inform spproxy that there is a proc incoming so
 	// that it can pre-create the proc's sigmaclnt
@@ -370,11 +374,15 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 			perf.LogSpawnLatency("ProcSrv.Run spproxy.InformIncomingProc", uproc.GetPid(), uproc.GetSpawnTime(), start)
 		}()
 	}
+
 	// Assign this uprocsrv to the realm, if not already assigned.
-	stringProg := uproc.GetVersionedProgram()
-	if uproc.GetProgram() == "python" {
-		stringProg = "python"
+	var stringProg string
+	if isPythonProc {
+		stringProg = uproc.GetProgram()
+	} else {
+		stringProg = uproc.GetVersionedProgram()
 	}
+
 	if err := ps.assignToRealm(uproc.GetRealm(), uproc.GetPid(), stringProg, uproc.GetSigmaPath(), uproc.GetSecrets()["s3"], uproc.GetNamedEndpoint()); err != nil {
 		db.DFatalf("Err assign to realm: %v", err)
 	}

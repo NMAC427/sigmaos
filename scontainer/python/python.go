@@ -9,11 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 
 	db "sigmaos/debug"
-	"sigmaos/proc"
 	"sigmaos/scontainer/python/pylock"
 
 	"github.com/google/uuid"
@@ -28,6 +28,35 @@ const (
 	PYTHON_ENV_MARKERS_FILE   = "/tmp/python/sigmaos/env_markers.json"
 	PYTHON_INSTALL_WHL_SCRIPT = "/tmp/python/sigmaos/kernel/install_wheel.py"
 )
+
+func SupportedPythonVersions() []string {
+	return []string{
+		"python3.11",
+	}
+}
+
+func IsSupportedPythonVersion(version string) bool {
+	if !strings.HasPrefix(version, "python") {
+		return false
+	}
+
+	return slices.Contains(SupportedPythonVersions(), version)
+}
+
+func PythonPath(version string) string {
+	// PYTHONPATH is an environment variable in Python that specifies a list of
+	// directories where the interpreter looks for modules and packages when
+	// importing them.
+
+	// In the scontainer, the python interpreter files are mounted at /tmp/python/python.
+	switch version {
+	case "python3.11":
+		return "/tmp/python/python/build/lib.linux-x86_64-3.11:/tmp/python/python/Lib:/tmp/python/python/sigmaos/user/site-packages"
+	default:
+		db.DFatalf("Unsupported python version: %v", version)
+		return ""
+	}
+}
 
 func getSupportedCompatibilityTags() ([]string, error) {
 	file, err := os.Open(PYTHON_SYS_TAGS_FILE)
@@ -362,8 +391,8 @@ func CleanSitePackages(workingDir string) error {
 	return nil
 }
 
-func GetPythonFileArg(uproc *proc.Proc) (string, error) {
-	for _, arg := range uproc.Args {
+func GetPythonFileArg(args []string) (string, error) {
+	for _, arg := range args {
 		if strings.HasSuffix(arg, ".py") && !strings.HasPrefix(arg, "-") {
 			return arg, nil
 		}

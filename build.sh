@@ -404,11 +404,8 @@ if [ "${NO_DOCKER}" != "true" ]; then
     cp $KERNELBIN/procd $PROCD_BIN/
     cp $KERNELBIN/spproxyd $PROCD_BIN/
     cp $KERNELBIN/uproc-trampoline $PROCD_BIN/
-    # PYTHON
-    cp $KERNELBIN/python $PROCD_BIN/
-    rm -rf $PYTHON
-    cp -r $KERNELBIN/cpython3.11 /tmp/
-    mv /tmp/cpython3.11 $PYTHON
+
+    cp -r $KERNELBIN/cpython* $PROCD_BIN/
   fi
   echo "========== Done copying kernel bins for proc =========="
 fi

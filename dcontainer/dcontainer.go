@@ -25,7 +25,6 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	chunksrv "sigmaos/sched/msched/proc/chunk/srv"
-	"sigmaos/scontainer/python"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/linux/mem"
 	"sigmaos/util/perf"
@@ -121,23 +120,11 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 			Target:   chunksrv.ROOTBINCONTAINER,
 			ReadOnly: false,
 		},
-		// Python mounts
+		// python dir
 		mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   path.Join("/tmp", kernelId, "python"),
-			Target:   path.Join("/python"), // Parent of upper/work directory must not be an overlay
-			ReadOnly: false,
-		},
-		mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   path.Join("/tmp/python"),
-			Target:   path.Join("/python/lower"),
-			ReadOnly: true,
-		},
-		mount.Mount{
-			Type:     mount.TypeBind,
-			Source:   python.PYTHON_PACKAGE_CACHE_DIR,
-			Target:   python.PYTHON_PACKAGE_CACHE_DIR,
+			Source:   path.Join(tmpBase, "sigmaos-python", kernelId),
+			Target:   "/tmp/python",
 			ReadOnly: false,
 		},
 		// perf output dir
@@ -205,13 +192,6 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 	}
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		db.DPrintf(db.CONTAINER, "ContainerStart err %v\n", err)
-		return nil, err
-	}
-
-	// Set up Python overlay dir
-	overlayCmd := "mkdir -p /python/lower /python/upper /python/work /tmp/python && mount -t overlay overlay -o lowerdir=/python/lower,upperdir=/python/upper,workdir=/python/work /tmp/python"
-	err = execInContainer(ctx, cli, resp.ID, overlayCmd)
-	if err != nil {
 		return nil, err
 	}
 

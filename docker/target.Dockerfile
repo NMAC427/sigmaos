@@ -38,6 +38,8 @@ COPY bin/kernel/procd bin/kernel/
 COPY bin/kernel/spproxyd bin/kernel/
 ## Copy rust trampoline to the user image.
 COPY bin/kernel/uproc-trampoline /home/sigmaos/bin/kernel/
+## Copy python interpreters to the user image.
+COPY bin/kernel/cpython* /home/sigmaos/bin/kernel/
 
 # ========== local kernel image ==========
 FROM base AS sigmaos-local

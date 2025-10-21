@@ -13,8 +13,6 @@ RUN apk add --no-cache libseccomp \
   binaryen \
   libseccomp-static
 
-RUN yes will cite | parallel --citation
-
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
@@ -22,6 +20,8 @@ RUN addgroup -g ${GROUP_ID} builder && \
     adduser -D -u ${USER_ID} -G builder builder
 
 USER builder
+
+RUN yes will cite | parallel --citation
 
 WORKDIR /home/sigmaos
 RUN mkdir -p bin/kernel && \

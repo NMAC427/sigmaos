@@ -150,8 +150,7 @@ DATA_DIR="${TMP_BASE}/sigmaos-data"
 PERF_DIR="${TMP_BASE}/sigmaos-perf"
 KERNEL_DIR="${TMP_BASE}/sigmaos"
 SPPROXY_DIR="${TMP_BASE}/spproxyd"
-PYTHON_DIR="${TMP_BASE}/python"
-PYTHON_PACKAGE_CACHE_DIR="${TMP_BASE}/python-package-cache"
+PYTHON_DIR="${TMP_BASE}/sigmaos-python/${KERNELID}"
 
 mkdir -p $SPPROXY_DIR
 mkdir -p $HOST_BIN_CACHE
@@ -161,8 +160,6 @@ mkdir -p $PERF_DIR
 chmod a+w $PERF_DIR
 mkdir -p $KERNEL_DIR
 mkdir -p $PYTHON_DIR
-mkdir -p $PYTHON_PACKAGE_CACHE_DIR
-mkdir -p $TMP_BASE/$KERNELID/python
 
 # Pull latest docker images, if not running a local build.
 if [ "$TAG" != "local-build" ]; then
@@ -193,9 +190,7 @@ MOUNTS="--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
   --mount type=bind,src=$SPPROXY_DIR,dst=/tmp/spproxyd \
   --mount type=bind,src=$DATA_DIR,dst=/home/sigmaos/data \
   --mount type=bind,src=$HOST_BIN_CACHE/${KERNELID},dst=/home/sigmaos/bin/user/realms \
-  --mount type=bind,src=$PYTHON_DIR,dst=/tmp/python \
-  --mount type=bind,src=$PYTHON_PACKAGE_CACHE_DIR,dst=/tmp/python-package-cache \
-  --mount type=bind,src=$TMP_BASE/${KERNELID}/python,dst=/python \
+  --mount type=bind,src=$PYTHON_DIR,dst=/tmp/python\
   --mount type=bind,src=$PERF_DIR,dst=/tmp/sigmaos-perf \
   --mount type=bind,src=$HOMEDIR/.aws,dst=/home/sigmaos/.aws"
 # If running in local configuration, mount bin directory.

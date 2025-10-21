@@ -12,3 +12,9 @@ cpp
 bin/kernel/junction
 bin/kernel/junction_run
 bin/kernel/iokenreld
+
+bin/kernel/cpython*/*
+!bin/kernel/cpython*/python
+!bin/kernel/cpython*/Lib/
+!bin/kernel/cpython*/build/lib.*/
+!bin/kernel/cpython*/sigmaos/
