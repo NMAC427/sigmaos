@@ -158,140 +158,100 @@ if [ "${TARGET}" != "remote" ]; then
     ./start-network.sh
 fi
 
-# Check if a builder is running already
-buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1 || true)
-rsbuildercid=$(docker ps -a | grep -E " $RS_BUILDER_NAME " | cut -d " " -f1 || true)
-pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1 || true)
-cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1 || true)
+# Function to ensure a builder container is running; restarts or builds as needed.
+# Args:
+#   1: variable name to store resulting container id (e.g., buildercid)
+#   2: container/image name (e.g., $BUILDER_NAME)
+#   3: dockerfile path (e.g., docker/builder.Dockerfile)
+#   4: log basename (e.g., sig-builder)
+ensure_builder() {
+  local out_var="$1"
+  local name="$2"
+  local dockerfile="$3"
+  local logbase="$4"
+  local cid
 
-# Optionally stop any existing builder container, so it will be rebuilt and
-# restarted.
-if [[ $REBUILD_BUILDER == "true" ]]; then
-  if ! [ -z "$buildercid" ]; then
-    echo "========== Stopping old builder container $buildercid =========="
-    docker stop $buildercid
-    # Reset builder container ID
-    buildercid=""
+  # Find existing container ID (exact name match)
+  cid=$(docker ps -aq --filter name="^/${name}$" || true)
+
+  # If forced rebuild, stop existing container
+  if [[ "$REBUILD_BUILDER" == "true" && -n "$cid" ]]; then
+    echo "========== Stopping old ${name} container ${cid} =========="
+    docker stop "$cid" || true
+    cid=""
   fi
-  if ! [ -z "$rsbuildercid" ]; then
-    echo "========== Stopping old Rust builder container $rsbuildercid =========="
-    docker stop $rsbuildercid
-    # Reset builder container ID
-    rsbuildercid=""
+
+  # Try to restart existing container if present but not running
+  if [ -n "$cid" ]; then
+    local running
+    running=$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null || echo false)
+    if [ "$running" != "true" ]; then
+      echo "========== ${name} exists but not running; attempting restart =========="
+      if docker start "$cid" >/dev/null 2>&1; then
+        until [ "$(docker inspect -f '{{.State.Running}}' "$cid")" == "true" ]; do
+          echo -n "." 1>&2; sleep 0.1;
+        done
+        echo "========== ${name} restarted =========="
+      else
+        cid=""
+      fi
+    fi
   fi
-  if ! [ -z "$pybuildercid" ]; then
-    echo "========== Stopping old Python builder container $pybuildercid =========="
-    docker stop $pybuildercid
-    # Reset builder container ID
-    pubuildercid=""
+
+  # If no container running, try to run from existing image (unless forced rebuild)
+  if [ -z "$cid" ] && [ "$REBUILD_BUILDER" != "true" ]; then
+    if docker image inspect "$name" >/dev/null 2>&1; then
+      echo "========== No ${name} running; starting from existing image =========="
+      if docker run --rm -d -it \
+        --name "$name" \
+        --mount type=bind,src="$ROOT",dst=/home/sigmaos/ \
+        "$name"; then
+        cid=$(docker ps -aq --filter name="^/${name}$")
+        until [ "$(docker inspect -f '{{.State.Running}}' "$cid")" == "true" ]; do
+          echo -n "." 1>&2; sleep 0.1;
+        done
+        echo "========== Started ${name} from existing image =========="
+      else
+        echo "Could not start ${name} from existing image; will rebuild image."
+      fi
+    else
+      echo "${name} image not found; will build image."
+    fi
   fi
-  if ! [ -z "$cppbuildercid" ]; then
-    echo "========== Stopping old CPP builder container $cppbuildercid =========="
-    docker stop $cppbuildercid
-    # Reset builder container ID
-    cppbuildercid=""
+
+  # Build image and run container if still not running
+  if [ -z "$cid" ]; then
+    echo "========== Build ${name} image =========="
+    DOCKER_BUILDKIT=1 docker build $NO_CACHE \
+      --progress=plain \
+      --build-arg USER_ID=$(id -u) \
+      --build-arg GROUP_ID=$(id -g) \
+      -f "$dockerfile" \
+      -t "$name" \
+      . 2>&1 | tee "$BUILD_LOG/${logbase}.out"
+    echo "========== Done building ${name} =========="
+    echo "========== Starting ${name} container =========="
+    docker run --rm -d -it \
+      --name "$name" \
+      --mount type=bind,src="$ROOT",dst=/home/sigmaos/ \
+      "$name"
+    cid=$(docker ps -aq --filter name="^/${name}$")
+    until [ "$(docker inspect -f '{{.State.Running}}' "$cid")" == "true" ]; do
+      echo -n "." 1>&2; sleep 0.1;
+    done
+    echo "========== Done starting ${name} ========== "
   fi
-fi
 
-if [ -z "$buildercid" ]; then
-  # Build builder
-  echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
-    --progress=plain \
-    --build-arg USER_ID=$(id -u) \
-    --build-arg GROUP_ID=$(id -g) \
-    -f docker/builder.Dockerfile \
-    -t $BUILDER_NAME \
-    . 2>&1 | tee $BUILD_LOG/sig-builder.out
-  echo "========== Done building builder =========="
-  # Start builder
-  echo "========== Starting builder container =========="
-  docker run --rm -d -it \
-    --name $BUILDER_NAME \
-    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $BUILDER_NAME
-  buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $buildercid`"=="true" ]; do
-      echo -n "." 1>&2
-      sleep 0.1;
-  done
-  echo "========== Done starting builder ========== "
-fi
+  # Export resulting container id to requested variable name
+  if [ -n "$out_var" ]; then
+    printf -v "$out_var" '%s' "$cid"
+  fi
+}
 
-if [ -z "$cppbuildercid" ]; then
-  # Build builder
-  echo "========== Build CPP builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
-    --progress=plain \
-    --build-arg USER_ID=$(id -u) \
-    --build-arg GROUP_ID=$(id -g) \
-    -f docker/cpp-builder.Dockerfile \
-    -t $CPP_BUILDER_NAME \
-    . 2>&1 | tee $BUILD_LOG/sig-cpp-builder.out
-  echo "========== Done building CPP builder =========="
-  # Start builder
-  echo "========== Starting CPP builder container =========="
-  docker run --rm -d -it \
-    --name $CPP_BUILDER_NAME \
-    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $CPP_BUILDER_NAME
-  cppbuildercid=$(docker ps -a | grep -E " $CPP_BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $cppbuildercid`"=="true" ]; do
-      echo -n "." 1>&2
-      sleep 0.1;
-  done
-  echo "========== Done starting CPP builder ========== "
-fi
-
-if [ -z "$rsbuildercid" ]; then
-  # Build builder
-  echo "========== Build Rust builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
-    --progress=plain \
-    --build-arg USER_ID=$(id -u) \
-    --build-arg GROUP_ID=$(id -g) \
-    -f docker/rs-builder.Dockerfile \
-    -t $RS_BUILDER_NAME \
-    . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
-  echo "========== Done building Rust builder =========="
-  # Start builder
-  echo "========== Starting Rust builder container =========="
-  docker run --rm -d -it \
-    --name $RS_BUILDER_NAME \
-    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $RS_BUILDER_NAME
-  rsbuildercid=$(docker ps -a | grep -E " $RS_BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $rsbuildercid`"=="true" ]; do
-      echo -n "." 1>&2
-      sleep 0.1;
-  done
-  echo "========== Done starting Rust builder ========== "
-fi
-
-if [ -z "$pybuildercid" ]; then
-  # Build builder
-  echo "========== Build Python builder image =========="
-  DOCKER_BUILDKIT=1 docker build $NO_CACHE \
-    --progress=plain \
-    --build-arg USER_ID=$(id -u) \
-    --build-arg GROUP_ID=$(id -g) \
-    -f docker/py-builder.Dockerfile \
-    -t $PY_BUILDER_NAME \
-    . 2>&1 | tee $BUILD_LOG/sig-py-builder.out
-  echo "========== Done building Python builder =========="
-  # Start builder
-  echo "========== Starting Python builder container =========="
-  docker run --rm -d -it \
-    --name $PY_BUILDER_NAME \
-    --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $PY_BUILDER_NAME
-  pybuildercid=$(docker ps -a | grep -E " $PY_BUILDER_NAME " | cut -d " " -f1)
-  until [ "`docker inspect -f {{.State.Running}} $pybuildercid`"=="true" ]; do
-      echo -n "." 1>&2
-      sleep 0.1;
-  done
-  echo "========== Done starting Python builder ========== "
-fi
+ensure_builder buildercid "$BUILDER_NAME" docker/builder.Dockerfile sig-builder
+ensure_builder cppbuildercid "$CPP_BUILDER_NAME" docker/cpp-builder.Dockerfile sig-cpp-builder
+ensure_builder rsbuildercid "$RS_BUILDER_NAME" docker/rs-builder.Dockerfile sig-rs-builder
+ensure_builder pybuildercid "$PY_BUILDER_NAME" docker/py-builder.Dockerfile sig-py-builder
 
 if [ "${NO_GO}" != "true" ]; then
   BUILD_ARGS="\
