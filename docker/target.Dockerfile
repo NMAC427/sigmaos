@@ -27,6 +27,10 @@ COPY bin/kernel/lib/*.so /usr/lib/x86_64-linux-gnu
 
 # ========== local user image ==========
 FROM base AS sigmauser-local
+RUN apt install -y \
+  tini
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
 RUN mkdir jail && \
     mkdir /tmp/spproxyd
 
@@ -61,7 +65,7 @@ RUN mkdir -p /home/sigmaos/bin/user/common
 CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser}"]
 
 # ========== remote kernel image ==========
-FROM sigmaos-local as sigmaos-remote
+FROM sigmaos-local AS sigmaos-remote
 ENV buildtag "remote-build"
 # Copy linux bins
 COPY bin/linux /home/sigmaos/bin/linux/
