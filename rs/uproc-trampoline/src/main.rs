@@ -84,8 +84,8 @@ fn main() {
     print_elapsed_time(&debug_pid, "trampoline.connect_dialproxy", now, false);
     now = SystemTime::now();
     // Connect to the pyproxy socket
-    let is_python_proc = Path::new(&program).file_name().unwrap() == "python";
-    if is_python_proc {
+    let python_version = env::var("SIGMA_PYTHON_VERSION").unwrap_or("".to_string());
+    if python_version != "" {
         let pyproxy_conn = UnixStream::connect("/tmp/python/spproxyd-pyproxy.sock").unwrap();
         let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
         fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
@@ -147,6 +147,7 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         "tmp/sigmaos-perf",
         "tmp/spproxyd",
         "tmp/python/python",
+        "tmp/python/pyproc",
     ];
 
     let newroot = "/home/sigmaos/jail/";
@@ -218,11 +219,22 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         .flags(MountFlags::BIND | MountFlags::RDONLY)
         .mount("/mnt/binfs/", "mnt/binfs")?;
 
-    // TODO: Mount the correct python version
-    Mount::builder()
-        .fstype("none")
-        .flags(MountFlags::BIND | MountFlags::RDONLY)
-        .mount("/home/sigmaos/bin/kernel/cpython3.11", "tmp/python/python")?;
+    // Mount the correct python interpreter if this is a python proc
+    let python_version = env::var("SIGMA_PYTHON_VERSION").unwrap_or("".to_string());
+    if python_version != "" {
+        let python_path = format!("/home/sigmaos/bin/kernel/{}", python_version);
+        Mount::builder()
+            .fstype("none")
+            .flags(MountFlags::BIND | MountFlags::RDONLY)
+            .mount(&python_path, "tmp/python/python")?;
+
+        // TODO: Use binfs instead of directly mounting the pyproc dir.
+        //       Unfortunately, binfs currently doesn't support directories.
+        Mount::builder()
+            .fstype("none")
+            .flags(MountFlags::BIND | MountFlags::RDONLY)
+            .mount("/home/sigmaos/bin/kernel/pyproc", "tmp/python/pyproc")?;
+    }
 
     Mount::builder()
         .fstype("none")

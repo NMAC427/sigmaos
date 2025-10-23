@@ -32,7 +32,7 @@ func TestPythonLaunch(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/hello/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"hello/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -40,7 +40,7 @@ func TestPythonBasicImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/basic_import/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"basic_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -48,7 +48,7 @@ func TestPythonAWSImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -56,7 +56,7 @@ func TestPythonNeighborImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/neighbor_import/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"neighbor_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -64,10 +64,10 @@ func TestPythonNumpyImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"numpy_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 
-	p2 := proc.NewPythonProc([]string{"/~~/pyproc/numpy_import/main.py"}, bucket)
+	p2 := proc.NewPythonProc([]string{"numpy_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "warm", p2)
 }
 
@@ -75,7 +75,7 @@ func TestImageProcessing(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/imgprocessing/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"imgprocessing/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -84,7 +84,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 	defer ts.Shutdown()
 
 	fmt.Printf("Starting 1st proc...\n")
-	p := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 
 	checksumPath := "/tmp/python/Lib/dummy_package-sigmaos-checksum"
@@ -92,7 +92,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 	assert.Nil(t, err)
 
 	fmt.Printf("Starting 2nd proc (cached lib)...\n")
-	p2 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
+	p2 := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "warm", p2)
 
 	_, err = os.Stat(checksumPath)
@@ -103,7 +103,7 @@ func TestPythonChecksumVerification(t *testing.T) {
 	assert.NotNil(t, err)
 
 	fmt.Printf("Starting 3rd proc (invalid cache)...\n")
-	p3 := proc.NewPythonProc([]string{"/~~/pyproc/aws_import/main.py"}, bucket)
+	p3 := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "warm", p3)
 }
 
@@ -113,7 +113,7 @@ func TestPythonStat(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/stat_test/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"stat_test/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -121,6 +121,6 @@ func TestPythonFiles(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"/~~/pyproc/file_test/main.py"}, bucket)
+	p := proc.NewPythonProc([]string{"file_test/main.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }

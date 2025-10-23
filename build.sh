@@ -366,6 +366,7 @@ if [ "${NO_DOCKER}" != "true" ]; then
     cp $KERNELBIN/uproc-trampoline $PROCD_BIN/
 
     cp -r $KERNELBIN/cpython* $PROCD_BIN/
+    cp -r $KERNELBIN/pyproc $PROCD_BIN/   # TODO: Use binfs instead of shipping pyproc with the kernel
   fi
   echo "========== Done copying kernel bins for proc =========="
 fi

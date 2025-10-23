@@ -47,10 +47,10 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
 
 	pn := binsrv.BinPath(uproc.GetVersionedProgram())
-	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram())
+	pythonVersion := python.IsSupportedPythonVersion(uproc.GetProgram())
+	isPythonProc := pythonVersion != nil
 	if isPythonProc {
-		pythonVersion := uproc.GetProgram()
-		pythonPath := python.PythonPath(pythonVersion)
+		pythonPath := pythonVersion.PythonPath
 
 		// uproc-trampoline will mount the correct python interpreter files
 		// from /home/sigmaos/bin/kernel/<python-version> to the sigma container
@@ -59,18 +59,21 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 
 		os.MkdirAll(filepath.Join(uprocCmd.jailPath, "tmp/python"), 0777)
 
-		if pythonFile, err := python.GetPythonFileArg(uproc.Args); err == nil {
-			// TODO ncam: Is the /~~/ hack still needed?
+		if pythonFile, argIndex, err := python.GetPythonFileArg(uproc.Args); err == nil {
 			db.DPrintf(db.CONTAINER, "pythonFile %v\n", pythonFile)
-			if strings.HasPrefix(pythonFile, "/~~/") {
-				pythonFile = "/tmp/python/" + strings.TrimPrefix(pythonFile, "/~~/")
-			}
 
-			if pylockPath, err := python.GetPylockPath(pythonFile); err == nil {
+			// We need to prefix the python file path with where the python
+			// interpreter can retrieve it inside the jail.
+			uproc.Args[argIndex] = filepath.Join("/tmp/python/pyproc", pythonFile)
+
+			// Set up python environment based on pylock file (if present)
+			if pylockPath, err := python.GetPylockPath("/home/sigmaos/bin/kernel/pyproc", pythonFile); err == nil {
 				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
-				sitePackagesDir, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pylockPath)
+				sitePackagesDir, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath)
 				if err != nil {
-					return nil, fmt.Errorf("setting up python site-packages failed: %w", err)
+					err = fmt.Errorf("setting up python site-packages failed: %w", err)
+					db.DPrintf(db.CONTAINER, "%v", err)
+					return nil, err
 				}
 
 				pythonPath = pythonPath + ":" + strings.TrimPrefix(sitePackagesDir, uprocCmd.jailPath)
@@ -83,27 +86,30 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 		uproc.AppendEnv("PYTHONPATH", pythonPath)
+		uproc.AppendEnv("SIGMA_PYTHON_VERSION", pythonVersion.Version)
 	}
 
 	// Optionally strace the proc
-	stracing := false
 	if straceProcs[uproc.GetProgram()] {
-		stracing = true
 		args := []string{"--absolute-timestamps", "--absolute-timestamps=precision:us", "--syscall-times=us", "-D", "-f", "uproc-trampoline", uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}
 		if strings.Contains(uproc.GetProgram(), "cpp") {
 			// Don't catch SIGSEGV for C++ programs, as this can lead to an infinite
 			// strace output loop.
 			args = append([]string{"--signal=!SIGSEGV"}, args...)
 		}
-		if uproc.GetProgram() == "python" {
-			args = append([]string{"-E", "LD_PRELOAD=/tmp/python/sigmaos/ld_preload.so"}, args...)
-		}
+		// if isPythonProc {
+		// 	args = append([]string{"-E", "LD_PRELOAD=" + python.LD_PRELOAD_PATH}, args...)
+		// }
 		args = append(args, uproc.Args...)
 		uprocCmd.cmd = exec.Command("strace", args...)
 	} else if valgrindProcs[uproc.GetProgram()] {
 		uprocCmd.cmd = exec.Command("valgrind", append([]string{"--trace-children=yes", "uproc-trampoline", uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}, uproc.Args...)...)
 	} else {
 		uprocCmd.cmd = exec.Command("uproc-trampoline", append([]string{uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}, uproc.Args...)...)
+
+		// if isPythonProc {
+		// 	uproc.AppendEnv("LD_PRELOAD", python.LD_PRELOAD_PATH)
+		// }
 	}
 	uproc.AppendEnv("PATH", "/bin:/bin2:/usr/bin:/home/sigmaos/bin/kernel")
 	uproc.AppendEnv("SIGMA_EXEC_TIME", strconv.FormatInt(time.Now().UnixMicro(), 10))
@@ -114,9 +120,6 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	uproc.AppendEnv("SIGMA_EXEC_TIME_PB", string(b))
 	uproc.AppendEnv("SIGMA_SPAWN_TIME", strconv.FormatInt(uproc.GetSpawnTime().UnixMicro(), 10))
 	uproc.AppendEnv(proc.SIGMAPERF, uproc.GetProcEnv().GetPerf())
-	if uproc.GetProgram() == "python" && !stracing {
-		uproc.AppendEnv("LD_PRELOAD", "/tmp/python/sigmaos/ld_preload.so")
-	}
 	uproc.AppendEnv("RUST_BACKTRACE", "full")
 	uprocCmd.cmd.Env = uproc.GetEnv()
 

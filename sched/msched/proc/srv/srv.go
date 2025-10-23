@@ -347,7 +347,7 @@ func (ps *ProcSrv) prefetchProcFileStat(realm sp.Trealm, upid sp.Tpid, prog stri
 // Run a proc inside of an sigma container
 func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc := proc.NewProcFromProto(req.ProcProto)
-	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram())
+	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram()) != nil
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
 	// Spawn, but don't actually run the dummy proc

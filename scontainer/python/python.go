@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"syscall"
 
@@ -20,49 +19,33 @@ import (
 )
 
 const (
-	PYTHON_VERSION           = "cpython3.11"
 	PYTHON_PACKAGE_CACHE_DIR = "/tmp/python-package-cache"
 	PYTHON_TMP_INSTALL_DIR   = PYTHON_PACKAGE_CACHE_DIR + "/tmp"
 
-	PYTHON_SYS_TAGS_FILE      = "/tmp/python/sigmaos/sys_tags"
-	PYTHON_ENV_MARKERS_FILE   = "/tmp/python/sigmaos/env_markers.json"
-	PYTHON_INSTALL_WHL_SCRIPT = "/tmp/python/sigmaos/kernel/install_wheel.py"
+	LD_PRELOAD_PATH = "/tmp/python/python/sigmaos/ld_preload.so"
 )
 
-func SupportedPythonVersions() []string {
-	return []string{
-		"python3.11",
-	}
+type PythonVersion struct {
+	Version    string
+	PythonPath string
+
+	sysTags        []string
+	envMarkers     map[string]string
+	dcontainerPath string
 }
 
-func IsSupportedPythonVersion(version string) bool {
-	if !strings.HasPrefix(version, "python") {
-		return false
+var sysTagsCache map[string][]string = make(map[string][]string)
+var envMarkersCache map[string]map[string]string = make(map[string]map[string]string)
+
+func getSysTagsCached(path string) []string {
+	if tags, found := sysTagsCache[path]; found {
+		return tags
 	}
 
-	return slices.Contains(SupportedPythonVersions(), version)
-}
-
-func PythonPath(version string) string {
-	// PYTHONPATH is an environment variable in Python that specifies a list of
-	// directories where the interpreter looks for modules and packages when
-	// importing them.
-
-	// In the scontainer, the python interpreter files are mounted at /tmp/python/python.
-	switch version {
-	case "python3.11":
-		return "/tmp/python/python/build/lib.linux-x86_64-3.11:/tmp/python/python/Lib:/tmp/python/python/sigmaos/user/site-packages"
-	default:
-		db.DFatalf("Unsupported python version: %v", version)
-		return ""
-	}
-}
-
-func getSupportedCompatibilityTags() ([]string, error) {
-	file, err := os.Open(PYTHON_SYS_TAGS_FILE)
-
+	file, err := os.Open(path)
 	if err != nil {
-		return []string{}, err
+		db.DFatalf("Failed to get python system compatibility tags: %v", err)
+		return []string{}
 	}
 	defer file.Close()
 
@@ -74,7 +57,41 @@ func getSupportedCompatibilityTags() ([]string, error) {
 			tags = append(tags, line)
 		}
 	}
-	return tags, nil
+	sysTagsCache[path] = tags
+	return tags
+}
+
+func getEnvMarkersCached(path string) map[string]string {
+	if markers, found := envMarkersCache[path]; found {
+		return markers
+	}
+
+	markers, err := pylock.LoadPythonEnvironmentMarkers(path)
+	if err != nil {
+		db.DFatalf("Failed to get python environment markers: %v", err)
+		return map[string]string{}
+	}
+	envMarkersCache[path] = markers
+	return markers
+}
+
+func IsSupportedPythonVersion(version string) *PythonVersion {
+	if !strings.HasPrefix(version, "python") {
+		return nil
+	}
+
+	switch version {
+	case "python3.11":
+		return &PythonVersion{
+			Version:        "cpython3.11",
+			PythonPath:     "/tmp/python/python/build/lib.linux-x86_64-3.11:/tmp/python/python/Lib:/tmp/python/python/sigmaos/user/site-packages",
+			sysTags:        getSysTagsCached("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/sys_tags"),
+			envMarkers:     getEnvMarkersCached("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/env_markers.json"),
+			dcontainerPath: "/home/sigmaos/bin/kernel/cpython3.11",
+		}
+	default:
+		return nil
+	}
 }
 
 // Returns the wheel that best matches the compatibility tags supported by sigmaos.
@@ -126,20 +143,10 @@ func getBestWheel(pkg pylock.Package, compatibilityTags []string) (*pylock.Wheel
 	return best, nil
 }
 
-func getRequiredWheels(lock *pylock.Pylock) ([]pylock.Wheel, error) {
-	compatibilityTags, err := getSupportedCompatibilityTags()
-	if err != nil {
-		return nil, err
-	}
-
-	env_markers, err := pylock.LoadPythonEnvironmentMarkers(PYTHON_ENV_MARKERS_FILE)
-	if err != nil {
-		return nil, err
-	}
-
+func getRequiredWheels(lock *pylock.Pylock, pyVersion *PythonVersion) ([]pylock.Wheel, error) {
 	var wheels []pylock.Wheel
 	for _, pkg := range lock.Packages {
-		is_required, err := pylock.EvaluateMarker(pkg.Marker, env_markers)
+		is_required, err := pylock.EvaluateMarker(pkg.Marker, pyVersion.envMarkers)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +156,7 @@ func getRequiredWheels(lock *pylock.Pylock) ([]pylock.Wheel, error) {
 			continue
 		}
 
-		wheel, err := getBestWheel(pkg, compatibilityTags)
+		wheel, err := getBestWheel(pkg, pyVersion.sysTags)
 		if err != nil {
 			return nil, err
 		}
@@ -243,16 +250,16 @@ func verifyWheelHash(path string, wheel *pylock.Wheel) (bool, error) {
 	return actualSha256 == expectedSha256, nil
 }
 
-func getWheelInstallPath(wheel *pylock.Wheel) (string, error) {
+func getWheelInstallPath(wheel *pylock.Wheel, pyVersion *PythonVersion) (string, error) {
 	base := strings.TrimSuffix(wheel.Name, ".whl")
 	sha256, found := wheel.Hashes["sha256"]
 	if !found {
 		return "", fmt.Errorf("wheel %q has no sha256 hash", wheel.Name)
 	}
-	return filepath.Join(PYTHON_PACKAGE_CACHE_DIR, PYTHON_VERSION, fmt.Sprintf("%s-%s", base, sha256)), nil
+	return filepath.Join(PYTHON_PACKAGE_CACHE_DIR, pyVersion.Version, fmt.Sprintf("%s-%s", base, sha256)), nil
 }
 
-func installWheel(wheelPath string, installPath string) error {
+func installWheel(wheelPath string, installPath string, pyVersion *PythonVersion) error {
 	db.DPrintf(db.CONTAINER, "installing python wheel: %v", filepath.Base(wheelPath))
 	if err := os.MkdirAll(filepath.Dir(installPath), 0777); err != nil {
 		return err
@@ -266,23 +273,23 @@ func installWheel(wheelPath string, installPath string) error {
 	}
 	defer os.RemoveAll(tmpInstallDir)
 
-	cmd := exec.Command("/tmp/python/python", PYTHON_INSTALL_WHL_SCRIPT, wheelPath, tmpInstallDir)
-	cmd.Env = append(cmd.Env, "PYTHONPATH=/tmp/python/sigmaos/kernel/site-packages")
+	cmd := exec.Command(filepath.Join(pyVersion.dcontainerPath, "python"), filepath.Join(pyVersion.dcontainerPath, "sigmaos/kernel/install_wheel.py"), wheelPath, tmpInstallDir)
+	cmd.Env = append(cmd.Env, "PYTHONPATH="+filepath.Join(pyVersion.dcontainerPath, "sigmaos/kernel/site-packages"))
 	err := cmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to install wheel %q: %w", wheelPath, err)
 	}
 
 	return os.Rename(tmpInstallDir, installPath)
 }
 
-func SetupSitePackages(workingDir string, pylockPath string) (string, error) {
+func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath string) (string, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
 		return "", err
 	}
 
-	wheels, err := getRequiredWheels(lock)
+	wheels, err := getRequiredWheels(lock, pyVersion)
 	if err != nil {
 		return "", err
 	}
@@ -309,7 +316,7 @@ func SetupSitePackages(workingDir string, pylockPath string) (string, error) {
 		go func(idx int, wheel pylock.Wheel) {
 			defer func() { <-sem }()
 
-			installPath, err := getWheelInstallPath(&wheel)
+			installPath, err := getWheelInstallPath(&wheel, pyVersion)
 			if err != nil {
 				results <- result{idx, "", err}
 				return
@@ -327,7 +334,7 @@ func SetupSitePackages(workingDir string, pylockPath string) (string, error) {
 				return
 			}
 
-			if err := installWheel(wheelPath, installPath); err != nil {
+			if err := installWheel(wheelPath, installPath, pyVersion); err != nil {
 				results <- result{idx, "", err}
 				return
 			}
@@ -391,21 +398,21 @@ func CleanSitePackages(workingDir string) error {
 	return nil
 }
 
-func GetPythonFileArg(args []string) (string, error) {
-	for _, arg := range args {
+func GetPythonFileArg(args []string) (string, int, error) {
+	for i, arg := range args {
 		if strings.HasSuffix(arg, ".py") && !strings.HasPrefix(arg, "-") {
-			return arg, nil
+			return arg, i, nil
 		}
 	}
-	return "", fmt.Errorf("no python file argument found")
+	return "", -1, fmt.Errorf("no python file argument found")
 }
 
-func GetPylockPath(pythonFile string) (string, error) {
+func GetPylockPath(workingDir string, pythonFile string) (string, error) {
 	dir := filepath.Dir(pythonFile)
 	pylockFileNames := []string{"pylock.sigmaos.toml", "pylock.toml"}
 	for {
 		for _, name := range pylockFileNames {
-			lockPath := filepath.Join(dir, name)
+			lockPath := filepath.Join(workingDir, dir, name)
 			if _, err := os.Stat(lockPath); err == nil {
 				return lockPath, nil
 			}

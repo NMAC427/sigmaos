@@ -132,5 +132,6 @@ make -C ld_preload --no-print-directory
 cp $ROOT/ld_preload/ld_preload.so $PY_OUTPATH/sigmaos
 
 # Copy Python user processes
-rm -rf "$OUTPATH/user/pyproc"
-cp -r ./pyproc "$OUTPATH/user"
+# TODO: Use binfs instead of shipping pyproc with the kernel
+rm -rf "$OUTPATH/kernel/pyproc"
+cp -r ./pyproc "$OUTPATH/kernel"
