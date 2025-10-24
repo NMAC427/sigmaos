@@ -12,6 +12,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
+	cossimproto "sigmaos/apps/cossim/proto"
+	cossimsrv "sigmaos/apps/cossim/srv"
 	"sigmaos/apps/epcache"
 	"sigmaos/apps/hotel"
 	"sigmaos/apps/hotel/proto"
@@ -59,7 +62,7 @@ type Tstate struct {
 	hotel *hotel.HotelJob
 }
 
-func newTstate(mrts *test.MultiRealmTstate, srvs []*hotel.Srv, ncache int, geoNIndex, geoSearchRadius, geoNResults int) *Tstate {
+func newTstate(mrts *test.MultiRealmTstate, srvs []*hotel.Srv, ncache int, geoNIndex, geoSearchRadius, geoNResults int, useMatch bool) *Tstate {
 	const CACHE_MCPU = proc.Tmcpu(2000)
 	var err error
 	ts := &Tstate{}
@@ -77,8 +80,19 @@ func newTstate(mrts *test.MultiRealmTstate, srvs []*hotel.Srv, ncache int, geoNI
 	db.DPrintf(db.TEST, "linux %d ncore %d n %d", linuxsched.GetNCores(), ncore, n)
 	err = ts.mrts.GetRealm(test.REALM1).BootNode(n)
 	assert.Nil(ts.mrts.T, err)
-	ts.hotel, err = hotel.NewHotelJob(ts.mrts.GetRealm(test.REALM1).SigmaClnt, ts.job, srvs, 80, cache, CACHE_MCPU, ncache, true, 0, 1, geoNIndex, geoSearchRadius, geoNResults)
-	assert.Nil(ts.mrts.T, err)
+	// CosSim parameters - adjust as needed
+	cossimNVec := 1000
+	cossimVecDim := 128
+	cossimEagerInit := true
+	cossimSrvMcpu := proc.Tmcpu(3000)
+	cossimDelegateInitRPCs := false
+
+	cacheConf := cachegrpmgr.NewCacheJobConfig(ncache, proc.Tmcpu(CACHE_MCPU), true)
+	csjConf := cossimsrv.NewCosSimJobConfig(ts.job, 0, cossimNVec, cossimVecDim, cossimEagerInit, cossimSrvMcpu, cachegrpmgr.NewCacheJobConfig(ncache, proc.Tmcpu(CACHE_MCPU), true), cossimDelegateInitRPCs)
+	hotelConf := hotel.NewHotelJobConfig(ts.job, srvs, 80, "cached", cacheConf, 0, 1, geoNIndex, geoSearchRadius, geoNResults, useMatch)
+
+	ts.hotel, err = hotel.NewHotelJob(ts.mrts.GetRealm(test.REALM1).SigmaClnt, hotelConf, csjConf)
+	assert.Nil(ts.mrts.T, err, "Err new hotel job: %v", err)
 	return ts
 }
 
@@ -124,7 +138,7 @@ func TestGeoSingle(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"1000", "10", "20"}}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"1000", "10", "20"}}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 
 	eps, _, err := ts.hotel.EPCacheJob.Clnt.GetEndpoints(hotel.HOTELGEODIR, epcache.NO_VERSION)
@@ -168,7 +182,7 @@ func TestRateSingle(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-rated"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-rated"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELRATE)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -199,7 +213,7 @@ func TestRecSingle(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-recd"}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-recd"}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELREC)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -228,7 +242,7 @@ func TestUserSingle(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-userd"}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-userd"}}, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELUSER)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -255,7 +269,7 @@ func TestProfile(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-profd"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-profd"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELPROF)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -286,7 +300,7 @@ func TestCheck(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-reserved"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-reserved"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELRESERVE)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -319,7 +333,7 @@ func TestReserve(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-reserved"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-reserved"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELRESERVE)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -377,7 +391,7 @@ func TestSingleSearch(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"1", "10", "5"}}, &hotel.Srv{Name: "hotel-rated"}, &hotel.Srv{Name: "hotel-searchd"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"1", "10", "5"}}, &hotel.Srv{Name: "hotel-rated"}, &hotel.Srv{Name: "hotel-searchd"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer ts.stop()
 	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELSEARCH)
 	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
@@ -398,6 +412,57 @@ func TestSingleSearch(t *testing.T) {
 	assert.Equal(t, 3, len(res.HotelIds))
 }
 
+func TestSingleMatch(t *testing.T) {
+	// Bail out early if machine has too many cores (which messes with the cgroups setting)
+	if !assert.False(t, linuxsched.GetNCores() > 10, "SpawnBurst test will fail because machine has >10 cores, which causes cgroups settings to fail") {
+		return
+	}
+	mrts, err1 := test.NewMultiRealmTstate(t, []sp.Trealm{test.REALM1})
+	if !assert.Nil(t, err1, "Error New Tstate: %v", err1) {
+		return
+	}
+	defer mrts.Shutdown()
+
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-matchd"}}, NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, true)
+	defer ts.stop()
+	rpcc, err := sprpcclnt.NewRPCClnt(ts.mrts.GetRealm(test.REALM1).FsLib, hotel.HOTELMATCH)
+	if !assert.Nil(t, err, "Err make rpcclnt: %v", err) {
+		return
+	}
+	ranges := []*cossimproto.VecRange{
+		&cossimproto.VecRange{
+			StartID: 0,
+			EndID:   uint64(100),
+		},
+	}
+	for i := 0; i < 5; i++ {
+		arg := &proto.MatchReq{
+			UserID:    12345,
+			UserVecID: 2,
+			TryCache:  false,
+			VecRanges: ranges,
+		}
+		var res proto.MatchRep
+		err = rpcc.RPC("Match.UserPreference", arg, &res)
+		assert.Nil(t, err, "Err: %v", err)
+		assert.False(t, res.WasCached)
+	}
+	arg := &proto.MatchReq{
+		UserID:    12345,
+		UserVecID: 2,
+		TryCache:  true,
+		VecRanges: ranges,
+	}
+	var res1 proto.MatchRep
+	err = rpcc.RPC("Match.UserPreference", arg, &res1)
+	assert.Nil(t, err, "Err: %v", err)
+	assert.False(t, res1.WasCached)
+	var res2 proto.MatchRep
+	err = rpcc.RPC("Match.UserPreference", arg, &res2)
+	assert.Nil(t, err, "Err: %v", err)
+	assert.True(t, res2.WasCached)
+}
+
 func TestWww(t *testing.T) {
 	// Bail out early if machine has too many cores (which messes with the cgroups setting)
 	if !assert.False(t, linuxsched.GetNCores() > 10, "SpawnBurst test will fail because machine has >10 cores, which causes cgroups settings to fail") {
@@ -409,7 +474,7 @@ func TestWww(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, hotel.NewHotelSvcWithMatch(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, true)
 
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
 	assert.Nil(t, err1, "Error NewWebClnt: %v", err1)
@@ -431,6 +496,16 @@ func TestWww(t *testing.T) {
 	s, err = wc.Geo(37.7749, -122.4194)
 	assert.Nil(t, err)
 	assert.Equal(t, "Geo!", s)
+
+	s, err = wc.Geo(37.7749, -122.4194)
+	assert.Nil(t, err)
+	assert.Equal(t, "Geo!", s)
+
+	err = wc.Match(12345, 2, true, &cossimproto.VecRange{
+		StartID: 0,
+		EndID:   uint64(100),
+	})
+	assert.Nil(t, err)
 
 	ts.stop()
 }
@@ -477,7 +552,7 @@ func BenchSpawnGeo(t *testing.T) {
 	if !assert.Nil(t, err1, "Error New Tstate: %v", err1) {
 		return
 	}
-	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"2", "10", "20"}}}, 0, 2, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, []*hotel.Srv{&hotel.Srv{Name: "hotel-geod", Args: []string{"2", "10", "20"}}}, 0, 2, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	defer mrts.Shutdown()
 	defer ts.stop()
 
@@ -551,7 +626,7 @@ func BenchDeathStarSingle(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
 	assert.Nil(t, err1, "Error NewWebClnt: %v", err1)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -576,7 +651,7 @@ func BenchDeathStarSingleK8s(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 
 	err1 = setupK8sState(ts)
 	assert.Nil(t, err1, "Error setupK8sState: %v", err1)
@@ -598,7 +673,7 @@ func BenchSearchSigma(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
 	assert.Nil(t, err1, "Error NewWebClnt: %v", err1)
 	p, err := perf.NewPerf(ts.mrts.GetRealm(test.REALM1).ProcEnv(), perf.TEST)
@@ -647,7 +722,7 @@ func BenchSearchK8s(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	err1 = setupK8sState(ts)
 	assert.Nil(t, err1, "Error setupK8sState: %v", err1)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
@@ -674,7 +749,7 @@ func BenchGeoSigma(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, 1, 20, 500)
+	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, 1, 20, 500, false)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
 	assert.Nil(t, err1, "Error NewWebClnt: %v", err1)
 	p, err := perf.NewPerf(ts.mrts.GetRealm(test.REALM1).ProcEnv(), perf.TEST)
@@ -706,7 +781,7 @@ func BenchGeoK8s(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	err1 = setupK8sState(ts)
 	assert.Nil(t, err1, "Error setupK8sState: %v", err1)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
@@ -732,7 +807,7 @@ func testMultiSearch(t *testing.T, nthread int) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, hotel.NewHotelSvc(), NCACHESRV, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	wc, err1 := hotel.NewWebClnt(ts.mrts.GetRealm(test.REALM1).FsLib, ts.job)
 	assert.Nil(t, err1, "Error NewWebClnt: %v", err1)
 	ch := make(chan bool)
@@ -780,7 +855,7 @@ func TestAuthK8s(t *testing.T) {
 	}
 	defer mrts.Shutdown()
 
-	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS)
+	ts := newTstate(mrts, nil, 0, DEF_GEO_N_IDX, DEF_GEO_SEARCH_RADIUS, DEF_GEO_N_RESULTS, false)
 	err1 = setupK8sState(ts)
 	assert.Nil(t, err1, "Error setupK8sState: %v", err1)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))

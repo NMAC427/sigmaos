@@ -1,12 +1,14 @@
 package hotel
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	cachegrpclnt "sigmaos/apps/cache/cachegrp/clnt"
 	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
+	cossimsrv "sigmaos/apps/cossim/srv"
 	"sigmaos/apps/epcache"
 	epsrv "sigmaos/apps/epcache/srv"
 	db "sigmaos/debug"
@@ -24,6 +26,7 @@ const (
 	HOTELGEODIR  = HOTELDIR + "geo/"
 	HOTELRATE    = HOTELDIR + "rate"
 	HOTELSEARCH  = HOTELDIR + "search"
+	HOTELMATCH   = HOTELDIR + "match"
 	HOTELREC     = HOTELDIR + "rec"
 	HOTELRESERVE = HOTELDIR + "reserve"
 	HOTELUSER    = HOTELDIR + "user"
@@ -39,11 +42,47 @@ var HOTELSVC = []string{
 	HOTELGEODIR + sp.ANY + "/",
 	HOTELRATE,
 	HOTELSEARCH,
+	HOTELMATCH,
 	HOTELREC,
 	HOTELRESERVE,
 	HOTELUSER,
 	HOTELPROF,
 	sp.DB + sp.ANY + "/",
+}
+
+type HotelJobConfig struct {
+	Job             string                      `json:"job"`
+	Srvs            []*Srv                      `json:"srvs"`
+	NHotel          int                         `json:"n_hotel"`
+	Cache           string                      `json:"cache"`
+	CacheCfg        *cachegrpmgr.CacheJobConfig `json:"cache_cfg"`
+	ImgSizeMB       int                         `json:"img_size_mb"`
+	NGeo            int                         `json:"n_geo"`
+	NGeoIdx         int                         `json:"n_geo_idx"`
+	GeoSearchRadius int                         `json:"geo_search_radius"`
+	GeoNResults     int                         `json:"geo_n_results"`
+	UseMatch        bool                        `json:"use_match"`
+}
+
+func NewHotelJobConfig(job string, srvs []*Srv, nhotel int, cache string, cacheCfg *cachegrpmgr.CacheJobConfig, imgSizeMB int, ngeo int, ngeoidx int, geoSearchRadius int, geoNResults int, useMatch bool) *HotelJobConfig {
+	return &HotelJobConfig{
+		Job:             job,
+		Srvs:            srvs,
+		NHotel:          nhotel,
+		Cache:           cache,
+		CacheCfg:        cacheCfg,
+		ImgSizeMB:       imgSizeMB,
+		NGeo:            ngeo,
+		NGeoIdx:         ngeoidx,
+		GeoSearchRadius: geoSearchRadius,
+		GeoNResults:     geoNResults,
+		UseMatch:        useMatch,
+	}
+}
+
+func (cfg *HotelJobConfig) String() string {
+	return fmt.Sprintf("&{ Job:%v Srvs:%v NHotel:%v Cache:%v CacheCfg:%v ImgSizeMB:%v NGeo:%v NGeoIdx:%v GeoSearchRadius:%v GeoNResults:%v UseMatch:%v }",
+		cfg.Job, cfg.Srvs, cfg.NHotel, cfg.Cache, cfg.CacheCfg, cfg.ImgSizeMB, cfg.NGeo, cfg.NGeoIdx, cfg.GeoSearchRadius, cfg.GeoNResults, cfg.UseMatch)
 }
 
 var (
@@ -140,23 +179,39 @@ func NewHotelSvc() []*Srv {
 	}
 }
 
+// XXX searchd only needs 2, but in order to make spawns work out we need to have it run with 3.
+func NewHotelSvcWithMatch() []*Srv {
+	return []*Srv{
+		&Srv{"hotel-userd", nil, 0},
+		&Srv{"hotel-rated", nil, 2000},
+		geo,
+		&Srv{"hotel-profd", nil, 2000},
+		&Srv{"hotel-searchd", nil, 3000},
+		&Srv{"hotel-matchd", nil, 3000},
+		&Srv{"hotel-reserved", nil, 3000},
+		&Srv{"hotel-recd", nil, 0},
+		&Srv{"hotel-wwwd", nil, 3000},
+	}
+}
+
 type HotelJob struct {
 	*sigmaclnt.SigmaClnt
 	EPCacheJob      *epsrv.EPCacheJob
 	cacheClnt       *cachegrpclnt.CachedSvcClnt
 	cacheMgr        *cachegrpmgr.CacheMgr
 	CacheAutoscaler *cachegrpclnt.Autoscaler
+	CosSimJob       *cossimsrv.CosSimJob
 	pids            []sp.Tpid
 	cache           string
 	job             string
 	epcsrvEP        *sp.Tendpoint
 }
 
-func NewHotelJob(sc *sigmaclnt.SigmaClnt, job string, srvs []*Srv, nhotel int, cache string, cacheMcpu proc.Tmcpu, ncache int, gc bool, imgSizeMB int, ngeo int, ngeoidx int, geoSearchRadius int, geoNResults int) (*HotelJob, error) {
+func NewHotelJob(sc *sigmaclnt.SigmaClnt, cfg *HotelJobConfig, csjConf *cossimsrv.CosSimJobConfig) (*HotelJob, error) {
 	// Set number of hotels before doing anything.
-	setNHotel(nhotel)
+	setNHotel(cfg.NHotel)
 	// Set the number of indexes to be used in each geo server
-	geo.Args = []string{strconv.Itoa(ngeoidx), strconv.Itoa(geoSearchRadius), strconv.Itoa(geoNResults)}
+	geo.Args = []string{strconv.Itoa(cfg.NGeoIdx), strconv.Itoa(cfg.GeoSearchRadius), strconv.Itoa(cfg.GeoNResults)}
 
 	var cc *cachegrpclnt.CachedSvcClnt
 	var cm *cachegrpmgr.CacheMgr
@@ -164,7 +219,7 @@ func NewHotelJob(sc *sigmaclnt.SigmaClnt, job string, srvs []*Srv, nhotel int, c
 	var err error
 
 	// Init fs.
-	if err := InitHotelFs(sc.FsLib, job); err != nil {
+	if err := InitHotelFs(sc.FsLib, cfg.Job); err != nil {
 		return nil, err
 	}
 
@@ -186,33 +241,49 @@ func NewHotelJob(sc *sigmaclnt.SigmaClnt, job string, srvs []*Srv, nhotel int, c
 	}
 
 	// Create a cache clnt.
-	if ncache > 0 {
-		switch cache {
+	if cfg.CacheCfg.NSrv > 0 {
+		switch cfg.Cache {
 		case "cached":
 			db.DPrintf(db.ALWAYS, "Hotel running with cached")
-			cm, err = cachegrpmgr.NewCacheMgr(sc, job, ncache, cacheMcpu, gc)
+			cm, err = cachegrpmgr.NewCacheMgrEPCache(sc, epcj, cfg.Job, cfg.CacheCfg)
 			if err != nil {
 				db.DPrintf(db.ERROR, "Error NewCacheMgr %v", err)
 				return nil, err
 			}
-			cc = cachegrpclnt.NewCachedSvcClnt(sc.FsLib, job)
+			cc = cachegrpclnt.NewCachedSvcClntEPCache(sc.FsLib, epcj.Clnt, cfg.Job)
 			ca = cachegrpclnt.NewAutoscaler(cm, cc)
 		// XXX Remove
 		case "memcached":
 			db.DPrintf(db.ALWAYS, "Hotel running with memcached")
 		default:
-			db.DPrintf(db.ERROR, "Unrecognized hotel cache type: %v", cache)
+			db.DPrintf(db.ERROR, "Unrecognized hotel cache type: %v", cfg.Cache)
 		}
 	}
 
-	pids := make([]sp.Tpid, 0, len(srvs))
+	// Initialize CosSimJob after cache client is created
+	var cosSimJob *cossimsrv.CosSimJob
+	if cfg.UseMatch {
+		db.DPrintf(db.TEST, "Start cossimsrv")
+		cosSimJob, err = cossimsrv.NewCosSimJob(csjConf, sc, epcj, cm, cc)
+		if err != nil {
+			db.DPrintf(db.ERROR, "Error NewCosSimJob %v", err)
+			return nil, err
+		}
+		if _, _, err := cosSimJob.AddSrv(); err != nil {
+			db.DPrintf(db.ERROR, "Error CosSimJob.AddSrv %v", err)
+			return nil, err
+		}
+		db.DPrintf(db.TEST, "Done start cossimsrv")
+	}
 
-	for _, srv := range srvs {
+	pids := make([]sp.Tpid, 0, len(cfg.Srvs))
+
+	for _, srv := range cfg.Srvs {
 		db.DPrintf(db.TEST, "Hotel spawn %v", srv.Name)
-		p := proc.NewProc(srv.Name, append([]string{job, cache}, srv.Args...))
+		p := proc.NewProc(srv.Name, append([]string{cfg.Job, cfg.Cache}, srv.Args...))
 		p.SetCachedEndpoint(epcache.EPCACHE, epcsrvEP)
-		p.AppendEnv("NHOTEL", strconv.Itoa(nhotel))
-		p.AppendEnv("HOTEL_IMG_SZ_MB", strconv.Itoa(imgSizeMB))
+		p.AppendEnv("NHOTEL", strconv.Itoa(cfg.NHotel))
+		p.AppendEnv("HOTEL_IMG_SZ_MB", strconv.Itoa(cfg.ImgSizeMB))
 		p.SetMcpu(srv.Mcpu)
 		if err := sc.Spawn(p); err != nil {
 			db.DPrintf(db.ERROR, "Error spawn proc %v: %v", p, err)
@@ -232,14 +303,15 @@ func NewHotelJob(sc *sigmaclnt.SigmaClnt, job string, srvs []*Srv, nhotel int, c
 		cacheClnt:       cc,
 		cacheMgr:        cm,
 		CacheAutoscaler: ca,
+		CosSimJob:       cosSimJob,
 		pids:            pids,
-		cache:           cache,
-		job:             job,
+		cache:           cfg.Cache,
+		job:             cfg.Job,
 		epcsrvEP:        epcsrvEP,
 	}
 
-	if ngeo > 1 {
-		for i := 0; i < ngeo-1; i++ {
+	if cfg.NGeo > 1 {
+		for i := 0; i < cfg.NGeo-1; i++ {
 			if err := hj.AddGeoSrv(); err != nil {
 				return nil, err
 			}
@@ -247,6 +319,15 @@ func NewHotelJob(sc *sigmaclnt.SigmaClnt, job string, srvs []*Srv, nhotel int, c
 	}
 
 	return hj, nil
+}
+
+func (hj *HotelJob) AddCosSimSrv() error {
+	return hj.AddCosSimSrvWithSigmaPath(sp.NOT_SET)
+}
+
+func (hj *HotelJob) AddCosSimSrvWithSigmaPath(sigmaPath string) error {
+	_, _, err := hj.CosSimJob.AddSrvWithSigmaPath(sigmaPath)
+	return err
 }
 
 func (hj *HotelJob) AddGeoSrv() error {
@@ -281,6 +362,9 @@ func (hj *HotelJob) Stop() error {
 		if _, err := hj.WaitExit(pid); err != nil {
 			return err
 		}
+	}
+	if hj.CosSimJob != nil {
+		hj.CosSimJob.Stop()
 	}
 	if hj.cacheMgr != nil {
 		hj.cacheMgr.Stop()

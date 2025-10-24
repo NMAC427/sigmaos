@@ -17,6 +17,7 @@ RUN apt update && \
     libseccomp-dev \
     libspdlog-dev \
     libabsl-dev \
+    libdw-dev \
     libprotoc-dev \
     protobuf-compiler \
     software-properties-common && \

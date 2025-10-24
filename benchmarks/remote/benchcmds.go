@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"sigmaos/benchmarks"
 	db "sigmaos/debug"
 	"sigmaos/proc"
 )
@@ -291,13 +292,13 @@ func GetCorralCmdConstructor() GetBenchCmdFn {
 //
 // - clientDelay specifies the delay for which the client should wait before
 // starting to send requests.
-func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients int, rps []int, dur []time.Duration, numCaches int, cacheType string, scaleCache bool, clientDelay time.Duration, manuallyScaleCaches bool, scaleCacheDelay time.Duration, numCachesToAdd int, numGeo int, geoNIdx int, geoSearchRadius int, geoNResults int, manuallyScaleGeo bool, scaleGeoDelay time.Duration, numGeoToAdd int) GetBenchCmdFn {
+func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients int, clientDelay time.Duration, hotelCfg *benchmarks.HotelBenchConfig) GetBenchCmdFn {
 	return func(bcfg *BenchConfig, ccfg *ClusterConfig) string {
 		const (
 			//			debugSelectors string = "\"TEST;THROUGHPUT;CPU_UTIL;\""
-			debugSelectors string = "\"TEST;THROUGHPUT;CPU_UTIL;SPAWN_LAT\"" // XXX REMOVE
+			//			debugSelectors string = "\"TEST;THROUGHPUT;CPU_UTIL;SPAWN_LAT;\""
+			debugSelectors string = "\"TEST;THROUGHPUT;CPU_UTIL;SPAWN_LAT;COSSIMSRV;COSSIMSRV_ERR;\""
 			perfSelectors  string = "\"HOTEL_WWW_TPT;TEST_TPT;BENCH_TPT;\""
-			//			perfSelectors  string = "\"HOTEL_WWW_TPT;\"" // XXX Used to be just HOTEL_WWW_TPT. Is adding the others problematic?
 		)
 		sys := ""
 		if bcfg.K8s {
@@ -310,10 +311,6 @@ func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients i
 			testName = fmt.Sprintf("Hotel%s%s", sys, hotelReqName)
 		} else {
 			testName = fmt.Sprintf("Hotel%sJustCli%s", sys, hotelReqName)
-		}
-		autoscaleCache := ""
-		if scaleCache {
-			autoscaleCache = "--hotel_cache_autoscale"
 		}
 		dialproxy := ""
 		if bcfg.NoNetproxy {
@@ -335,13 +332,22 @@ func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients i
 				k8sFrontendLogScrapeCmd = "kubectl logs service/frontend"
 			}
 		}
-		scalecache := ""
-		if manuallyScaleCaches {
-			scalecache = "--manually_scale_caches"
+		hotelCfgJSON, err := hotelCfg.Marshal()
+		if err != nil {
+			db.DFatalf("Err marshal hotel config: %v", err)
 		}
-		scalegeo := ""
-		if manuallyScaleGeo {
-			scalegeo = "--manually_scale_geo"
+		cacheCfgJSON, err := hotelCfg.CacheBenchCfg.Marshal()
+		if err != nil {
+			db.DFatalf("Err marshal hotel config: %v", err)
+		}
+		// Marshal cossim config (may be nil)
+		cosSimCfgStr := ""
+		if hotelCfg.CosSimBenchCfg != nil {
+			cosSimCfgJSON, err := hotelCfg.CosSimBenchCfg.Marshal()
+			if err != nil {
+				db.DFatalf("Error marshaling cossim config: %v", err)
+			}
+			cosSimCfgStr = fmt.Sprintf("--cossim_bench_cfg '%s' ", cosSimCfgJSON)
 		}
 		return fmt.Sprintf("export SIGMADEBUG=%s; export SIGMAPERF=%s; go clean -testcache; "+
 			"aws s3 rm --profile sigmaos --recursive s3://9ps3/hotelperf/k8s > /dev/null; "+
@@ -350,24 +356,11 @@ func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients i
 			"go test -v sigmaos/benchmarks -timeout 0 --no-shutdown %s %s --etcdIP %s --tag %s "+
 			"--run %s "+
 			"--nclnt %s "+
-			"--hotel_ncache %s "+
-			"--hotel_cache_mcpu 2000 "+
-			"--cache_type %s "+
-			"%s "+ // scaleCache
 			"%s "+ // k8sFrontendAddr
-			"--hotel_dur %s "+
-			"--hotel_max_rps %s "+
 			"--sleep %s "+
-			"%s "+ // manually_scale_caches
-			"--scale_cache_delay %s "+
-			"--n_caches_to_add %s "+
-			"--hotel_ngeo %s "+
-			"--hotel_ngeo_idx %s "+
-			"--hotel_geo_search_radius %s "+
-			"--hotel_geo_nresults %s "+
-			"%s "+ // manually_scale_geo
-			"--scale_geo_delay %s "+
-			"--n_geo_to_add %s "+
+			"--hotel_bench_cfg '%s' "+
+			"--cache_bench_cfg '%s' "+
+			"%s "+ //cosSimCfg
 			"--prewarm_realm "+
 			"> /tmp/bench.out 2>&1 ; "+
 			"%s > /tmp/frontend-logs.out 2>&1 ;",
@@ -379,23 +372,11 @@ func GetHotelClientCmdConstructor(hotelReqName string, leader bool, numClients i
 			bcfg.Tag,
 			testName,
 			strconv.Itoa(numClients),
-			strconv.Itoa(numCaches),
-			cacheType,
-			autoscaleCache,
 			k8sFrontendAddr,
-			dursToString(dur),
-			rpsToString(rps),
 			clientDelay.String(),
-			scalecache,
-			scaleCacheDelay.String(),
-			strconv.Itoa(numCachesToAdd),
-			strconv.Itoa(numGeo),
-			strconv.Itoa(geoNIdx),
-			strconv.Itoa(geoSearchRadius),
-			strconv.Itoa(geoNResults),
-			scalegeo,
-			scaleGeoDelay.String(),
-			strconv.Itoa(numGeoToAdd),
+			hotelCfgJSON,
+			cacheCfgJSON,
+			cosSimCfgStr,
 			k8sFrontendLogScrapeCmd,
 		)
 	}
@@ -622,7 +603,7 @@ func GetLCBEHotelImgResizeRPCMultiplexingCmdConstructor(numClients int, rps []in
 //
 // - clientDelay specifies the delay for which the client should wait before
 // starting to send requests.
-func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients int, rps []int, dur []time.Duration, numCaches int, scaleCache bool, clientDelay time.Duration, manuallyScaleCaches bool, scaleCacheDelay time.Duration, numCachesToAdd int, numCosSim int, nvec int, nvecToQuery int, vecDim int, cossimEagerInit, delegateInit, manuallyScaleCosSim bool, scaleCosSimDelay time.Duration, numCosSimToAdd int) GetBenchCmdFn {
+func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients int, clientDelay time.Duration, cosSimCfg *benchmarks.CosSimBenchConfig) GetBenchCmdFn {
 	return func(bcfg *BenchConfig, ccfg *ClusterConfig) string {
 		const (
 			//			debugSelectors string = "\"TEST;THROUGHPUT;CPU_UTIL;SPAWN_LAT;\""
@@ -637,10 +618,6 @@ func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients
 		} else {
 			testName = "CosSimJustCli"
 		}
-		autoscaleCache := ""
-		if scaleCache {
-			autoscaleCache = "--cossim_cache_autoscale"
-		}
 		dialproxy := ""
 		if bcfg.NoNetproxy {
 			dialproxy = "--nodialproxy"
@@ -649,21 +626,9 @@ func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients
 		if bcfg.Overlays {
 			overlays = "--overlays"
 		}
-		scalecache := ""
-		if manuallyScaleCaches {
-			scalecache = "--manually_scale_caches"
-		}
-		scaleCosSim := ""
-		if manuallyScaleCosSim {
-			scaleCosSim = "--manually_scale_cossim"
-		}
-		cossimDelegateInitStr := ""
-		if delegateInit {
-			cossimDelegateInitStr = "--cossim_delegated_init"
-		}
-		cossimEagerInitStr := ""
-		if cossimEagerInit {
-			cossimEagerInitStr = "--cossim_eager_init"
+		cfgJSON, err := cosSimCfg.Marshal()
+		if err != nil {
+			db.DFatalf("Err marshal cossim config: %v", err)
 		}
 		return fmt.Sprintf("export SIGMADEBUG=%s; export SIGMAVALGRIND=%s; export SIGMAPERF=%s; go clean -testcache; "+
 			"ulimit -n 100000; "+
@@ -671,25 +636,8 @@ func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients
 			"go test -v sigmaos/benchmarks -timeout 0 --no-shutdown %s %s --etcdIP %s --tag %s "+
 			"--run %s "+
 			"--nclnt %s "+
-			"--cossim_ncache %s "+
-			"--cossim_cache_mcpu 2000 "+
-			"--cossim_srv_mcpu 4000 "+
-			"%s "+ // scaleCache
-			"--cossim_dur %s "+
-			"--cossim_max_rps %s "+
 			"--sleep %s "+
-			"%s "+ // manually_scale_caches
-			"--scale_cache_delay %s "+
-			"--n_caches_to_add %s "+
-			"--ncossim %s "+
-			"--cossim_nvec %s "+
-			"--cossim_nvec_to_query %s "+
-			"--cossim_vec_dim %s "+
-			"%s "+ // cossim_eager_init
-			"%s "+ // cossim_delegated_init
-			"%s "+ // manually_scale_cossim
-			"--scale_cossim_delay %s "+
-			"--n_cossim_to_add %s "+
+			"--cossim_bench_cfg='%s' "+
 			"--prewarm_realm "+
 			"> /tmp/bench.out 2>&1 ;",
 			debugSelectors,
@@ -701,107 +649,13 @@ func GetCosSimClientCmdConstructor(cossimReqName string, leader bool, numClients
 			bcfg.Tag,
 			testName,
 			strconv.Itoa(numClients),
-			strconv.Itoa(numCaches),
-			autoscaleCache,
-			dursToString(dur),
-			rpsToString(rps),
 			clientDelay.String(),
-			scalecache,
-			scaleCacheDelay.String(),
-			strconv.Itoa(numCachesToAdd),
-			strconv.Itoa(numCosSim),
-			strconv.Itoa(nvec),
-			strconv.Itoa(nvecToQuery),
-			strconv.Itoa(vecDim),
-			cossimEagerInitStr,
-			cossimDelegateInitStr,
-			scaleCosSim,
-			scaleCosSimDelay.String(),
-			strconv.Itoa(numCosSimToAdd),
+			cfgJSON,
 		)
 	}
 }
 
-func GetCachedBackupClientCmdConstructor(leader bool, numClients int, manuallyScaleBackupCached bool, scaleBackupCachedDelay time.Duration, rps []int, dur []time.Duration, putRps []int, putDur []time.Duration, clientDelay time.Duration, numCachedBackup int, nkeys int, topN int, delegateInit, useEPCache, prewarm bool) GetBenchCmdFn {
-	return func(bcfg *BenchConfig, ccfg *ClusterConfig) string {
-		const (
-			debugSelectors    string = "\"TEST;BENCH;LOADGEN;THROUGHPUT;CPU_UTIL;SPAWN_LAT;PROXY_LAT;\""
-			valgrindSelectors string = ""
-			perfSelectors     string = "\"CACHED_TPT;TEST_TPT;BENCH_TPT;\""
-		)
-		testName := ""
-		if leader {
-			testName = "CachedBackup"
-		} else {
-			testName = "CachedBackupJustCli"
-		}
-		dialproxy := ""
-		if bcfg.NoNetproxy {
-			dialproxy = "--nodialproxy"
-		}
-		scaleBackupCachedStr := ""
-		if manuallyScaleBackupCached {
-			scaleBackupCachedStr = "--manually_scale_backup_cached"
-		}
-		cachedBackupUseEPCacheStr := ""
-		if useEPCache {
-			cachedBackupUseEPCacheStr = "--backup_cached_use_epcache"
-		}
-		delegateInitStr := ""
-		if delegateInit {
-			delegateInitStr = "--backup_cached_delegated_init"
-		}
-		prewarmStr := ""
-		if prewarm {
-			prewarmStr = "--prewarm_realm"
-		}
-		return fmt.Sprintf("export SIGMADEBUG=%s; export SIGMAVALGRIND=%s; export SIGMAPERF=%s; go clean -testcache; "+
-			"ulimit -n 100000; "+
-			"./set-cores.sh --set 1 --start 2 --end 39 > /dev/null 2>&1 ; "+
-			"go test -v sigmaos/benchmarks -timeout 0 --no-shutdown %s --etcdIP %s --tag %s "+
-			"--run %s "+
-			"--nclnt %s "+
-			"--backup_cached_ncache %s "+
-			"--backup_cached_mcpu 3000 "+
-			"--backup_cached_dur %s "+
-			"--backup_cached_max_rps %s "+
-			"--backup_cached_put_dur %s "+
-			"--backup_cached_put_max_rps %s "+
-			"--sleep %s "+
-			"--backup_cached_nkeys %s "+
-			"--backup_cached_top_n %s "+
-			"--scale_backup_cached_delay %s "+
-			"%s "+ // manually_scale_backup_cached
-			"%s "+ // backup_cached_delegated_init
-			"%s "+ // cached_backup_use_epcache
-			"%s "+ // prewarm
-			"> /tmp/bench.out 2>&1 ;",
-			debugSelectors,
-			valgrindSelectors,
-			perfSelectors,
-			dialproxy,
-			ccfg.LeaderNodeIP,
-			bcfg.Tag,
-			testName,
-			strconv.Itoa(numClients),
-			strconv.Itoa(numCachedBackup),
-			dursToString(dur),
-			rpsToString(rps),
-			dursToString(putDur),
-			rpsToString(putRps),
-			clientDelay.String(),
-			strconv.Itoa(nkeys),
-			strconv.Itoa(topN),
-			scaleBackupCachedDelay.String(),
-			scaleBackupCachedStr,
-			delegateInitStr,
-			cachedBackupUseEPCacheStr,
-			prewarmStr,
-		)
-	}
-}
-
-func GetCachedScalerClientCmdConstructor(leader bool, numClients int, manuallyScaleScalerCached bool, scaleScalerCachedDelay time.Duration, rps []int, dur []time.Duration, putRps []int, putDur []time.Duration, clientDelay time.Duration, numCachedScaler int, nkeys int, delegateInit, useEPCache, prewarm bool, cossimBackend bool, nvec int, nvecToQuery int, vecDim int, cossimDelegatedInit bool, cppCached bool) GetBenchCmdFn {
+func GetCachedScalerClientCmdConstructor(leader bool, numClients int, prewarm bool, clientDelay time.Duration, cacheCfg *benchmarks.CacheBenchConfig, cosSimCfg *benchmarks.CosSimBenchConfig) GetBenchCmdFn {
 	return func(bcfg *BenchConfig, ccfg *ClusterConfig) string {
 		const (
 			debugSelectors    string = "\"TEST;BENCH;LOADGEN;THROUGHPUT;CPU_UTIL;SPAWN_LAT;PROXY_RPC_LAT;COSSIMSRV;\""
@@ -818,33 +672,23 @@ func GetCachedScalerClientCmdConstructor(leader bool, numClients int, manuallySc
 		if bcfg.NoNetproxy {
 			dialproxy = "--nodialproxy"
 		}
-		scaleScalerCachedStr := ""
-		if manuallyScaleScalerCached {
-			scaleScalerCachedStr = "--manually_scale_scaler_cached"
-		}
-		cachedScalerUseEPCacheStr := ""
-		if useEPCache {
-			cachedScalerUseEPCacheStr = "--scaler_cached_use_epcache"
-		}
-		delegateInitStr := ""
-		if delegateInit {
-			delegateInitStr = "--scaler_cached_delegated_init"
-		}
 		prewarmStr := ""
 		if prewarm {
 			prewarmStr = "--prewarm_realm"
 		}
-		cossimBackendStr := ""
-		if cossimBackend {
-			cossimBackendStr = "--scaler_cached_cossim_backend"
+		// Marshal cache config
+		cacheCfgJSON, err := cacheCfg.Marshal()
+		if err != nil {
+			db.DFatalf("Error marshaling cache config: %v", err)
 		}
-		cossimDelegatedInitStr := ""
-		if cossimDelegatedInit {
-			cossimDelegatedInitStr = "--cossim_delegated_init"
-		}
-		cppCachedStr := ""
-		if cppCached {
-			cppCachedStr = "--scaler_cached_cpp"
+		// Marshal cossim config (may be nil)
+		cosSimCfgStr := ""
+		if cosSimCfg != nil {
+			cosSimCfgJSON, err := cosSimCfg.Marshal()
+			if err != nil {
+				db.DFatalf("Error marshaling cossim config: %v", err)
+			}
+			cosSimCfgStr = fmt.Sprintf("--cossim_bench_cfg '%s' ", cosSimCfgJSON)
 		}
 		return fmt.Sprintf("export SIGMADEBUG=%s; export SIGMAVALGRIND=%s; export SIGMAPERF=%s; go clean -testcache; "+
 			"ulimit -n 100000; "+
@@ -852,27 +696,10 @@ func GetCachedScalerClientCmdConstructor(leader bool, numClients int, manuallySc
 			"go test -v sigmaos/benchmarks -timeout 0 --no-shutdown %s --etcdIP %s --tag %s "+
 			"--run %s "+
 			"--nclnt %s "+
-			"--scaler_cached_ncache %s "+
-			"--scaler_cached_mcpu 4000 "+
-			"--scaler_cached_dur %s "+
-			"--scaler_cached_max_rps %s "+
-			"--scaler_cached_put_dur %s "+
-			"--scaler_cached_put_max_rps %s "+
 			"--sleep %s "+
-			"--scaler_cached_nkeys %s "+
-			"--scale_scaler_cached_delay %s "+
-			"%s "+ // manually_scale_scaler_cached
-			"%s "+ // scaler_cached_delegated_init
-			"%s "+ // cached_scaler_use_epcache
 			"%s "+ // prewarm
-			"%s "+ // scaler_cached_cpp
-			"%s "+ // scaler_cached_cossim_backend
-			"%s "+ // cossim_delegated_init
-			"--scaler_cached_run_sleeper "+
-			"--cossim_nvec %s "+
-			"--cossim_nvec_to_query %s "+
-			"--cossim_vec_dim %s "+
-			"--cossim_srv_mcpu 4000 "+
+			"--cache_bench_cfg '%s' "+
+			"%s"+ // cossim_bench_cfg
 			"> /tmp/bench.out 2>&1 ;",
 			debugSelectors,
 			valgrindSelectors,
@@ -882,24 +709,10 @@ func GetCachedScalerClientCmdConstructor(leader bool, numClients int, manuallySc
 			bcfg.Tag,
 			testName,
 			strconv.Itoa(numClients),
-			strconv.Itoa(numCachedScaler),
-			dursToString(dur),
-			rpsToString(rps),
-			dursToString(putDur),
-			rpsToString(putRps),
 			clientDelay.String(),
-			strconv.Itoa(nkeys),
-			scaleScalerCachedDelay.String(),
-			scaleScalerCachedStr,
-			delegateInitStr,
-			cachedScalerUseEPCacheStr,
 			prewarmStr,
-			cppCachedStr,
-			cossimBackendStr,
-			cossimDelegatedInitStr,
-			strconv.Itoa(nvec),
-			strconv.Itoa(nvecToQuery),
-			strconv.Itoa(vecDim),
+			cacheCfgJSON,
+			cosSimCfgStr,
 		)
 	}
 }

@@ -35,21 +35,19 @@ type CachedSvc struct {
 	backupServers    []sp.Tpid
 	backupBootScript []byte
 	scalerBootScript []byte
-	nserver          int
-	mcpu             proc.Tmcpu
+	cfg              *CacheJobConfig
 	pn               string
 	job              string
-	gc               bool
 }
 
 // Currently, only backup servers advertise themselves via the EP cache
 func (cs *CachedSvc) addServer(i int) error {
 	// SpawnBurst to spread servers across procds.
 	p := proc.NewProc(cs.bin, []string{filepath.Join(cs.pn, cachegrp.SRVDIR), strconv.Itoa(int(i)), strconv.FormatBool(cs.useEPCache)})
-	if !cs.gc {
+	if !cs.cfg.GC {
 		p.AppendEnv("GOGC", "off")
 	}
-	p.SetMcpu(cs.mcpu)
+	p.SetMcpu(cs.cfg.MCPU)
 	err := cs.Spawn(p)
 	if err != nil {
 		return err
@@ -67,8 +65,18 @@ func (cs *CachedSvc) addServer(i int) error {
 			db.DPrintf(db.CACHEDSVCCLNT, "Err get endpoints after adding cached server: %v", err)
 			return err
 		}
+		istr := strconv.Itoa(i)
+		var ep *sp.Tendpoint
+		for _, is := range instances {
+			if is.ID == istr {
+				ep = sp.NewEndpointFromProto(is.EndpointProto)
+			}
+		}
+		if ep == nil {
+			db.DPrintf(db.ERROR, "Err get EP")
+			return fmt.Errorf("Error get EP srv %v", i)
+		}
 		// Store the server EP for later use
-		ep := sp.NewEndpointFromProto(instances[i].EndpointProto)
 		cs.serverEPs = append(cs.serverEPs, ep)
 		// Manually mount cached so it will resolve later
 		if err := cs.MountTree(ep, rpc.RPC, filepath.Join(pn, rpc.RPC)); err != nil {
@@ -81,7 +89,7 @@ func (cs *CachedSvc) addServer(i int) error {
 func (cs *CachedSvc) addBackupServerWithSigmaPath(sigmaPath string, srvID int, ep *sp.Tendpoint, delegatedInit bool, topN int) error {
 	// SpawnBurst to spread servers across procds.
 	p := proc.NewProc(cs.bin+"-backup", []string{filepath.Join(cs.pn, cachegrp.BACKUP), cs.job, strconv.Itoa(int(srvID)), strconv.FormatBool(cs.useEPCache), strconv.Itoa(topN)})
-	if !cs.gc {
+	if !cs.cfg.GC {
 		p.AppendEnv("GOGC", "off")
 	}
 	if sigmaPath != sp.NOT_SET {
@@ -93,7 +101,7 @@ func (cs *CachedSvc) addBackupServerWithSigmaPath(sigmaPath string, srvID int, e
 	}
 	// Cache the primary server's endpoint in the backup proc struct
 	p.SetCachedEndpoint(cs.Server(strconv.Itoa(srvID)), ep)
-	p.SetMcpu(cs.mcpu)
+	p.SetMcpu(cs.cfg.MCPU)
 	// Have backup server use spproxy
 	p.GetProcEnv().UseSPProxy = true
 	p.GetProcEnv().UseSPProxyProcClnt = true
@@ -125,8 +133,18 @@ func (cs *CachedSvc) addBackupServerWithSigmaPath(sigmaPath string, srvID int, e
 		if err != nil {
 			return err
 		}
+		srvIDStr := strconv.Itoa(srvID)
+		var ep *sp.Tendpoint
+		for _, i := range instances {
+			if i.ID == srvIDStr {
+				ep = sp.NewEndpointFromProto(i.EndpointProto)
+			}
+		}
+		if ep == nil {
+			db.DPrintf(db.ERROR, "Err get EP")
+			return fmt.Errorf("Error get EP srv %v", srvID)
+		}
 		// Manually mount cached-backup so it will resolve later
-		ep := sp.NewEndpointFromProto(instances[srvID].EndpointProto)
 		if err := cs.MountTree(ep, rpc.RPC, filepath.Join(backupPN, rpc.RPC)); err != nil {
 			return err
 		}
@@ -148,7 +166,8 @@ func (cs *CachedSvc) addScalerServerWithSigmaPath(sigmaPath string, delegatedIni
 	}
 	p := proc.NewProc(bin, []string{filepath.Join(cs.pn, cachegrp.SRVDIR), cs.job, strconv.Itoa(srvID), strconv.FormatBool(cs.useEPCache), strconv.Itoa(oldNSrv), strconv.Itoa(newNSrv)})
 	p.SetUseShmem(shmem)
-	if !cs.gc {
+	db.DPrintf(db.TEST, "Scale %v", p.GetPid())
+	if !cs.cfg.GC {
 		p.AppendEnv("GOGC", "off")
 	}
 	if sigmaPath != sp.NOT_SET {
@@ -162,7 +181,7 @@ func (cs *CachedSvc) addScalerServerWithSigmaPath(sigmaPath string, delegatedIni
 		// Cache the other cache servers' endpoint in the scaler proc struct
 		p.SetCachedEndpoint(cs.Server(strconv.Itoa(i)), cs.serverEPs[i])
 	}
-	p.SetMcpu(cs.mcpu)
+	p.SetMcpu(cs.cfg.MCPU)
 	// Have scaler server use spproxy
 	p.GetProcEnv().UseSPProxy = true
 	p.GetProcEnv().UseSPProxyProcClnt = true
@@ -203,8 +222,17 @@ func (cs *CachedSvc) addScalerServerWithSigmaPath(sigmaPath string, delegatedIni
 		if len(instances) <= srvID {
 			return fmt.Errorf("not enough instances reported by epcache: %v <= %v", len(instances), srvID)
 		}
-		// Manually mount cached-scaler so it will resolve later
-		ep := sp.NewEndpointFromProto(instances[srvID].EndpointProto)
+		srvIDStr := strconv.Itoa(srvID)
+		var ep *sp.Tendpoint
+		for _, i := range instances {
+			if i.ID == srvIDStr {
+				ep = sp.NewEndpointFromProto(i.EndpointProto)
+			}
+		}
+		if ep == nil {
+			db.DPrintf(db.ERROR, "Err get EP")
+			return fmt.Errorf("Error get EP srv %v", srvID)
+		}
 		// Don't mount CPP cache servers (the clients will be created elsewhere, directly using the EP)
 		if ep.GetType() != sp.CPP_EP {
 			if err := cs.MountTree(ep, rpc.RPC, filepath.Join(srvPN, rpc.RPC)); err != nil {
@@ -218,11 +246,11 @@ func (cs *CachedSvc) addScalerServerWithSigmaPath(sigmaPath string, delegatedIni
 }
 
 // XXX use job
-func NewCachedSvc(sc *sigmaclnt.SigmaClnt, nsrv int, mcpu proc.Tmcpu, job, bin, pn string, gc bool) (*CachedSvc, error) {
-	return NewCachedSvcEPCache(sc, nil, nsrv, mcpu, job, bin, pn, gc)
+func NewCachedSvc(sc *sigmaclnt.SigmaClnt, cfg *CacheJobConfig, job, bin, pn string) (*CachedSvc, error) {
+	return NewCachedSvcEPCache(sc, nil, cfg, job, bin, pn)
 }
 
-func NewCachedSvcEPCache(sc *sigmaclnt.SigmaClnt, epCacheJob *epsrv.EPCacheJob, nsrv int, mcpu proc.Tmcpu, job, bin, pn string, gc bool) (*CachedSvc, error) {
+func NewCachedSvcEPCache(sc *sigmaclnt.SigmaClnt, epCacheJob *epsrv.EPCacheJob, cfg *CacheJobConfig, job, bin, pn string) (*CachedSvc, error) {
 	sc.MkDir(pn, 0777)
 	if err := sc.MkDir(pn+cachegrp.SRVDIR, 0777); err != nil {
 		if !serr.IsErrCode(err, serr.TErrExists) {
@@ -262,15 +290,13 @@ func NewCachedSvcEPCache(sc *sigmaclnt.SigmaClnt, epCacheJob *epsrv.EPCacheJob, 
 		servers:          make([]sp.Tpid, 0),
 		serverEPs:        make([]*sp.Tendpoint, 0),
 		backupServers:    make([]sp.Tpid, 0),
-		nserver:          nsrv,
-		mcpu:             mcpu,
+		cfg:              cfg,
 		pn:               pn,
-		gc:               gc,
 		job:              job,
 		scalerBootScript: scalerBootScript,
 		backupBootScript: backupBootScript,
 	}
-	for i := 0; i < cs.nserver; i++ {
+	for i := 0; i < cs.cfg.NSrv; i++ {
 		if err := cs.addServer(i); err != nil {
 			return nil, err
 		}

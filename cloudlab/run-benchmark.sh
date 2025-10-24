@@ -61,4 +61,5 @@ ssh -i $DIR/keys/cloudlab-sigmaos $LOGIN@$SSHVM <<ENDSSH
   source ./env/env.sh
   export SIGMAPERF="KVCLERK_TPT;MRMAPPER_TPT;MRREDUCER_TPT;HOTEL_WWW_TPT;TEST_TPT;BENCH_TPT;THUMBNAIL_TPT;"
   $COMMAND
+  git rev-parse HEAD >> /tmp/bench.out 2>&1
 ENDSSH

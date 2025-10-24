@@ -35,12 +35,15 @@ class Clnt {
         _sp_clnt(sp_clnt),
         _clnts() {}
   ~Clnt() {}
+  std::expected<int, sigmaos::serr::Error> InitClnts(uint32_t last_srv_id);
   std::expected<int, sigmaos::serr::Error> Get(
       std::string key, std::shared_ptr<std::string> val);
-  std::expected<std::pair<std::vector<uint64_t>, std::shared_ptr<std::string>>,
+  std::expected<std::shared_ptr<
+                    std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>,
                 sigmaos::serr::Error>
   MultiGet(uint32_t srv_id, std::vector<std::string> &keys);
-  std::expected<std::pair<std::vector<uint64_t>, std::shared_ptr<std::string>>,
+  std::expected<std::shared_ptr<
+                    std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>,
                 sigmaos::serr::Error>
   DelegatedMultiGet(uint64_t rpc_idx);
   std::expected<int, sigmaos::serr::Error> Put(
@@ -83,6 +86,10 @@ class Clnt {
 
   std::expected<std::shared_ptr<sigmaos::rpc::Clnt>, sigmaos::serr::Error>
   get_clnt(int srv_id, bool initialize);
+  void init_clnt(
+      std::shared_ptr<std::promise<std::expected<int, sigmaos::serr::Error>>>
+          result,
+      uint32_t srv_id);
 };
 
 };  // namespace apps::cache

@@ -63,25 +63,25 @@ void Srv::fetch_init_vectors_from_cache(
   std::vector<uint64_t> lengths;
   // If retrieving delegated initialization RPCs
   if (_sp_clnt->ProcEnv()->GetRunBootScript()) {
+    std::shared_ptr<std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>
+        vals;
     // Get the serialized vector from cached
     {
       auto res = _cache_clnt->DelegatedMultiGet(srv_id);
       if (!res.has_value()) {
-        log(COSSIMSRV_ERR, "Error DelegatedMultiVec {}", res.error().String());
+        log(COSSIMSRV_ERR, "Error DelegatedMultiGet {}", res.error().String());
         result->set_value(std::unexpected(res.error()));
         return;
       }
-      auto res_pair = res.value();
-      lengths = res_pair.first;
-      buf = res_pair.second;
+      vals = res.value();
     }
     log(COSSIMSRV, "Got shards delegated RPC #{}", srv_id);
     LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
                     _sp_clnt->ProcEnv()->GetSpawnTime(), start, "GetShard RPC");
     // Sanity check
-    if (key_vec_int->size() != lengths.size()) {
-      fatal("Key vec and returned lengths ({}) don't match in size: {} != {}",
-            srv_id, (int)key_vec_int->size(), (int)lengths.size());
+    if (key_vec_int->size() != vals->size()) {
+      fatal("Key vec and returned vals ({}) don't match in size: {} != {}",
+            srv_id, (int)key_vec_int->size(), (int)vals->size());
     }
     // Take the lock while modifying the _vec_db map
     std::lock_guard<std::mutex> guard(_mu);
@@ -89,16 +89,17 @@ void Srv::fetch_init_vectors_from_cache(
     uint64_t off = 0;
     for (int j = 0; j < key_vec_int->size(); j++) {
       int id = key_vec_int->at(j);
-      _vec_db[id] = std::make_shared<sigmaos::apps::cossim::Vector>(
-          buf, buf->data() + off, _vec_dim);
-      off += lengths.at(j);
-      nbyte += lengths.at(j);
+      _vec_db[id] = std::make_shared<sigmaos::apps::cossim::Vector>(vals->at(j),
+                                                                    _vec_dim);
+      nbyte += vals->at(j)->GetStringView()->size();
     }
     log(COSSIMSRV, "Done parsing shard delegated RPC #{}", srv_id);
     LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
                     _sp_clnt->ProcEnv()->GetSpawnTime(), start,
                     "Parse vecs & construct DB delegated");
   } else {
+    std::shared_ptr<std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>
+        vals;
     // Get the serialized vector from cached
     {
       auto res = _cache_clnt->MultiGet(srv_id, *key_vec);
@@ -107,9 +108,7 @@ void Srv::fetch_init_vectors_from_cache(
         result->set_value(std::unexpected(res.error()));
         return;
       }
-      auto res_pair = res.value();
-      lengths = res_pair.first;
-      buf = res_pair.second;
+      vals = res.value();
     }
     log(COSSIMSRV, "Got shards direct RPC");
     LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
@@ -120,10 +119,9 @@ void Srv::fetch_init_vectors_from_cache(
     uint64_t off = 0;
     for (int j = 0; j < key_vec_int->size(); j++) {
       int id = key_vec_int->at(j);
-      _vec_db[id] = std::make_shared<sigmaos::apps::cossim::Vector>(
-          buf, buf->data() + off, _vec_dim);
-      off += lengths.at(j);
-      nbyte += lengths.at(j);
+      _vec_db[id] = std::make_shared<sigmaos::apps::cossim::Vector>(vals->at(j),
+                                                                    _vec_dim);
+      nbyte += vals->at(j)->GetStringView()->size();
     }
     LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
                     _sp_clnt->ProcEnv()->GetSpawnTime(), start,
@@ -145,8 +143,24 @@ std::expected<int, sigmaos::serr::Error> Srv::Init() {
     key_vecs[server_id]->push_back(i_str);
     key_vecs_int[server_id]->push_back(i);
   }
+  // If not running boot script, pre-estables cached connections
+  if (!_sp_clnt->ProcEnv()->GetRunBootScript()) {
+    // Establish connections to cached servers
+    auto startConnect = GetCurrentTime();
+    {
+      auto res = _cache_clnt->InitClnts(_ncache);
+      if (!res.has_value()) {
+        log(COSSIMSRV_ERR, "Error InitClnts: {}", res.error());
+        fatal("Error InitClnts: {}", res.error().String());
+        return std::unexpected(res.error());
+      }
+    }
+    LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
+                    _sp_clnt->ProcEnv()->GetSpawnTime(), startConnect,
+                    "Initialization.ConnectionSetup");
+  }
   int nbyte = 0;
-  auto start = GetCurrentTime();
+  auto startLoad = GetCurrentTime();
   std::vector<std::thread> fetch_threads;
   std::vector<
       std::shared_ptr<std::promise<std::expected<int, sigmaos::serr::Error>>>>
@@ -173,8 +187,12 @@ std::expected<int, sigmaos::serr::Error> Srv::Init() {
     }
     nbyte += res.value();
   }
+  LogSpawnLatency(_sp_clnt->ProcEnv()->GetPID(),
+                  _sp_clnt->ProcEnv()->GetSpawnTime(), startLoad,
+                  "Initialization.LoadState");
   LogSpawnLatency(
-      _sp_clnt->ProcEnv()->GetPID(), _sp_clnt->ProcEnv()->GetSpawnTime(), start,
+      _sp_clnt->ProcEnv()->GetPID(), _sp_clnt->ProcEnv()->GetSpawnTime(),
+      startLoad,
       std::format("Initialize soft state vector DB: {}B", (int)nbyte));
   return 0;
 }

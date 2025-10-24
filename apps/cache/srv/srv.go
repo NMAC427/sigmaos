@@ -117,7 +117,7 @@ func NewCacheSrv(pe *proc.ProcEnv, dirname string, pn string, nshard int, useEPC
 		ssrv, err = sigmasrv.NewSigmaSrv(svcInstanceName, cs, pe)
 	} else {
 		// Otherwise, don't post EP (and instead post EP in the EP cache service)
-		ssrv, err = sigmasrv.NewSigmaSrv("", cs, pe)
+		ssrv, err = sigmasrv.NewSigmaSrv(svcInstanceName, cs, pe)
 		start := time.Now()
 		if epcsrvEP, ok := pe.GetCachedEndpoint(epcache.EPCACHE); ok {
 			if err := epcacheclnt.MountEPCacheSrv(ssrv.MemFs.SigmaClnt().FsLib, epcsrvEP); err != nil {
@@ -133,7 +133,7 @@ func NewCacheSrv(pe *proc.ProcEnv, dirname string, pn string, nshard int, useEPC
 		perf.LogSpawnLatency("cachesrv.NewEPCacheClnt", pe.GetPID(), pe.GetSpawnTime(), start)
 		start = time.Now()
 		ep := ssrv.MemFs.GetSigmaPSrvEndpoint()
-		if err := epcc.RegisterEndpoint(dirname, pe.GetPID().String(), ep); err != nil {
+		if err := epcc.RegisterEndpoint(dirname, cs.shrd, ep); err != nil {
 			db.DFatalf("Err RegisterEP: %v", err)
 		}
 		perf.LogSpawnLatency("EPCacheSrv.RegisterEP", pe.GetPID(), pe.GetSpawnTime(), start)
@@ -389,7 +389,7 @@ func (cs *CacheSrv) Put(ctx fs.CtxI, req cacheproto.CacheReq, rep *cacheproto.Ca
 		defer span.End()
 	}
 
-	db.DPrintf(db.CACHESRV, "Put %v\n", req)
+	db.DPrintf(db.CACHESRV, "Put key:%v shard:%v", req.Key, req.Tshard())
 
 	start := time.Now()
 
@@ -488,7 +488,7 @@ func (cs *CacheSrv) MultiGet(ctx fs.CtxI, req cacheproto.CacheMultiGetReq, rep *
 	defer cs.mu.Unlock()
 
 	rep.Blob = &rpcproto.Blob{}
-
+	rep.Blob.SplitIov = make([]*rpcproto.SplitIoVec, 1)
 	bufs := make([][]byte, 0, len(req.Gets))
 	totalLength := 0
 	for _, getReq := range req.Gets {
@@ -509,18 +509,12 @@ func (cs *CacheSrv) MultiGet(ctx fs.CtxI, req cacheproto.CacheMultiGetReq, rep *
 		// Key not found, so bail out & fail all gets
 		return serr.NewErr(serr.TErrNotfound, fmt.Sprintf("key %s", getReq.Key))
 	}
-	// Concatenate buffers to speed up blob write
-	b := make([]byte, totalLength)
-	idx := 0
-	for _, buf := range bufs {
-		n := copy(b[idx:idx+len(buf)], buf)
-		if n != len(buf) {
-			db.DFatalf("Didn't copy whole buf: %v != %v", n, len(buf))
-		}
-		idx += len(buf)
+	rep.Blob.SplitIov = []*rpcproto.SplitIoVec{
+		&rpcproto.SplitIoVec{
+			Iov: bufs,
+		},
 	}
-	db.DPrintf(db.CACHESRV, "MultiGet reply total serialized length: %v", len(b))
-	rep.Blob.Iov = append(rep.Blob.Iov, b)
+	db.DPrintf(db.CACHESRV, "MultiGet reply total serialized length: %v", totalLength)
 	return nil
 }
 

@@ -2,6 +2,7 @@ package hotel
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	//	"go.opentelemetry.io/otel/trace"
 	//	tproto "sigmaos/util/tracing/proto"
 
+	cossimproto "sigmaos/apps/cossim/proto"
 	"sigmaos/apps/epcache"
 	epcacheclnt "sigmaos/apps/epcache/clnt"
 	"sigmaos/apps/hotel/proto"
@@ -32,6 +34,7 @@ type Www struct {
 	tracer   *tracing.Tracer
 	userc    *rpcclnt.RPCClnt
 	searchc  *rpcclnt.RPCClnt
+	matchc   *rpcclnt.RPCClnt
 	reservec *rpcclnt.RPCClnt
 	profc    *rpcclnt.RPCClnt
 	recc     *rpcclnt.RPCClnt
@@ -63,6 +66,11 @@ func RunWww(job string) error {
 		return err
 	}
 	www.searchc = rpcc
+	rpcc, err = sprpcclnt.NewRPCClnt(fsl, HOTELMATCH)
+	if err != nil {
+		db.DPrintf(db.ALWAYS, "Match server not found")
+	}
+	www.matchc = rpcc
 	rpcc, err = sprpcclnt.NewRPCClnt(fsl, HOTELPROF)
 	if err != nil {
 		return err
@@ -111,6 +119,7 @@ func RunWww(job string) error {
 	mux = http.NewServeMux()
 	mux.HandleFunc("/user", www.userHandler)
 	mux.HandleFunc("/hotels", www.searchHandler)
+	mux.HandleFunc("/match", www.matchHandler)
 	mux.HandleFunc("/recommendations", www.recommendHandler)
 	mux.HandleFunc("/reservation", www.reservationHandler)
 	mux.HandleFunc("/geo", www.geoHandler)
@@ -151,6 +160,7 @@ func (s *Www) done() error {
 	}
 	db.DPrintf(db.HOTEL_WWW_STATS, "\nUserc %v", s.userc.StatsClnt())
 	db.DPrintf(db.HOTEL_WWW_STATS, "\nSearchc %v", s.searchc.StatsClnt())
+	db.DPrintf(db.HOTEL_WWW_STATS, "\nMatchcc %v", s.matchc.StatsClnt())
 	db.DPrintf(db.HOTEL_WWW_STATS, "\nReservec %v", s.reservec.StatsClnt())
 	db.DPrintf(db.HOTEL_WWW_STATS, "\nProfc %v", s.profc.StatsClnt())
 	db.DPrintf(db.HOTEL_WWW_STATS, "\nRecc %v", s.recc.StatsClnt())
@@ -327,6 +337,68 @@ func (s *Www) searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(geoJSONResponse(profRes.Hotels))
+}
+
+func (s *Www) matchHandler(w http.ResponseWriter, r *http.Request) {
+	if s.record {
+		defer s.p.TptTick(1.0)
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	userIDStr, userVecIDStr, tryCacheStr, vecRangeStartStr, vecRangeEndStr := r.URL.Query().Get("userID"), r.URL.Query().Get("userVecID"), r.URL.Query().Get("tryCache"), r.URL.Query().Get("vecRangeStart"), r.URL.Query().Get("vecRangeEnd")
+
+	if userIDStr == "" || userVecIDStr == "" || tryCacheStr == "" || vecRangeStartStr == "" || vecRangeEndStr == "" {
+		http.Error(w, "Please specify userID, userVecID, tryCache, vecRangeStart, vecRangeEnd params", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Can't parse userID: %v", err), http.StatusBadRequest)
+		return
+	}
+	userVecID, err := strconv.ParseUint(userVecIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Can't parse userID: %v", err), http.StatusBadRequest)
+		return
+	}
+	tryCache, err := strconv.ParseBool(tryCacheStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Can't parse userID: %v", err), http.StatusBadRequest)
+		return
+	}
+	vecRangeStart, err := strconv.ParseUint(vecRangeStartStr, 10, 64)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Can't parse userID: %v", err), http.StatusBadRequest)
+		return
+	}
+	vecRangeEnd, err := strconv.ParseUint(vecRangeEndStr, 10, 64)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Can't parse userID: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	var matchRes proto.MatchRep
+	matchReq := &proto.MatchReq{
+		UserID:    userID,
+		UserVecID: userVecID,
+		TryCache:  tryCache,
+		VecRanges: []*cossimproto.VecRange{
+			&cossimproto.VecRange{
+				StartID: vecRangeStart,
+				EndID:   vecRangeEnd,
+			},
+		},
+	}
+
+	if err := s.matchc.RPC("Match.UserPreference", matchReq, &matchRes); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	db.DPrintf(db.HOTEL_WWW, "matchres %v %v", matchReq, matchRes)
+	json.NewEncoder(w).Encode(matchJSONResponse(&matchRes))
 }
 
 func (s *Www) recommendHandler(w http.ResponseWriter, r *http.Request) {
@@ -573,6 +645,21 @@ func (s *Www) startRecordingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(reply)
+}
+
+func matchJSONResponse(mr *proto.MatchRep) map[string]interface{} {
+	fs := []interface{}{}
+	fs = append(fs, map[string]interface{}{
+		"type":      "Feature",
+		"id":        mr.ID,
+		"val":       mr.Val,
+		"wasCached": mr.WasCached,
+	})
+
+	return map[string]interface{}{
+		"type":     "FeatureCollection",
+		"features": fs,
+	}
 }
 
 // return a geoJSON response that allows google map to plot points directly on map

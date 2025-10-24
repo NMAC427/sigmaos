@@ -13,6 +13,7 @@ import (
 	cachegrpclnt "sigmaos/apps/cache/cachegrp/clnt"
 	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
 	epsrv "sigmaos/apps/epcache/srv"
+	"sigmaos/benchmarks"
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	mschedclnt "sigmaos/sched/msched/clnt"
@@ -271,26 +272,13 @@ func newNCachedJobs(ts *test.RealmTstate, n, nkeys, ncache, nclerks int, durstr 
 	return js, is
 }
 
-func newCachedBackupJobs(ts *test.RealmTstate, jobName string, durs string, maxrpss string, putDurs string, putMaxrpss string, ncache int, cacheMCPU proc.Tmcpu, cacheGC bool, useEPCache bool, nKV int, delegatedInit bool, topN int, scale bool, scaleDelay time.Duration) ([]*CachedBackupJobInstance, []interface{}) {
-	// n is ntrials, which is always 1.
-	n := 1
-	ws := make([]*CachedBackupJobInstance, 0, n)
-	is := make([]interface{}, 0, n)
-	for i := 0; i < n; i++ {
-		i := NewCachedBackupJob(ts, jobName, durs, maxrpss, putDurs, putMaxrpss, ncache, cacheMCPU, cacheGC, useEPCache, nKV, delegatedInit, topN, scale, scaleDelay)
-		ws = append(ws, i)
-		is = append(is, i)
-	}
-	return ws, is
-}
-
-func newCachedScalerJobs(ts *test.RealmTstate, jobName string, durs string, maxrpss string, putDurs string, putMaxrpss string, ncache int, cacheMCPU proc.Tmcpu, cacheGC bool, useEPCache bool, nKV int, delegatedInit bool, topN int, scale bool, scaleDelay time.Duration, scalerCachedCPP bool, scalerCachedRunSleeper bool, cossimBackend bool, cossimNVec int, cossimVecDim int, cossimMCPU proc.Tmcpu, cossimDelegatedInit bool, cossimNVecToQuery int) ([]*CachedScalerJobInstance, []interface{}) {
+func newCachedScalerJobs(ts *test.RealmTstate, jobName string, cacheCfg *benchmarks.CacheBenchConfig, cosSimCfg *benchmarks.CosSimBenchConfig) ([]*CachedScalerJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*CachedScalerJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewCachedScalerJob(ts, jobName, durs, maxrpss, putDurs, putMaxrpss, ncache, cacheMCPU, cacheGC, useEPCache, nKV, delegatedInit, topN, scale, scaleDelay, scalerCachedCPP, scalerCachedRunSleeper, cossimBackend, cossimNVec, cossimVecDim, cossimMCPU, cossimDelegatedInit, cossimNVecToQuery)
+		i := NewCachedScalerJob(ts, jobName, cacheCfg, cosSimCfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
@@ -314,26 +302,26 @@ func newMSchedJobs(ts *test.RealmTstate, nclnt int, dur string, maxrps string, p
 
 // ========== Hotel Helpers ==========
 
-func newHotelJobs(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, dur string, maxrps string, ncache int, cachetype string, cacheMcpu proc.Tmcpu, manuallyScaleCaches bool, scaleCacheDelay time.Duration, nCachesToAdd int, nGeo int, manuallyScaleGeo bool, scaleGeoDelay time.Duration, nGeoToAdd int, geoNIndex int, geoSearchRadius int, geoNResults int, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
+func newHotelJobs(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, cfg *benchmarks.HotelBenchConfig, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*HotelJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewHotelJob(ts, p, sigmaos, dur, maxrps, fn, false, ncache, cachetype, cacheMcpu, manuallyScaleCaches, scaleCacheDelay, nCachesToAdd, nGeo, geoNIndex, geoSearchRadius, geoNResults, manuallyScaleGeo, scaleGeoDelay, nGeoToAdd)
+		i := NewHotelJob(ts, p, sigmaos, fn, false, cfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
 	return ws, is
 }
 
-func newHotelJobsCli(ts *test.RealmTstate, sigmaos bool, dur string, maxrps string, ncache int, cachetype string, cacheMcpu proc.Tmcpu, manuallyScaleCaches bool, scaleCacheDelay time.Duration, nCachesToAdd int, nGeo int, manuallyScaleGeo bool, scaleGeoDelay time.Duration, nGeoToAdd int, geoNIndex int, geoSearchRadius int, geoNResults int, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
+func newHotelJobsCli(ts *test.RealmTstate, sigmaos bool, cfg *benchmarks.HotelBenchConfig, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*HotelJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewHotelJob(ts, nil, sigmaos, dur, maxrps, fn, true, ncache, cachetype, cacheMcpu, manuallyScaleCaches, scaleCacheDelay, nCachesToAdd, nGeo, geoNIndex, geoSearchRadius, geoNResults, manuallyScaleGeo, scaleGeoDelay, nGeoToAdd)
+		i := NewHotelJob(ts, nil, sigmaos, fn, true, cfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
@@ -386,13 +374,13 @@ func newSocialNetworkJobs(
 }
 
 // ========== CosSim Helpers ==========
-func newCosSimJobs(ts *test.RealmTstate, p *perf.Perf, epcj *epsrv.EPCacheJob, cm *cachegrpmgr.CacheMgr, cc *cachegrpclnt.CachedSvcClnt, sigmaos bool, dur string, maxrps string, ncache int, cacheGC bool, cacheMcpu proc.Tmcpu, manuallyScaleCaches bool, scaleCacheDelay time.Duration, nCachesToAdd int, nCosSim int, cosSimMcpu proc.Tmcpu, manuallyScaleCosSim bool, scaleCosSimDelay time.Duration, nCosSimToAdd int, cosSimNVec int, cosSimVecDim int, eagerInit bool, delegateInit bool, fn cosSimFn) ([]*CosSimJobInstance, []interface{}) {
+func newCosSimJobs(ts *test.RealmTstate, p *perf.Perf, epcj *epsrv.EPCacheJob, cm *cachegrpmgr.CacheMgr, cc *cachegrpclnt.CachedSvcClnt, sigmaos bool, cfg *benchmarks.CosSimBenchConfig, fn cosSimFn) ([]*CosSimJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*CosSimJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewCosSimJob(ts, p, epcj, cm, cc, sigmaos, dur, maxrps, fn, false, ncache, cacheGC, cacheMcpu, manuallyScaleCaches, scaleCacheDelay, nCachesToAdd, nCosSim, cosSimNVec, cosSimVecDim, eagerInit, delegateInit, cosSimMcpu, manuallyScaleCosSim, scaleCosSimDelay, nCosSimToAdd)
+		i := NewCosSimJob(ts, p, epcj, cm, cc, sigmaos, fn, false, cfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}

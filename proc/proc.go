@@ -70,6 +70,7 @@ func NewPythonProc(args []string, bucket string) *Proc {
 	program := "python3.11"
 	pid := sp.GenPid(program)
 	p := NewProcPid(pid, program, args)
+	p.GetProcEnv().UseSPProxy = true
 	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.AppendEnv(SIGMAPYBUCKET, bucket)
 	// TODO: Reenable writing .pyc files once we have some kind of persistence story

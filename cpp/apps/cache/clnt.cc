@@ -64,6 +64,46 @@ Clnt::get_clnt(int srv_id, bool initialize) {
   return clnt;
 }
 
+void Clnt::init_clnt(
+    std::shared_ptr<std::promise<std::expected<int, sigmaos::serr::Error>>>
+        result,
+    uint32_t srv_id) {
+  auto res = get_clnt(srv_id, true);
+  if (!res.has_value()) {
+    log(CACHECLNT_ERR, "Error init_clnt get_clnt ({}): {}", (int)srv_id,
+        res.error().String());
+    result->set_value(std::unexpected(res.error()));
+  }
+  result->set_value(0);
+}
+
+std::expected<int, sigmaos::serr::Error> Clnt::InitClnts(uint32_t last_srv_id) {
+  std::vector<std::thread> init_threads;
+  std::vector<
+      std::shared_ptr<std::promise<std::expected<int, sigmaos::serr::Error>>>>
+      init_promises;
+  std::vector<std::future<std::expected<int, sigmaos::serr::Error>>>
+      init_results;
+  // Start client initializations in multiple threads
+  for (uint32_t srv_id = 0; srv_id < last_srv_id; srv_id++) {
+    init_promises.push_back(
+        std::make_shared<
+            std::promise<std::expected<int, sigmaos::serr::Error>>>());
+    init_results.push_back(init_promises.at(srv_id)->get_future());
+    init_threads.push_back(
+        std::thread(&Clnt::init_clnt, this, init_promises.at(srv_id), srv_id));
+  }
+  for (int i = 0; i < init_threads.size(); i++) {
+    init_threads.at(i).join();
+    auto res = init_results.at(i).get();
+    if (!res.has_value()) {
+      log(CACHECLNT_ERR, "Error init_clnts {}", res.error().String());
+      return std::unexpected(res.error());
+    }
+  }
+  return 0;
+}
+
 std::expected<int, sigmaos::serr::Error> Clnt::Get(
     std::string key, std::shared_ptr<std::string> val) {
   log(CACHECLNT, "Get: {}", key);
@@ -99,8 +139,9 @@ std::expected<int, sigmaos::serr::Error> Clnt::Get(
   return 0;
 }
 
-std::expected<std::pair<std::vector<uint64_t>, std::shared_ptr<std::string>>,
-              sigmaos::serr::Error>
+std::expected<
+    std::shared_ptr<std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>,
+    sigmaos::serr::Error>
 Clnt::MultiGet(uint32_t srv_id, std::vector<std::string> &keys) {
   log(CACHECLNT, "MultiGet nkey {}", keys.size());
   std::shared_ptr<sigmaos::rpc::Clnt> rpcc;
@@ -138,12 +179,17 @@ Clnt::MultiGet(uint32_t srv_id, std::vector<std::string> &keys) {
       return std::unexpected(res.error());
     }
   }
-  std::vector<uint64_t> lengths(rep.lengths().size(), 0);
-  for (int i = 0; i < lengths.size(); i++) {
-    lengths[i] = rep.lengths().at(i);
+  auto vals = std::make_shared<
+      std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>(
+      rep.lengths().size(), nullptr);
+  uint64_t off = 0;
+  for (int i = 0; i < vals->size(); i++) {
+    uint64_t len = rep.lengths().at(i);
+    vals->at(i) = std::make_shared<sigmaos::apps::cache::Value>(buf, off, len);
+    off += len;
   }
   log(CACHECLNT, "MultiGet ok");
-  return std::make_pair(lengths, buf);
+  return vals;
 }
 
 std::expected<int, sigmaos::serr::Error> Clnt::Put(
@@ -377,7 +423,8 @@ Clnt::DelegatedMultiDumpShard(uint64_t rpc_idx, std::vector<uint32_t> &shards) {
   MultiShardRep rep;
   Blob blob;
   auto iov = blob.mutable_iov();
-  std::shared_ptr<std::vector<std::shared_ptr<std::string_view>>> shard_views;
+  std::shared_ptr<std::vector<std::shared_ptr<std::string_view>>> shard_views =
+      nullptr;
   std::vector<std::shared_ptr<std::string>> shard_bufs;
   if (_sp_clnt->ProcEnv()->GetUseShmem()) {
     shard_views =
@@ -482,8 +529,9 @@ Clnt::DelegatedDumpShard(uint64_t rpc_idx) {
   return kvs;
 }
 
-std::expected<std::pair<std::vector<uint64_t>, std::shared_ptr<std::string>>,
-              sigmaos::serr::Error>
+std::expected<
+    std::shared_ptr<std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>,
+    sigmaos::serr::Error>
 Clnt::DelegatedMultiGet(uint64_t rpc_idx) {
   log(CACHECLNT, "Delegated MultiGet rpc_idx {}", (int)rpc_idx);
   std::shared_ptr<sigmaos::rpc::Clnt> rpcc;
@@ -499,23 +547,47 @@ Clnt::DelegatedMultiGet(uint64_t rpc_idx) {
   CacheMultiGetRep rep;
   Blob blob;
   auto iov = blob.mutable_iov();
-  // Add a buffer to hold the output
-  auto buf = std::make_shared<std::string>();
-  iov->AddAllocated(buf.get());
+  std::shared_ptr<std::vector<std::shared_ptr<std::string_view>>> buf_views =
+      nullptr;
+  std::shared_ptr<std::string> buf;
+  // Add a buffer, or a string view if using shared mem, to hold the output
+  if (_sp_clnt->ProcEnv()->GetUseShmem()) {
+    buf_views =
+        std::make_shared<std::vector<std::shared_ptr<std::string_view>>>();
+    buf_views->push_back(std::make_shared<std::string_view>());
+  } else {
+    buf = std::make_shared<std::string>();
+    iov->AddAllocated(buf.get());
+  }
   rep.set_allocated_blob(&blob);
   {
-    auto res = rpcc->DelegatedRPC(rpc_idx, rep);
+    auto res = rpcc->DelegatedRPC(rpc_idx, rep, buf_views);
     if (!res.has_value()) {
       log(CACHECLNT_ERR, "Error Get: {}", res.error().String());
       return std::unexpected(res.error());
     }
   }
-  std::vector<uint64_t> lengths(rep.lengths().size(), 0);
-  for (int i = 0; i < lengths.size(); i++) {
-    lengths[i] = rep.lengths().at(i);
+  auto vals = std::make_shared<
+      std::vector<std::shared_ptr<sigmaos::apps::cache::Value>>>(
+      rep.lengths().size(), nullptr);
+  std::shared_ptr<std::string_view> buf_view;
+  if (_sp_clnt->ProcEnv()->GetUseShmem()) {
+    buf_view = buf_views->at(0);
+  }
+  uint64_t off = 0;
+  for (int i = 0; i < vals->size(); i++) {
+    uint64_t len = rep.lengths().at(i);
+    if (_sp_clnt->ProcEnv()->GetUseShmem()) {
+      vals->at(i) =
+          std::make_shared<sigmaos::apps::cache::Value>(buf_view, off, len);
+    } else {
+      vals->at(i) =
+          std::make_shared<sigmaos::apps::cache::Value>(buf, off, len);
+    }
+    off += len;
   }
   log(CACHECLNT, "DelegatedMultiGet ok");
-  return std::make_pair(lengths, buf);
+  return vals;
 }
 
 };  // namespace apps::cache
