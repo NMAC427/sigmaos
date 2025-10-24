@@ -186,6 +186,11 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         .flags(MountFlags::BIND | MountFlags::RDONLY)
         .mount("/lib", "lib")?;
 
+    Mount::builder()
+        .fstype("none")
+        .flags(MountFlags::BIND | MountFlags::RDONLY)
+        .mount("/bin", "bin")?;
+
     // E.g., openat "/lib64/ld-musl-x86_64.so.1" (links to /lib/)
     Mount::builder()
         .fstype("none")
@@ -203,6 +208,9 @@ fn jail_proc(debug_pid: &str, pid: &str) -> Result<(), Box<dyn std::error::Error
         .fstype("none")
         .flags(MountFlags::BIND | MountFlags::RDONLY)
         .mount("/etc", "etc")?;
+
+    // Copy host /etc/resolv.conf into jailed etc/resolv.conf so DNS resolution works
+    fs::copy("/etc/resolv.conf", "etc/resolv.conf")?;
 
     // E.g., openat "/proc/meminfo", "/proc/self/exe", but further
     // restricted by apparmor sigmoas-uproc profile.
