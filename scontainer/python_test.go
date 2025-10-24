@@ -28,11 +28,47 @@ func runBasicPythonTest(ts *test.Tstate, spawn_type string, proc *proc.Proc) {
 	fmt.Printf("%s spawn %v, start %v, exit %v\n", spawn_type, duration, duration2, duration3)
 }
 
-func TestPythonLaunch(t *testing.T) {
+func runBasicPythonTestWithoutCheckingExitCode(ts *test.Tstate, spawn_type string, proc *proc.Proc) {
+	start := time.Now()
+	err := ts.Spawn(proc)
+	assert.Nil(ts.T, err)
+	duration := time.Since(start)
+	err = ts.WaitStart(proc.GetPid())
+	assert.Nil(ts.T, err, "Error waitstart: %v", err)
+	duration2 := time.Since(start)
+	_, _ = ts.WaitExit(proc.GetPid())
+	duration3 := time.Since(start)
+	fmt.Printf("%s spawn %v, start %v, exit %v\n", spawn_type, duration, duration2, duration3)
+}
+
+func TestPythonStartup(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
+	p := proc.NewPythonProc([]string{"-c", "exit(1)"}, bucket)
+	runBasicPythonTestWithoutCheckingExitCode(ts, "cold", p)
+
+	p = proc.NewPythonProc([]string{"-c", "exit(1)"}, bucket)
+	runBasicPythonTestWithoutCheckingExitCode(ts, "warm", p)
+}
+
+func TestPythonSplibImport(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	// Launch, connect to sigmaos proxy, signal start & exit
 	p := proc.NewPythonProc([]string{"hello/main.py"}, bucket)
+	runBasicPythonTest(ts, "cold", p)
+
+	p = proc.NewPythonProc([]string{"hello/main.py"}, bucket)
+	runBasicPythonTest(ts, "warm", p)
+}
+
+func TestPythonEnvInfo(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	p := proc.NewPythonProc([]string{"hello/env_info.py"}, bucket)
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -105,6 +141,15 @@ func TestPythonChecksumVerification(t *testing.T) {
 	fmt.Printf("Starting 3rd proc (invalid cache)...\n")
 	p3 := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
 	runBasicPythonTest(ts, "warm", p3)
+}
+
+func TestPythonReverseShell(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	fmt.Printf("To connect to the python reverse shell, run:\n\n  nc -lvnp 4445\n\n")
+	p := proc.NewPythonProc([]string{"_reverse_shell/main.py"}, bucket)
+	runBasicPythonTest(ts, "cold", p)
 }
 
 // SigmaOS API Tests

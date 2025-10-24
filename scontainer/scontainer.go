@@ -92,7 +92,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	// Optionally strace the proc
 	if straceProcs[uproc.GetProgram()] {
 		args := []string{"--absolute-timestamps", "--absolute-timestamps=precision:us", "--syscall-times=us", "-D", "-f", "uproc-trampoline", uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}
-		if strings.Contains(uproc.GetProgram(), "cpp") {
+		if strings.Contains(uproc.GetProgram(), "cpp") || isPythonProc {
 			// Don't catch SIGSEGV for C++ programs, as this can lead to an infinite
 			// strace output loop.
 			args = append([]string{"--signal=!SIGSEGV"}, args...)

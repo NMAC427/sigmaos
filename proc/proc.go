@@ -72,6 +72,9 @@ func NewPythonProc(args []string, bucket string) *Proc {
 	p := NewProcPid(pid, program, args)
 	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.AppendEnv(SIGMAPYBUCKET, bucket)
+	// TODO: Reenable writing .pyc files once we have some kind of persistence story
+	// for pyproc files in realms.
+	p.AppendEnv("PYTHONDONTWRITEBYTECODE", "1")
 	return p
 }
 

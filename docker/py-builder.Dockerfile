@@ -33,9 +33,7 @@ RUN wget https://github.com/python/cpython/archive/refs/tags/v3.11.13.tar.gz -O 
     mv /cpython-3.11.13 /cpython3.11 && \
     cd /cpython3.11 && \
     ./configure \
-      --prefix=/home/sigmaos/bin/user \
-      --exec-prefix=/home/sigmaos/bin/user \
-      --with-ensurepip=install && \
+      --prefix=/tmp/python/python && \
     make -j
 
 # Set up builder user
