@@ -3,7 +3,6 @@
 package scontainer
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,7 +14,6 @@ import (
 
 	db "sigmaos/debug"
 	"sigmaos/proc"
-	"sigmaos/pyproxysrv"
 	"sigmaos/sched/msched/proc/srv/binsrv"
 	"sigmaos/scontainer/python"
 	sp "sigmaos/sigmap"
@@ -25,7 +23,6 @@ import (
 type uprocCmd struct {
 	uproc    *proc.Proc
 	cmd      *exec.Cmd
-	pps      *pyproxysrv.PyProxySrv
 	jailPath string
 }
 
@@ -97,19 +94,12 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 			// strace output loop.
 			args = append([]string{"--signal=!SIGSEGV"}, args...)
 		}
-		// if isPythonProc {
-		// 	args = append([]string{"-E", "LD_PRELOAD=" + python.LD_PRELOAD_PATH}, args...)
-		// }
 		args = append(args, uproc.Args...)
 		uprocCmd.cmd = exec.Command("strace", args...)
 	} else if valgrindProcs[uproc.GetProgram()] {
 		uprocCmd.cmd = exec.Command("valgrind", append([]string{"--trace-children=yes", "uproc-trampoline", uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}, uproc.Args...)...)
 	} else {
 		uprocCmd.cmd = exec.Command("uproc-trampoline", append([]string{uproc.GetPid().String(), pn, strconv.FormatBool(dialproxy)}, uproc.Args...)...)
-
-		// if isPythonProc {
-		// 	uproc.AppendEnv("LD_PRELOAD", python.LD_PRELOAD_PATH)
-		// }
 	}
 	uproc.AppendEnv("PATH", "/bin:/bin2:/usr/bin:/home/sigmaos/bin/kernel")
 	uproc.AppendEnv("SIGMA_EXEC_TIME", strconv.FormatInt(time.Now().UnixMicro(), 10))
@@ -134,25 +124,6 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	}
 	db.DPrintf(db.CONTAINER, "exec cmd %v", uprocCmd.cmd)
 
-	if isPythonProc {
-		bucketName, ok := uproc.LookupEnv(proc.SIGMAPYBUCKET)
-		if !ok {
-			err := errors.New("nil SIGMAPYBUCKET")
-			db.DPrintf(db.PYPROXYSRV_ERR, "No specified AWS bucket: %v", err)
-			CleanupUProc(uprocCmd)
-			return nil, err
-		}
-
-		pps_socket_path := filepath.Join(uprocCmd.jailPath, "tmp/python/spproxyd-pyproxy.sock")
-		pps, err := pyproxysrv.NewPyProxySrv(uproc.GetProcEnv(), bucketName, pps_socket_path)
-		if err != nil {
-			db.DPrintf(db.PYPROXYSRV_ERR, "Error NewPyProxySrv: %v", err)
-			CleanupUProc(uprocCmd)
-			return nil, err
-		}
-		uprocCmd.pps = pps
-	}
-
 	s := time.Now()
 	if err := uprocCmd.cmd.Start(); err != nil {
 		db.DPrintf(db.CONTAINER, "Error start %v %v", uprocCmd.cmd, err)
@@ -168,9 +139,6 @@ func CleanupUProc(uprocCmd *uprocCmd) {
 	python.CleanSitePackages(pyEnvPath(pid))
 	if err := os.RemoveAll(uprocCmd.jailPath); err != nil {
 		db.DPrintf(db.ALWAYS, "Error cleanupJail: %v", err)
-	}
-	if uprocCmd.pps != nil {
-		uprocCmd.pps.Shutdown()
 	}
 }
 

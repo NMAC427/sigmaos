@@ -21,8 +21,6 @@ import (
 const (
 	PYTHON_PACKAGE_CACHE_DIR = "/tmp/python-package-cache"
 	PYTHON_TMP_INSTALL_DIR   = PYTHON_PACKAGE_CACHE_DIR + "/tmp"
-
-	LD_PRELOAD_PATH = "/tmp/python/python/sigmaos/ld_preload.so"
 )
 
 type PythonVersion struct {

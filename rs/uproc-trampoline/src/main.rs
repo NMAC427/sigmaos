@@ -120,18 +120,6 @@ fn main() {
         false,
     );
     now = SystemTime::now();
-    // Connect to the pyproxy socket
-    let python_version = env::var("SIGMA_PYTHON_VERSION").unwrap_or("".to_string());
-    if python_version != "" {
-        let pyproxy_conn = UnixStream::connect("/tmp/python/spproxyd-pyproxy.sock").unwrap();
-        let pyproxy_conn_fd = pyproxy_conn.into_raw_fd();
-        fcntl::fcntl(pyproxy_conn_fd, FcntlArg::F_SETFD(FdFlag::empty())).unwrap();
-        env::set_var("SIGMA_PYPROXY_FD", pyproxy_conn_fd.to_string());
-        log::info!("PYPROXY_FD: {}", pyproxy_conn_fd.to_string());
-        print_elapsed_time(&debug_pid, "trampoline.connect_pyproxy", spawn_time, now, false);
-        now = SystemTime::now();
-    }
-    now = SystemTime::now();
     //    seccomp_proc(spawn_time, dialproxy).expect("seccomp failed");
     print_elapsed_time(
         &debug_pid,

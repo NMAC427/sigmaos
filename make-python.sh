@@ -111,26 +111,6 @@ EOF
 
 cp "$ROOT/scontainer/python/install_wheel.py" "$PY_OUTPATH/sigmaos/kernel"
 
-# Add checksum overrides for default libraries
-OVERRIDEFILE="sigmaos-checksum-override"
-for entry in "$PY_OUTPATH/Lib/*"; do
-  if [ -e "$entry" ]; then
-    if [ -d "$entry" ]; then
-      touch "$entry/$OVERRIDEFILE"
-    elif [[ -f "$entry" && "$entry" == *.py ]]; then
-      filename=$(basename "$entry" .py)
-      touch "$PY_OUTPATH/Lib/$filename-$OVERRIDEFILE"
-    elif [[ -f "$entry" && "$entry" == *.so ]]; then
-      filename=$(basename "$entry" .so)
-      touch "$PY_OUTPATH/Lib/$filename-$OVERRIDEFILE"
-    fi
-  fi
-done
-
-# Build python shim
-make -C ld_preload --no-print-directory
-cp $ROOT/ld_preload/ld_preload.so $PY_OUTPATH/sigmaos
-
 # Copy Python user processes
 # TODO: Use binfs instead of shipping pyproc with the kernel
 rm -rf "$OUTPATH/kernel/pyproc"

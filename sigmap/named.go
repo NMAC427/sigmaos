@@ -111,7 +111,6 @@ const (
 	SIGMASOCKET            = "/tmp/spproxyd/spproxyd.sock"
 	SIGMASOCKET_CTRL       = "/tmp/spproxyd/spproxyd-ctrl.sock"
 	SIGMA_DIALPROXY_SOCKET = "/tmp/spproxyd/spproxyd-dialproxy.sock"
-	SIGMA_PYPROXY_SOCKET   = "/tmp/spproxyd/spproxyd-pyproxy.sock"
 )
 
 // spproxyd kernel

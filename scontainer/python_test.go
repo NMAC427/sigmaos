@@ -2,7 +2,6 @@ package scontainer_test
 
 import (
 	"fmt"
-	"os"
 	"sigmaos/proc"
 	"sigmaos/test"
 	"testing"
@@ -10,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-const bucket = "sigmaos-ncam"
 
 func runBasicPythonTest(ts *test.Tstate, spawn_type string, proc *proc.Proc) {
 	start := time.Now()
@@ -45,10 +42,10 @@ func TestPythonStartup(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"-c", "exit(1)"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"-c", "exit(1)"})
 	runBasicPythonTestWithoutCheckingExitCode(ts, "cold", p)
 
-	p = proc.NewPythonProc([]string{"-c", "exit(1)"}, bucket)
+	p = proc.NewPythonProc(proc.Python311, []string{"-c", "exit(1)"})
 	runBasicPythonTestWithoutCheckingExitCode(ts, "warm", p)
 }
 
@@ -57,10 +54,10 @@ func TestPythonSplibImport(t *testing.T) {
 	defer ts.Shutdown()
 
 	// Launch, connect to sigmaos proxy, signal start & exit
-	p := proc.NewPythonProc([]string{"hello/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"hello/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 
-	p = proc.NewPythonProc([]string{"hello/main.py"}, bucket)
+	p = proc.NewPythonProc(proc.Python311, []string{"hello/main.py"})
 	runBasicPythonTest(ts, "warm", p)
 }
 
@@ -68,7 +65,7 @@ func TestPythonEnvInfo(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"hello/env_info.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"hello/env_info.py"})
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -76,15 +73,7 @@ func TestPythonBasicImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"basic_import/main.py"}, bucket)
-	runBasicPythonTest(ts, "cold", p)
-}
-
-func TestPythonAWSImport(t *testing.T) {
-	ts, _ := test.NewTstateAll(t)
-	defer ts.Shutdown()
-
-	p := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"basic_import/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -92,7 +81,7 @@ func TestPythonNeighborImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"neighbor_import/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"neighbor_import/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -100,10 +89,10 @@ func TestPythonNumpyImport(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"numpy_import/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"numpy_import/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 
-	p2 := proc.NewPythonProc([]string{"numpy_import/main.py"}, bucket)
+	p2 := proc.NewPythonProc(proc.Python311, []string{"numpy_import/main.py"})
 	runBasicPythonTest(ts, "warm", p2)
 }
 
@@ -111,36 +100,8 @@ func TestImageProcessing(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"imgprocessing/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"imgprocessing/main.py"})
 	runBasicPythonTest(ts, "cold", p)
-}
-
-func TestPythonChecksumVerification(t *testing.T) {
-	ts, _ := test.NewTstateAll(t)
-	defer ts.Shutdown()
-
-	fmt.Printf("Starting 1st proc...\n")
-	p := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
-	runBasicPythonTest(ts, "cold", p)
-
-	checksumPath := "/tmp/python/Lib/dummy_package-sigmaos-checksum"
-	_, err := os.Stat(checksumPath)
-	assert.Nil(t, err)
-
-	fmt.Printf("Starting 2nd proc (cached lib)...\n")
-	p2 := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
-	runBasicPythonTest(ts, "warm", p2)
-
-	_, err = os.Stat(checksumPath)
-	assert.Nil(t, err)
-	err = os.Remove(checksumPath)
-	assert.Nil(t, err)
-	_, err = os.Stat(checksumPath)
-	assert.NotNil(t, err)
-
-	fmt.Printf("Starting 3rd proc (invalid cache)...\n")
-	p3 := proc.NewPythonProc([]string{"aws_import/main.py"}, bucket)
-	runBasicPythonTest(ts, "warm", p3)
 }
 
 func TestPythonReverseShell(t *testing.T) {
@@ -148,8 +109,8 @@ func TestPythonReverseShell(t *testing.T) {
 	defer ts.Shutdown()
 
 	fmt.Printf("To connect to the python reverse shell, run:\n\n  nc -lvnp 4445\n\n")
-	p := proc.NewPythonProc([]string{"_reverse_shell/main.py"}, bucket)
-	runBasicPythonTest(ts, "cold", p)
+	p := proc.NewPythonProc(proc.Python311, []string{"_reverse_shell/main.py"})
+	runBasicPythonTestWithoutCheckingExitCode(ts, "cold", p)
 }
 
 // SigmaOS API Tests
@@ -158,7 +119,7 @@ func TestPythonStat(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"stat_test/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"stat_test/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 }
 
@@ -166,6 +127,6 @@ func TestPythonFiles(t *testing.T) {
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
-	p := proc.NewPythonProc([]string{"file_test/main.py"}, bucket)
+	p := proc.NewPythonProc(proc.Python311, []string{"file_test/main.py"})
 	runBasicPythonTest(ts, "cold", p)
 }
