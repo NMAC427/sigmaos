@@ -1,9 +1,13 @@
-import splib
+import _clntlib as splib
 import time
-import ctypes
 
 results = []
 bucket_name = "sigmaos-ncam"
+
+ms_start = time.time() * 1000.0
+splib.init_socket()
+ms_end = time.time() * 1000.0
+results.append(("Init", ms_end - ms_start))
 
 # ms_start = time.time() * 1000.0
 # splib.Open("name/msched/~local/", 2, False)
