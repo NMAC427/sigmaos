@@ -14,25 +14,25 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
   --run)
       shift
-      TNAME="$1" 
+      TNAME="$1"
       shift
       ;;
   --no-start)
       shift
-      START="" 
+      START=""
       ;;
   --pkg)
       shift
-      SPKG="$1" 
+      SPKG="$1"
       shift
       ;;
   --race)
       shift
-      RACE="--race" 
+      RACE="--race"
       ;;
   --args)
       shift
-      ARGS="$1" 
+      ARGS="$1"
       shift
       ;;
   --rebuildtester)
@@ -57,6 +57,13 @@ fi
 
 ROOT=$(dirname $(realpath $0))
 source $ROOT/env/env.sh
+
+# Detect if we are in a TTY
+if [ -t 1 ]; then
+  IT="-it"
+else
+  IT="-i"
+fi
 
 if [ -z "$SIGMAUSER" ] || [[ "$SIGMAUSER" == "NOT_SET" ]] ; then
   echo "SIGMAUSER must be set in $ROOT/env/env.sh in order to run tests in docker"
@@ -115,7 +122,7 @@ if [ -z "$testercid" ]; then
   # Start tester
   echo "========== Starting tester container =========="
   mkdir -p $HOST_BIN_CACHE
-  docker run --rm -d -it \
+  docker run --rm -d $IT \
     --name $TESTER_NAME \
     --network $TESTER_NETWORK \
     --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
@@ -127,7 +134,7 @@ if [ -z "$testercid" ]; then
     --mount type=bind,src=$KERNEL_DIR,dst=$KERNEL_DIR \
     --mount type=bind,src=$DATA_DIR,dst=$DATA_DIR \
     --mount type=bind,src=$PERF_DIR,dst=$PERF_DIR \
-    $TESTER_NAME 
+    $TESTER_NAME
   testercid=$(docker ps -a | grep -E " $TESTER_NAME " | cut -d " " -f1)
   until [ "`docker inspect -f {{.State.Running}} $testercid`"=="true" ]; do
       echo -n "." 1>&2
@@ -138,7 +145,7 @@ fi
 
 # Clean the test cache
 docker exec \
-  -it $testercid \
+  $IT $testercid \
   go clean -testcache
 
 ETCD_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $ETCD_CTR_NAME)
@@ -147,7 +154,7 @@ ETCD_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{
 docker exec \
   --env SIGMADEBUG="$SIGMADEBUG" \
   --env SIGMADEBUGPROCS="$SIGMADEBUGPROCS" \
-  -it $testercid \
+  $IT $testercid \
   go test -v $RACE sigmaos/$SPKG --run $TNAME \
   --user $SIGMAUSER \
   --homedir $HOME \

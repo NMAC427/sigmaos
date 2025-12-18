@@ -90,6 +90,28 @@ fi
 ROOT=$(dirname $(realpath $0))
 source $ROOT/env/env.sh
 
+# Detect if we are in a TTY
+if [ -t 1 ]; then
+  IT="-it"
+else
+  IT="-i"
+fi
+
+# ==============================================================================
+#  CI / LOCAL BUILD CONFIGURATION
+# ==============================================================================
+# If running in GitHub Actions, use buildx with caching and load results.
+# If running locally, use standard docker build.
+if [ "$GITHUB_ACTIONS" = "true" ]; then
+    echo ">> CI Environment detected: Enabling Buildx + GHA Caching"
+    BUILD_CMD="docker buildx build"
+    CACHE_FLAGS="--cache-from type=gha --cache-to type=gha --load"
+else
+    BUILD_CMD="DOCKER_BUILDKIT=1 docker build"
+    CACHE_FLAGS=""
+fi
+# ==============================================================================
+
 TMP_BASE="/tmp"
 BUILDER_NAME="sig-builder"
 RS_BUILDER_NAME="sig-rs-builder"
@@ -162,14 +184,14 @@ fi
 if [ -z "$buildercid" ]; then
   # Build builder
   echo "========== Build builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/builder.Dockerfile -t $BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-builder.out
+  $BUILD_CMD --progress=plain -f docker/builder.Dockerfile -t $BUILDER_NAME $CACHE_FLAGS . 2>&1 | tee $BUILD_LOG/sig-builder.out
   echo "========== Done building builder =========="
   # Start builder
   echo "========== Starting builder container =========="
-  docker run --rm -d -it \
+  docker run --rm -d $IT \
     --name $BUILDER_NAME \
     --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
-    $BUILDER_NAME 
+    $BUILDER_NAME
   buildercid=$(docker ps -a | grep -E " $BUILDER_NAME " | cut -d " " -f1)
   until [ "`docker inspect -f {{.State.Running}} $buildercid`"=="true" ]; do
       echo -n "." 1>&2
@@ -181,11 +203,11 @@ fi
 if [ -z "$rsbuildercid" ]; then
   # Build builder
   echo "========== Build Rust builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/rs-builder.Dockerfile -t $RS_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
+  $BUILD_CMD --progress=plain -f docker/rs-builder.Dockerfile -t $RS_BUILDER_NAME $CACHE_FLAGS . 2>&1 | tee $BUILD_LOG/sig-rs-builder.out
   echo "========== Done building Rust builder =========="
   # Start builder
   echo "========== Starting Rust builder container =========="
-  docker run --rm -d -it \
+  docker run --rm -d $IT \
     --name $RS_BUILDER_NAME \
     --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
     $RS_BUILDER_NAME
@@ -200,11 +222,11 @@ fi
 if [ -z "$cppbuildercid" ]; then
   # Build builder
   echo "========== Build CPP builder image =========="
-  DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/cpp-builder.Dockerfile -t $CPP_BUILDER_NAME . 2>&1 | tee $BUILD_LOG/sig-cpp-builder.out
+  $BUILD_CMD --progress=plain -f docker/cpp-builder.Dockerfile -t $CPP_BUILDER_NAME $CACHE_FLAGS . 2>&1 | tee $BUILD_LOG/sig-cpp-builder.out
   echo "========== Done building CPP builder =========="
   # Start builder
   echo "========== Starting CPP builder container =========="
-  docker run --rm -d -it \
+  docker run --rm -d $IT \
     --name $CPP_BUILDER_NAME \
     --mount type=bind,src=$ROOT,dst=/home/sigmaos/ \
     $CPP_BUILDER_NAME
@@ -225,7 +247,7 @@ BUILD_ARGS="\
 if [ "${NO_GO}" != "true" ]; then
   echo "========== Building kernel bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-kernel.out
-  docker exec -it $buildercid \
+  docker exec $IT $buildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make.sh $BUILD_ARGS kernel \
     2>&1 | tee $BUILD_OUT_FILE && \
@@ -240,10 +262,10 @@ if [ "${NO_GO}" != "true" ]; then
     # Copy named, which is also a user bin
     cp $KERNELBIN/named $USRBIN/named
   echo "========== Done building kernel bins =========="
-  
+
   echo "========== Building user bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user.out
-  docker exec -it $buildercid \
+  docker exec $IT $buildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION \
     2>&1 | tee $BUILD_OUT_FILE && \
@@ -256,7 +278,7 @@ if [ "${NO_GO}" != "true" ]; then
       exit 1
     fi
   echo "========== Done building user bins =========="
-fi 
+fi
 
 RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
   $PARALLEL"
@@ -264,7 +286,7 @@ RS_BUILD_ARGS="--rustpath \$HOME/.cargo/bin/cargo \
 if [ "${NO_RS}" != "true" ]; then
   echo "========== Building Rust bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-rs.out
-  docker exec -it $rsbuildercid \
+  docker exec $IT $rsbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-rs.sh $RS_BUILD_ARGS --version $VERSION \
     2>&1 | tee $BUILD_OUT_FILE && \
@@ -282,7 +304,7 @@ fi
 if [ "${NO_CPP}" != "true" ]; then
   echo "========== Building CPP bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-cpp.out
-  docker exec -it $cppbuildercid \
+  docker exec $IT $cppbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-cpp.sh $CPP_BUILD_ARGS --version $VERSION \
     2>&1 | tee $BUILD_OUT_FILE && \
@@ -320,7 +342,8 @@ if ! [ -z "$PARALLEL" ]; then
   njobs=$(echo $targets | wc -w)
 fi
 
-build_targets="parallel -j$njobs \"DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/target.Dockerfile --target {} -t {}$BUILD_TARGET_SUFFIX . 2>&1 | tee $BUILD_LOG/{}.out\" ::: $targets"
+# Updated to use BUILD_CMD and CACHE_FLAGS for the final targets as well
+build_targets="parallel -j$njobs \"$BUILD_CMD --progress=plain $CACHE_FLAGS -f docker/target.Dockerfile --target {} -t {}$BUILD_TARGET_SUFFIX . 2>&1 | tee $BUILD_LOG/{}.out\" ::: $targets"
 
 if [ "${NO_DOCKER}" != "true" ]; then
   printf "\nBuilding Docker image targets\n$build_targets\n\n"
@@ -346,7 +369,7 @@ fi
 if [ "${NO_GO}" != "true" ]; then
   # Build npproxy for host
   echo "========== Building proxy =========="
-  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy 
+  /usr/bin/time -f "Build time: %e sec" ./make.sh --norace $PARALLEL npproxy
   echo "========== Done building proxy =========="
 fi
 

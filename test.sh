@@ -7,7 +7,7 @@
 #
 
 usage() {
-  echo "Usage: $0 [--apps-fast] [--apps] [--compile] [--usespproxyd] [--nodialproxy] [--reuse-kernel] [--cleanup] [--skipto PKG] [--savelogs]" 
+  echo "Usage: $0 [--apps-fast] [--apps] [--compile] [--usespproxyd] [--nodialproxy] [--reuse-kernel] [--cleanup] [--skipto PKG] [--savelogs]"
 }
 
 BASIC="--basic"
@@ -26,13 +26,13 @@ while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --apps-fast)
             shift
-            BASIC="" 
+            BASIC=""
             APPS="--apps"
             FAST="--fast"
             ;;
         --apps)
             shift
-            BASIC="" 
+            BASIC=""
             APPS="--apps"
             ;;
         --compile)
@@ -42,16 +42,16 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         --skipto)
             shift
-            SKIPTO="$1" 
+            SKIPTO="$1"
             shift
             ;;
         --usespproxyd)
             shift
-            SPPROXYD="--usespproxyd" 
+            SPPROXYD="--usespproxyd"
             ;;
         --nodialproxy)
             shift
-            DIALPROXY="--nodialproxy" 
+            DIALPROXY="--nodialproxy"
             ;;
         --reuse-kernel)
             shift
@@ -59,11 +59,11 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         --savelogs)
             shift
-            SAVELOGS="true" 
+            SAVELOGS="true"
             ;;
         --cleanup)
             shift
-            CLEANUP="true" 
+            CLEANUP="true"
             ;;
         *)
             echo "unexpected argument $1"
@@ -96,11 +96,11 @@ run_test() {
     TEST_LOG_PATH="$LOG_DIR/$pkg_name.test.out"
     printf "=== $pkg_name\n"
     printf "  Run $pkg_name\n"
-    $cmd > $TEST_LOG_PATH 2>&1
+    $cmd 2>&1 | tee $TEST_LOG_PATH
     printf "  Done running $pkg_name\n\tLog path: $TEST_LOG_PATH\n"
     PROC_LOG_PATH="$LOG_DIR/$pkg_name.procs.out"
     printf "  Save $pkg_name proc logs\n"
-    ./logs.sh > $PROC_LOG_PATH 2>&1
+    ./logs.sh 2>&1 | tee $PROC_LOG_PATH
     printf "  Done saving $pkg_name proc logs\n\tLog path: $PROC_LOG_PATH\n"
   else
     eval "$cmd"
@@ -112,7 +112,7 @@ check_test_logs() {
   if [ $# -ne 0 ]; then
     echo "check_test_logs expects no args" 1>&2
     exit 1
-  fi 
+  fi
   if [[ "$SAVELOGS" != "true" ]]; then
     return
   fi
@@ -120,6 +120,7 @@ check_test_logs() {
   if [ $(grep -rwE "panic|FATAL|FAIL" $LOG_DIR/*.test.out > /dev/null; echo $?) -eq 0 ]; then
     echo "!!!!!!!!!! Some tests failed !!!!!!!!!!" | tee $LOG_DIR/summary.out
     grep -rwlE "panic|FATAL|FAIL" $LOG_DIR/*.test.out 2>&1 | tee -a $LOG_DIR/summary.out
+    exit 1
   else
     echo "++++++++++ All tests passed ++++++++++" | tee $LOG_DIR/summary.out
   fi
@@ -228,7 +229,7 @@ if [[ $BASIC == "--basic" ]]; then
     #
     # test sessions
     #
-    
+
     for T in net/clnt session/clnt; do
         if ! [ -z "$SKIPTO" ]; then
           if [[ "$SKIPTO" == "$T" ]]; then
