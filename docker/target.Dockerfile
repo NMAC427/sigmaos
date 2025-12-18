@@ -14,7 +14,8 @@ RUN apt update && \
   libc6-dbg \
   libabsl-dev \
   curl \
-  golang
+  golang \
+  linux-tools-generic linux-tools-$(uname -r)
 
 WORKDIR /home/sigmaos
 RUN mkdir bin && \
