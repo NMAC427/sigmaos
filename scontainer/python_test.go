@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sigmaos/proc"
 	"sigmaos/test"
+	"sync"
 	"testing"
 	"time"
 
@@ -129,4 +130,124 @@ func TestPythonFiles(t *testing.T) {
 
 	p := proc.NewPythonProc(proc.Python311, []string{"file_test/main.py"})
 	runBasicPythonTest(ts, "cold", p)
+}
+
+// Fork tests
+
+func TestPythonFork(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	// Create a ForkConfig that specifies how to create a Zygote if needed.
+	// The Zygote runs fork/main.py which blocks at splib.fork.fork_point().
+	zygote := proc.NewPythonProc(proc.Python311, []string{"fork/main.py"})
+	zygote.AppendEnv("PYTHONUNBUFFERED", "1")
+
+	forkConfig := proc.ForkConfig{
+		ZygoteProc: zygote,
+		KeepAlive:  10 * time.Second,
+	}
+
+	// Create the first forked proc
+	p1 := proc.NewForkProc(forkConfig, []string{"child1"})
+
+	start := time.Now()
+	err := ts.Spawn(p1)
+	assert.Nil(t, err)
+	duration := time.Since(start)
+
+	err = ts.WaitStart(p1.GetPid())
+	assert.Nil(t, err, "Error waitstart: %v", err)
+	duration2 := time.Since(start)
+
+	status, err := ts.WaitExit(p1.GetPid())
+	assert.Nil(t, err)
+	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
+	duration3 := time.Since(start)
+	fmt.Printf("fork1 spawn %v, start %v, exit %v\n", duration, duration2, duration3)
+
+	// Create a second forked proc to reuse the Zygote
+	p2 := proc.NewForkProc(forkConfig, []string{"child2"})
+
+	start = time.Now()
+	err = ts.Spawn(p2)
+	assert.Nil(t, err)
+	duration = time.Since(start)
+
+	err = ts.WaitStart(p2.GetPid())
+	assert.Nil(t, err, "Error waitstart: %v", err)
+	duration2 = time.Since(start)
+
+	status, err = ts.WaitExit(p2.GetPid())
+	assert.Nil(t, err)
+	assert.True(t, status.IsStatusOK(), "Bad exit status: %v", status)
+	duration3 = time.Since(start)
+	fmt.Printf("fork2 spawn %v, start %v, exit %v\n", duration, duration2, duration3)
+}
+
+func TestPythonForkParallel(t *testing.T) {
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	zygote := proc.NewPythonProc(proc.Python311, []string{"fork/main.py"})
+	zygote.AppendEnv("PYTHONUNBUFFERED", "1")
+
+	forkConfig := proc.ForkConfig{
+		ZygoteProc: zygote,
+		KeepAlive:  10 * time.Second,
+	}
+
+	// Warm up the zygote with a single child and print timings.
+	pw := proc.NewForkProc(forkConfig, []string{"warm-child"})
+	start := time.Now()
+	if err := ts.Spawn(pw); err != nil {
+		t.Fatalf("warm spawn: %v", err)
+	}
+	if err := ts.WaitStart(pw.GetPid()); err != nil {
+		t.Fatalf("warm waitstart: %v", err)
+	}
+	warmStartDur := time.Since(start)
+	if _, err := ts.WaitExit(pw.GetPid()); err != nil {
+		t.Fatalf("warm waitexit: %v", err)
+	}
+	fmt.Printf("warmup total %v\n", warmStartDur)
+
+	// Now spawn N children in parallel and time the whole round-trip.
+	const N = 10
+	var wg sync.WaitGroup
+	errs := make(chan error, N)
+	startAll := time.Now()
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			p := proc.NewForkProc(forkConfig, []string{fmt.Sprintf("child-%d", i)})
+			if err := ts.Spawn(p); err != nil {
+				errs <- fmt.Errorf("spawn %d: %w", i, err)
+				return
+			}
+			if err := ts.WaitStart(p.GetPid()); err != nil {
+				errs <- fmt.Errorf("waitstart %d: %w", i, err)
+				return
+			}
+			status, err := ts.WaitExit(p.GetPid())
+			if err != nil {
+				errs <- fmt.Errorf("waitexit %d: %w", i, err)
+				return
+			}
+			if !status.IsStatusOK() {
+				errs <- fmt.Errorf("bad exit %d: %v", i, status)
+				return
+			}
+			errs <- nil
+		}(i)
+	}
+
+	wg.Wait()
+	parallelDur := time.Since(startAll)
+	close(errs)
+	for err := range errs {
+		assert.Nil(t, err)
+	}
+	fmt.Printf("parallel %d total %v\n", N, parallelDur)
 }

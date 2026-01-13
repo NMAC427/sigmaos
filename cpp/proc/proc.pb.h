@@ -50,6 +50,12 @@ struct TableStruct_proc_2fproc_2eproto {
   static const uint32_t offsets[];
 };
 extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_proc_2fproc_2eproto;
+class ForkProcProto;
+struct ForkProcProtoDefaultTypeInternal;
+extern ForkProcProtoDefaultTypeInternal _ForkProcProto_default_instance_;
+class ForkProcProto_ZygoteEnvEntry_DoNotUse;
+struct ForkProcProto_ZygoteEnvEntry_DoNotUseDefaultTypeInternal;
+extern ForkProcProto_ZygoteEnvEntry_DoNotUseDefaultTypeInternal _ForkProcProto_ZygoteEnvEntry_DoNotUse_default_instance_;
 class ProcEnvProto;
 struct ProcEnvProtoDefaultTypeInternal;
 extern ProcEnvProtoDefaultTypeInternal _ProcEnvProto_default_instance_;
@@ -72,6 +78,8 @@ class ProcSeqno;
 struct ProcSeqnoDefaultTypeInternal;
 extern ProcSeqnoDefaultTypeInternal _ProcSeqno_default_instance_;
 PROTOBUF_NAMESPACE_OPEN
+template<> ::ForkProcProto* Arena::CreateMaybeMessage<::ForkProcProto>(Arena*);
+template<> ::ForkProcProto_ZygoteEnvEntry_DoNotUse* Arena::CreateMaybeMessage<::ForkProcProto_ZygoteEnvEntry_DoNotUse>(Arena*);
 template<> ::ProcEnvProto* Arena::CreateMaybeMessage<::ProcEnvProto>(Arena*);
 template<> ::ProcEnvProto_CachedEndpointsEntry_DoNotUse* Arena::CreateMaybeMessage<::ProcEnvProto_CachedEndpointsEntry_DoNotUse>(Arena*);
 template<> ::ProcEnvProto_EtcdEndpointsEntry_DoNotUse* Arena::CreateMaybeMessage<::ProcEnvProto_EtcdEndpointsEntry_DoNotUse>(Arena*);
@@ -1175,6 +1183,7 @@ class ProcProto final :
     kBootScriptInputFieldNumber = 5,
     kProcEnvProtoFieldNumber = 1,
     kBlobFieldNumber = 4,
+    kForkProcFieldNumber = 9,
     kTypeIntFieldNumber = 6,
     kMcpuIntFieldNumber = 7,
     kMemIntFieldNumber = 8,
@@ -1270,6 +1279,24 @@ class ProcProto final :
       ::Blob* blob);
   ::Blob* unsafe_arena_release_blob();
 
+  // .ForkProcProto forkProc = 9;
+  bool has_forkproc() const;
+  private:
+  bool _internal_has_forkproc() const;
+  public:
+  void clear_forkproc();
+  const ::ForkProcProto& forkproc() const;
+  PROTOBUF_NODISCARD ::ForkProcProto* release_forkproc();
+  ::ForkProcProto* mutable_forkproc();
+  void set_allocated_forkproc(::ForkProcProto* forkproc);
+  private:
+  const ::ForkProcProto& _internal_forkproc() const;
+  ::ForkProcProto* _internal_mutable_forkproc();
+  public:
+  void unsafe_arena_set_allocated_forkproc(
+      ::ForkProcProto* forkproc);
+  ::ForkProcProto* unsafe_arena_release_forkproc();
+
   // uint32 typeInt = 6;
   void clear_typeint();
   uint32_t typeint() const;
@@ -1314,9 +1341,286 @@ class ProcProto final :
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr bootscriptinput_;
     ::ProcEnvProto* procenvproto_;
     ::Blob* blob_;
+    ::ForkProcProto* forkproc_;
     uint32_t typeint_;
     uint32_t mcpuint_;
     uint32_t memint_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_proc_2fproc_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ForkProcProto_ZygoteEnvEntry_DoNotUse : public ::PROTOBUF_NAMESPACE_ID::internal::MapEntry<ForkProcProto_ZygoteEnvEntry_DoNotUse, 
+    std::string, std::string,
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> {
+public:
+  typedef ::PROTOBUF_NAMESPACE_ID::internal::MapEntry<ForkProcProto_ZygoteEnvEntry_DoNotUse, 
+    std::string, std::string,
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> SuperType;
+  ForkProcProto_ZygoteEnvEntry_DoNotUse();
+  explicit PROTOBUF_CONSTEXPR ForkProcProto_ZygoteEnvEntry_DoNotUse(
+      ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  explicit ForkProcProto_ZygoteEnvEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  void MergeFrom(const ForkProcProto_ZygoteEnvEntry_DoNotUse& other);
+  static const ForkProcProto_ZygoteEnvEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const ForkProcProto_ZygoteEnvEntry_DoNotUse*>(&_ForkProcProto_ZygoteEnvEntry_DoNotUse_default_instance_); }
+  static bool ValidateKey(std::string* s) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "ForkProcProto.ZygoteEnvEntry.key");
+ }
+  static bool ValidateValue(std::string* s) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(s->data(), static_cast<int>(s->size()), ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::PARSE, "ForkProcProto.ZygoteEnvEntry.value");
+ }
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  friend struct ::TableStruct_proc_2fproc_2eproto;
+};
+
+// -------------------------------------------------------------------
+
+class ForkProcProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ForkProcProto) */ {
+ public:
+  inline ForkProcProto() : ForkProcProto(nullptr) {}
+  ~ForkProcProto() override;
+  explicit PROTOBUF_CONSTEXPR ForkProcProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ForkProcProto(const ForkProcProto& from);
+  ForkProcProto(ForkProcProto&& from) noexcept
+    : ForkProcProto() {
+    *this = ::std::move(from);
+  }
+
+  inline ForkProcProto& operator=(const ForkProcProto& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ForkProcProto& operator=(ForkProcProto&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ForkProcProto& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ForkProcProto* internal_default_instance() {
+    return reinterpret_cast<const ForkProcProto*>(
+               &_ForkProcProto_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    8;
+
+  friend void swap(ForkProcProto& a, ForkProcProto& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ForkProcProto* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ForkProcProto* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ForkProcProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ForkProcProto>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const ForkProcProto& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const ForkProcProto& from) {
+    ForkProcProto::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ForkProcProto* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "ForkProcProto";
+  }
+  protected:
+  explicit ForkProcProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kZygoteArgsFieldNumber = 3,
+    kZygoteEnvFieldNumber = 4,
+    kZygoteKeyFieldNumber = 1,
+    kZygoteProgramFieldNumber = 2,
+    kChildArgsFieldNumber = 6,
+    kKeepAliveNsFieldNumber = 5,
+  };
+  // repeated string zygoteArgs = 3;
+  int zygoteargs_size() const;
+  private:
+  int _internal_zygoteargs_size() const;
+  public:
+  void clear_zygoteargs();
+  const std::string& zygoteargs(int index) const;
+  std::string* mutable_zygoteargs(int index);
+  void set_zygoteargs(int index, const std::string& value);
+  void set_zygoteargs(int index, std::string&& value);
+  void set_zygoteargs(int index, const char* value);
+  void set_zygoteargs(int index, const char* value, size_t size);
+  std::string* add_zygoteargs();
+  void add_zygoteargs(const std::string& value);
+  void add_zygoteargs(std::string&& value);
+  void add_zygoteargs(const char* value);
+  void add_zygoteargs(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& zygoteargs() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_zygoteargs();
+  private:
+  const std::string& _internal_zygoteargs(int index) const;
+  std::string* _internal_add_zygoteargs();
+  public:
+
+  // map<string, string> zygoteEnv = 4;
+  int zygoteenv_size() const;
+  private:
+  int _internal_zygoteenv_size() const;
+  public:
+  void clear_zygoteenv();
+  private:
+  const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
+      _internal_zygoteenv() const;
+  ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
+      _internal_mutable_zygoteenv();
+  public:
+  const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
+      zygoteenv() const;
+  ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
+      mutable_zygoteenv();
+
+  // string zygoteKey = 1;
+  void clear_zygotekey();
+  const std::string& zygotekey() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_zygotekey(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_zygotekey();
+  PROTOBUF_NODISCARD std::string* release_zygotekey();
+  void set_allocated_zygotekey(std::string* zygotekey);
+  private:
+  const std::string& _internal_zygotekey() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_zygotekey(const std::string& value);
+  std::string* _internal_mutable_zygotekey();
+  public:
+
+  // string zygoteProgram = 2;
+  void clear_zygoteprogram();
+  const std::string& zygoteprogram() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_zygoteprogram(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_zygoteprogram();
+  PROTOBUF_NODISCARD std::string* release_zygoteprogram();
+  void set_allocated_zygoteprogram(std::string* zygoteprogram);
+  private:
+  const std::string& _internal_zygoteprogram() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_zygoteprogram(const std::string& value);
+  std::string* _internal_mutable_zygoteprogram();
+  public:
+
+  // bytes childArgs = 6;
+  void clear_childargs();
+  const std::string& childargs() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_childargs(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_childargs();
+  PROTOBUF_NODISCARD std::string* release_childargs();
+  void set_allocated_childargs(std::string* childargs);
+  private:
+  const std::string& _internal_childargs() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_childargs(const std::string& value);
+  std::string* _internal_mutable_childargs();
+  public:
+
+  // uint64 keepAliveNs = 5;
+  void clear_keepalivens();
+  uint64_t keepalivens() const;
+  void set_keepalivens(uint64_t value);
+  private:
+  uint64_t _internal_keepalivens() const;
+  void _internal_set_keepalivens(uint64_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:ForkProcProto)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> zygoteargs_;
+    ::PROTOBUF_NAMESPACE_ID::internal::MapField<
+        ForkProcProto_ZygoteEnvEntry_DoNotUse,
+        std::string, std::string,
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> zygoteenv_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr zygotekey_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr zygoteprogram_;
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr childargs_;
+    uint64_t keepalivens_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -3316,9 +3620,383 @@ inline void ProcProto::set_memint(uint32_t value) {
   // @@protoc_insertion_point(field_set:ProcProto.memInt)
 }
 
+// .ForkProcProto forkProc = 9;
+inline bool ProcProto::_internal_has_forkproc() const {
+  return this != internal_default_instance() && _impl_.forkproc_ != nullptr;
+}
+inline bool ProcProto::has_forkproc() const {
+  return _internal_has_forkproc();
+}
+inline void ProcProto::clear_forkproc() {
+  if (GetArenaForAllocation() == nullptr && _impl_.forkproc_ != nullptr) {
+    delete _impl_.forkproc_;
+  }
+  _impl_.forkproc_ = nullptr;
+}
+inline const ::ForkProcProto& ProcProto::_internal_forkproc() const {
+  const ::ForkProcProto* p = _impl_.forkproc_;
+  return p != nullptr ? *p : reinterpret_cast<const ::ForkProcProto&>(
+      ::_ForkProcProto_default_instance_);
+}
+inline const ::ForkProcProto& ProcProto::forkproc() const {
+  // @@protoc_insertion_point(field_get:ProcProto.forkProc)
+  return _internal_forkproc();
+}
+inline void ProcProto::unsafe_arena_set_allocated_forkproc(
+    ::ForkProcProto* forkproc) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.forkproc_);
+  }
+  _impl_.forkproc_ = forkproc;
+  if (forkproc) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ProcProto.forkProc)
+}
+inline ::ForkProcProto* ProcProto::release_forkproc() {
+  
+  ::ForkProcProto* temp = _impl_.forkproc_;
+  _impl_.forkproc_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::ForkProcProto* ProcProto::unsafe_arena_release_forkproc() {
+  // @@protoc_insertion_point(field_release:ProcProto.forkProc)
+  
+  ::ForkProcProto* temp = _impl_.forkproc_;
+  _impl_.forkproc_ = nullptr;
+  return temp;
+}
+inline ::ForkProcProto* ProcProto::_internal_mutable_forkproc() {
+  
+  if (_impl_.forkproc_ == nullptr) {
+    auto* p = CreateMaybeMessage<::ForkProcProto>(GetArenaForAllocation());
+    _impl_.forkproc_ = p;
+  }
+  return _impl_.forkproc_;
+}
+inline ::ForkProcProto* ProcProto::mutable_forkproc() {
+  ::ForkProcProto* _msg = _internal_mutable_forkproc();
+  // @@protoc_insertion_point(field_mutable:ProcProto.forkProc)
+  return _msg;
+}
+inline void ProcProto::set_allocated_forkproc(::ForkProcProto* forkproc) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.forkproc_;
+  }
+  if (forkproc) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(forkproc);
+    if (message_arena != submessage_arena) {
+      forkproc = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, forkproc, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.forkproc_ = forkproc;
+  // @@protoc_insertion_point(field_set_allocated:ProcProto.forkProc)
+}
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// ForkProcProto
+
+// string zygoteKey = 1;
+inline void ForkProcProto::clear_zygotekey() {
+  _impl_.zygotekey_.ClearToEmpty();
+}
+inline const std::string& ForkProcProto::zygotekey() const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.zygoteKey)
+  return _internal_zygotekey();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ForkProcProto::set_zygotekey(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.zygotekey_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:ForkProcProto.zygoteKey)
+}
+inline std::string* ForkProcProto::mutable_zygotekey() {
+  std::string* _s = _internal_mutable_zygotekey();
+  // @@protoc_insertion_point(field_mutable:ForkProcProto.zygoteKey)
+  return _s;
+}
+inline const std::string& ForkProcProto::_internal_zygotekey() const {
+  return _impl_.zygotekey_.Get();
+}
+inline void ForkProcProto::_internal_set_zygotekey(const std::string& value) {
+  
+  _impl_.zygotekey_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::_internal_mutable_zygotekey() {
+  
+  return _impl_.zygotekey_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::release_zygotekey() {
+  // @@protoc_insertion_point(field_release:ForkProcProto.zygoteKey)
+  return _impl_.zygotekey_.Release();
+}
+inline void ForkProcProto::set_allocated_zygotekey(std::string* zygotekey) {
+  if (zygotekey != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.zygotekey_.SetAllocated(zygotekey, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.zygotekey_.IsDefault()) {
+    _impl_.zygotekey_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:ForkProcProto.zygoteKey)
+}
+
+// string zygoteProgram = 2;
+inline void ForkProcProto::clear_zygoteprogram() {
+  _impl_.zygoteprogram_.ClearToEmpty();
+}
+inline const std::string& ForkProcProto::zygoteprogram() const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.zygoteProgram)
+  return _internal_zygoteprogram();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ForkProcProto::set_zygoteprogram(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.zygoteprogram_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:ForkProcProto.zygoteProgram)
+}
+inline std::string* ForkProcProto::mutable_zygoteprogram() {
+  std::string* _s = _internal_mutable_zygoteprogram();
+  // @@protoc_insertion_point(field_mutable:ForkProcProto.zygoteProgram)
+  return _s;
+}
+inline const std::string& ForkProcProto::_internal_zygoteprogram() const {
+  return _impl_.zygoteprogram_.Get();
+}
+inline void ForkProcProto::_internal_set_zygoteprogram(const std::string& value) {
+  
+  _impl_.zygoteprogram_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::_internal_mutable_zygoteprogram() {
+  
+  return _impl_.zygoteprogram_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::release_zygoteprogram() {
+  // @@protoc_insertion_point(field_release:ForkProcProto.zygoteProgram)
+  return _impl_.zygoteprogram_.Release();
+}
+inline void ForkProcProto::set_allocated_zygoteprogram(std::string* zygoteprogram) {
+  if (zygoteprogram != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.zygoteprogram_.SetAllocated(zygoteprogram, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.zygoteprogram_.IsDefault()) {
+    _impl_.zygoteprogram_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:ForkProcProto.zygoteProgram)
+}
+
+// repeated string zygoteArgs = 3;
+inline int ForkProcProto::_internal_zygoteargs_size() const {
+  return _impl_.zygoteargs_.size();
+}
+inline int ForkProcProto::zygoteargs_size() const {
+  return _internal_zygoteargs_size();
+}
+inline void ForkProcProto::clear_zygoteargs() {
+  _impl_.zygoteargs_.Clear();
+}
+inline std::string* ForkProcProto::add_zygoteargs() {
+  std::string* _s = _internal_add_zygoteargs();
+  // @@protoc_insertion_point(field_add_mutable:ForkProcProto.zygoteArgs)
+  return _s;
+}
+inline const std::string& ForkProcProto::_internal_zygoteargs(int index) const {
+  return _impl_.zygoteargs_.Get(index);
+}
+inline const std::string& ForkProcProto::zygoteargs(int index) const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.zygoteArgs)
+  return _internal_zygoteargs(index);
+}
+inline std::string* ForkProcProto::mutable_zygoteargs(int index) {
+  // @@protoc_insertion_point(field_mutable:ForkProcProto.zygoteArgs)
+  return _impl_.zygoteargs_.Mutable(index);
+}
+inline void ForkProcProto::set_zygoteargs(int index, const std::string& value) {
+  _impl_.zygoteargs_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::set_zygoteargs(int index, std::string&& value) {
+  _impl_.zygoteargs_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::set_zygoteargs(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.zygoteargs_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::set_zygoteargs(int index, const char* value, size_t size) {
+  _impl_.zygoteargs_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:ForkProcProto.zygoteArgs)
+}
+inline std::string* ForkProcProto::_internal_add_zygoteargs() {
+  return _impl_.zygoteargs_.Add();
+}
+inline void ForkProcProto::add_zygoteargs(const std::string& value) {
+  _impl_.zygoteargs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::add_zygoteargs(std::string&& value) {
+  _impl_.zygoteargs_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::add_zygoteargs(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.zygoteargs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:ForkProcProto.zygoteArgs)
+}
+inline void ForkProcProto::add_zygoteargs(const char* value, size_t size) {
+  _impl_.zygoteargs_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:ForkProcProto.zygoteArgs)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+ForkProcProto::zygoteargs() const {
+  // @@protoc_insertion_point(field_list:ForkProcProto.zygoteArgs)
+  return _impl_.zygoteargs_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+ForkProcProto::mutable_zygoteargs() {
+  // @@protoc_insertion_point(field_mutable_list:ForkProcProto.zygoteArgs)
+  return &_impl_.zygoteargs_;
+}
+
+// map<string, string> zygoteEnv = 4;
+inline int ForkProcProto::_internal_zygoteenv_size() const {
+  return _impl_.zygoteenv_.size();
+}
+inline int ForkProcProto::zygoteenv_size() const {
+  return _internal_zygoteenv_size();
+}
+inline void ForkProcProto::clear_zygoteenv() {
+  _impl_.zygoteenv_.Clear();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
+ForkProcProto::_internal_zygoteenv() const {
+  return _impl_.zygoteenv_.GetMap();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >&
+ForkProcProto::zygoteenv() const {
+  // @@protoc_insertion_point(field_map:ForkProcProto.zygoteEnv)
+  return _internal_zygoteenv();
+}
+inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
+ForkProcProto::_internal_mutable_zygoteenv() {
+  return _impl_.zygoteenv_.MutableMap();
+}
+inline ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
+ForkProcProto::mutable_zygoteenv() {
+  // @@protoc_insertion_point(field_mutable_map:ForkProcProto.zygoteEnv)
+  return _internal_mutable_zygoteenv();
+}
+
+// uint64 keepAliveNs = 5;
+inline void ForkProcProto::clear_keepalivens() {
+  _impl_.keepalivens_ = uint64_t{0u};
+}
+inline uint64_t ForkProcProto::_internal_keepalivens() const {
+  return _impl_.keepalivens_;
+}
+inline uint64_t ForkProcProto::keepalivens() const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.keepAliveNs)
+  return _internal_keepalivens();
+}
+inline void ForkProcProto::_internal_set_keepalivens(uint64_t value) {
+  
+  _impl_.keepalivens_ = value;
+}
+inline void ForkProcProto::set_keepalivens(uint64_t value) {
+  _internal_set_keepalivens(value);
+  // @@protoc_insertion_point(field_set:ForkProcProto.keepAliveNs)
+}
+
+// bytes childArgs = 6;
+inline void ForkProcProto::clear_childargs() {
+  _impl_.childargs_.ClearToEmpty();
+}
+inline const std::string& ForkProcProto::childargs() const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.childArgs)
+  return _internal_childargs();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ForkProcProto::set_childargs(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.childargs_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:ForkProcProto.childArgs)
+}
+inline std::string* ForkProcProto::mutable_childargs() {
+  std::string* _s = _internal_mutable_childargs();
+  // @@protoc_insertion_point(field_mutable:ForkProcProto.childArgs)
+  return _s;
+}
+inline const std::string& ForkProcProto::_internal_childargs() const {
+  return _impl_.childargs_.Get();
+}
+inline void ForkProcProto::_internal_set_childargs(const std::string& value) {
+  
+  _impl_.childargs_.Set(value, GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::_internal_mutable_childargs() {
+  
+  return _impl_.childargs_.Mutable(GetArenaForAllocation());
+}
+inline std::string* ForkProcProto::release_childargs() {
+  // @@protoc_insertion_point(field_release:ForkProcProto.childArgs)
+  return _impl_.childargs_.Release();
+}
+inline void ForkProcProto::set_allocated_childargs(std::string* childargs) {
+  if (childargs != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.childargs_.SetAllocated(childargs, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.childargs_.IsDefault()) {
+    _impl_.childargs_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:ForkProcProto.childArgs)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

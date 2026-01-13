@@ -56,4 +56,21 @@ message ProcProto {
   uint32 typeInt = 6;
   uint32 mcpuInt = 7;
   uint32 memInt = 8;
+
+  // If set, this proc should be created by forking a Zygote rather than by
+  // starting a fresh σcontainer from scratch.
+  ForkProcProto forkProc = 9;
+}
+
+message ForkProcProto {
+  // A stable identifier for matching fork requests to a warm Zygote.
+  string zygoteKey = 1;
+
+  // How to start a new Zygote if no matching warm one exists.
+  string zygoteProgram = 2;
+  repeated string zygoteArgs = 3;
+  map<string, string> zygoteEnv = 4;
+
+  uint64 keepAliveNs = 5;
+  repeated string childArgs = 6;
 }

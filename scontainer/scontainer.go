@@ -20,25 +20,34 @@ import (
 	"sigmaos/util/perf"
 )
 
-type uprocCmd struct {
+// UProcCmd is a handle for a running user proc inside a sigma container.
+// It is returned by StartSigmaContainer.
+type UProcCmd struct {
 	uproc    *proc.Proc
 	cmd      *exec.Cmd
 	jailPath string
 }
 
-func (upc *uprocCmd) Wait() error {
+func (upc *UProcCmd) Wait() error {
 	return upc.cmd.Wait()
 }
 
-func (upc *uprocCmd) Pid() int {
+func (upc *UProcCmd) Pid() int {
 	return upc.cmd.Process.Pid
 }
 
+func (upc *UProcCmd) Kill() error {
+	if upc == nil || upc.cmd == nil || upc.cmd.Process == nil {
+		return nil
+	}
+	return upc.cmd.Process.Kill()
+}
+
 // Contain user procs using uproc-trampoline trampoline
-func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
+func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
 	db.DPrintf(db.CONTAINER, "RunUProc dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
 
-	uprocCmd := &uprocCmd{uproc: uproc, cmd: nil, jailPath: jailPath(uproc.GetPid())}
+	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: jailPath(uproc.GetPid())}
 
 	straceProcs := proc.GetLabels(uproc.GetProcEnv().GetStrace())
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
@@ -134,7 +143,8 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*uprocCmd, error) {
 	return uprocCmd, nil
 }
 
-func CleanupUProc(uprocCmd *uprocCmd) {
+// CleanupUProc removes the proc's python env (if any) and its jail directory.
+func CleanupUProc(uprocCmd *UProcCmd) {
 	pid := uprocCmd.uproc.GetPid()
 	python.CleanSitePackages(pyEnvPath(pid))
 	if err := os.RemoveAll(uprocCmd.jailPath); err != nil {

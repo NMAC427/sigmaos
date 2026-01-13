@@ -153,6 +153,21 @@ if [ "${NO_GO}" != "true" ]; then
 fi
 mkdir -p $PROCD_BIN
 
+# Shell helper that runs a command, mirrors output to a log, and exits if it fails.
+run_with_log() {
+  local step="$1"
+  local logfile="$2"
+  shift 2
+  if ! { "$@" 2>&1 | tee "$logfile"; }; then
+    local exit_code=${PIPESTATUS[0]:-1}
+    echo ""
+    echo "!!!!!!!!!! BUILD ERROR: $step !!!!!!!!!!"
+    echo "Logs in: $logfile"
+    echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
+    exit $exit_code
+  fi
+}
+
 # build and start db container
 if [ "${TARGET}" != "remote" ]; then
     ./start-network.sh
@@ -262,37 +277,19 @@ if [ "${NO_GO}" != "true" ]; then
 
   echo "========== Building kernel bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-kernel.out
-  docker exec -it $buildercid \
+  run_with_log "make kernel" "$BUILD_OUT_FILE" docker exec -it $buildercid \
     /usr/bin/time -f "Build time: %e sec" \
-    ./make.sh $BUILD_ARGS kernel \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
-    # Copy named, which is also a user bin
-    cp $KERNELBIN/named $USRBIN/named
+    ./make.sh $BUILD_ARGS kernel
+  # Copy named, which is also a user bin
+  cp $KERNELBIN/named $USRBIN/named
   echo "========== Done building kernel bins =========="
 
   if [ "${NO_GO_USER}" != "true" ]; then
     echo "========== Building user bins =========="
     BUILD_OUT_FILE=$BUILD_LOG/make-user.out
-    docker exec -it $buildercid \
+    run_with_log "make user" "$BUILD_OUT_FILE" docker exec -it $buildercid \
       /usr/bin/time -f "Build time: %e sec" \
-      ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION \
-      2>&1 | tee $BUILD_OUT_FILE && \
-      if [ ${PIPESTATUS[0]} -ne 0 ]; then
-        printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-          | tee -a $BUILD_OUT_FILE;
-      fi;
-      if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-        echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-        exit 1
-      fi
+      ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION
     echo "========== Done building user bins =========="
   fi
 fi
@@ -303,18 +300,9 @@ if [ "${NO_RS}" != "true" ]; then
 
   echo "========== Building Rust bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-rs.out
-  docker exec -it $rsbuildercid \
+  run_with_log "make rust" "$BUILD_OUT_FILE" docker exec -it $rsbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
-    ./make-rs.sh $RS_BUILD_ARGS --version $VERSION \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
+    ./make-rs.sh $RS_BUILD_ARGS --version $VERSION
   echo "========== Done building Rust bins =========="
 fi
 
@@ -324,36 +312,18 @@ if [ "${NO_CPP}" != "true" ]; then
 
   echo "========== Building CPP bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-cpp.out
-  docker exec -it $cppbuildercid \
+  run_with_log "make cpp" "$BUILD_OUT_FILE" docker exec -it $cppbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
-    ./make-cpp.sh $CPP_BUILD_ARGS --version $VERSION \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
+    ./make-cpp.sh $CPP_BUILD_ARGS --version $VERSION
   echo "========== Done building CPP bins =========="
 fi
 
 if [ "${NO_PY}" != "true" ]; then
   echo "========== Building Python bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
-  docker exec -it $pybuildercid \
+  run_with_log "make python" "$BUILD_OUT_FILE" docker exec -it $pybuildercid \
     /usr/bin/time -f "Build time: %e sec" \
-    ./make-python.sh --version $VERSION \
-    2>&1 | tee $BUILD_OUT_FILE && \
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\nLogs in: $BUILD_OUT_FILE\n" \
-        | tee -a $BUILD_OUT_FILE;
-    fi;
-    if [ $(grep -q "BUILD ERROR" $BUILD_OUT_FILE; echo $?) -eq 0 ]; then
-      echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
-      exit 1
-    fi
+    ./make-python.sh --version $VERSION
   echo "========== Done building Python bins =========="
 fi
 

@@ -89,6 +89,7 @@ type ProcSrv struct {
 	schedPolicySet  bool
 	procs           *syncmap.SyncMap[int, *procEntry]
 	ckclnt          *chunkclnt.ChunkClnt
+	forkmgr         *forkMgr
 }
 
 type ProcRPCSrv struct {
@@ -107,6 +108,7 @@ func RunProcSrv(kernelId string, dialproxy bool, spproxydPID sp.Tpid) error {
 		prefetchedStats: make(map[string]bool),
 		procs:           syncmap.NewSyncMap[int, *procEntry](),
 	}
+	ps.forkmgr = newForkMgr(ps)
 
 	// Set inner container IP as soon as uprocsrv starts up
 	innerIP, err := iputil.LocalIP()
@@ -165,8 +167,10 @@ func RunProcSrv(kernelId string, dialproxy bool, spproxydPID sp.Tpid) error {
 	// Lookup the ckclnt for procd's local chunkd now since we will
 	// need it later quickly.
 	if err := ps.ckclnt.LookupEntry(ps.kernelId); err != nil {
-		db.DPrintf(db.PROCD, "LookupClnt %v %v", ps.kernelId, err)
-		return err
+		// This is a best-effort prefetch. If it fails (e.g., transient FS/RPC
+		// issues during boot), procd can still proceed and will allocate chunk
+		// clients on demand.
+		db.DPrintf(db.PROCD, "LookupClnt (best-effort) %v %v", ps.kernelId, err)
 	}
 
 	scdp := proc.NewPrivProcPid(ps.spproxydPID, "spproxyd", nil, true)
@@ -347,6 +351,7 @@ func (ps *ProcSrv) prefetchProcFileStat(realm sp.Trealm, upid sp.Tpid, prog stri
 // Run a proc inside of an sigma container
 func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc := proc.NewProcFromProto(req.ProcProto)
+	isForkProc := uproc.GetForkProc() != nil
 	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram()) != nil
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
@@ -390,6 +395,31 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	if err := ps.setSchedPolicy(uproc.GetPid(), uproc.GetType()); err != nil {
 		db.DFatalf("Err set sched policy: %v", err)
 	}
+	// Fork procs are created by forking a warm zygote (managed by procd) instead
+	// of starting a new container from scratch.
+	if isForkProc {
+		hostPid, err := ps.forkmgr.forkChild(uproc)
+		if err != nil {
+			return err
+		}
+		db.DPrintf(db.PROCD, "Forked host pid %v -> %d", uproc.GetPid(), hostPid)
+		pe, alloc := ps.procs.Alloc(hostPid, newProcEntry(uproc))
+		if !alloc {
+			pe.insertSignal(uproc)
+		}
+		err = waitForHostPIDExit(hostPid)
+		if fp := uproc.GetForkProc(); fp != nil {
+			ps.forkmgr.childDone(fp.GetZygoteKey())
+		}
+		ps.procs.Delete(hostPid)
+		if uproc.GetProcEnv().UseSPProxy {
+			if e := ps.spc.InformProcDone(uproc); e != nil {
+				db.DFatalf("Err inform spproxyclnt proc done: %v", e)
+			}
+		}
+		return err
+	}
+
 	perf.LogSpawnLatency("ProcSrv.Run StartSigmaContainer", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
 	cmd, err := scontainer.StartSigmaContainer(uproc, ps.dialproxy)
 	if err != nil {
