@@ -352,6 +352,12 @@ fn jail_proc(
         false,
     );
 
+    // Remount new root as read-only
+    Mount::builder()
+        .fstype("")
+        .flags(MountFlags::BIND | MountFlags::REMOUNT | MountFlags::RDONLY)
+        .mount("/", "/")?;
+
     Ok(())
 }
 

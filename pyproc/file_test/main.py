@@ -25,4 +25,13 @@ print("File closed")
 splib.remove(pathname)
 print("File deleted")
 
+# The jail file system should be read-only, so the following should fail
+try:
+    with open("test.txt", "w") as f:
+        f.write("This is a test file.")
+    splib.exited(splib.Status.Failure, "File system should be read-only")
+except Exception as e:
+    print(e)
+    pass
+
 splib.exited(splib.Status.Ok, "Exited normally!")
