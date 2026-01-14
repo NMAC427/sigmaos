@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -25,9 +26,10 @@ import (
 )
 
 const (
-	forkSockEnv    = "SIGMA_FORK_SOCK"
-	forkZygoteEnv  = "SIGMA_FORK_ZYGOTE_KEY"
-	defaultSockRel = "/tmp/sigma_fork.sock"
+	forkSockEnv                   = "SIGMA_FORK_SOCK"
+	forkZygoteEnv                 = "SIGMA_FORK_ZYGOTE_KEY"
+	defaultSockRel                = "/tmp/sigma_fork.sock"
+	zygoteGracefulShutdownTimeout = 5 * time.Second
 )
 
 type forkMsg struct {
@@ -201,6 +203,9 @@ func (fm *forkMgr) acceptLoop(ze *zygoteEntry) {
 	for {
 		conn, err := ze.listener.AcceptUnix()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
 			select {
 			case <-ze.closed:
 				return
@@ -406,6 +411,8 @@ func (fm *forkMgr) evictIfIdle(zygoteKey string) {
 		return
 	}
 	cmd := ze.zygCmd
+	zygConn := ze.zygConn
+	listener := ze.listener
 	ze.mu.Unlock()
 
 	select {
@@ -414,11 +421,22 @@ func (fm *forkMgr) evictIfIdle(zygoteKey string) {
 	default:
 	}
 
-	// Best-effort: if the zygote is still alive, terminate it so that its jail is
-	// cleaned up. The jail must outlive all children; eviction is gated on
-	// ze.children==0.
-	if cmd != nil {
-		_ = cmd.Kill()
+	// Signal the zygote to exit by closing its supervisor socket and stop
+	// accepting new connections; only kill it if it doesn't shut down quickly.
+	if zygConn != nil {
+		_ = zygConn.Close()
+	}
+	if listener != nil {
+		_ = listener.Close()
+	}
+
+	select {
+	case <-ze.closed:
+		return
+	case <-time.After(zygoteGracefulShutdownTimeout):
+		if cmd != nil {
+			_ = cmd.Kill()
+		}
 	}
 }
 

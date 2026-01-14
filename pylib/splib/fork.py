@@ -69,7 +69,10 @@ def fork_point() -> list[str]:
     sock_path = os.environ.get(SIGMA_FORK_SOCK)
     if not sock_path:
         raise RuntimeError(f"{SIGMA_FORK_SOCK} is not set")
-    zygote_key = os.environ.get(SIGMA_FORK_ZYGOTE_KEY, "")
+
+    zygote_key = os.environ.get(SIGMA_FORK_ZYGOTE_KEY)
+    if not zygote_key:
+        raise RuntimeError(f"{SIGMA_FORK_ZYGOTE_KEY} is not set")
 
     # Persistent connection from the zygote to the supervisor.
     zsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -80,7 +83,12 @@ def fork_point() -> list[str]:
         raise RuntimeError(f"fork supervisor rejected hello: {resp}")
 
     while True:
-        msg = _read_frame(zsock)
+        try:
+            msg = _read_frame(zsock)
+        except EOFError:
+            # Supervisor closed the connection -> shutdown zygote.
+            exit(0)
+
         if msg.get("type") != "fork":
             continue
 

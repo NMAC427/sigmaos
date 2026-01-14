@@ -25,10 +25,6 @@ def init_socket() -> None:
 		_inited = True
 
 
-def _ensure_init() -> None:
-	init_socket()
-
-
 # Re-export non-callable types directly.
 Qid = _c.Qid
 Stat = _c.Stat
@@ -40,7 +36,7 @@ def __getattr__(name: str) -> Any:
 	attr = getattr(_c, name)
 	if callable(attr):
 		def _wrapped(*args: Any, **kwargs: Any) -> Any:
-			_ensure_init()
+			init_socket()
 			return attr(*args, **kwargs)
 
 		_wrapped.__name__ = name
