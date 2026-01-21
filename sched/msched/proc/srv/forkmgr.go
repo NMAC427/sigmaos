@@ -79,6 +79,52 @@ func randID() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// --
+type zygoteMap struct {
+	byKey map[string]*zygoteEntry
+	byPid map[sp.Tpid]*zygoteEntry
+}
+
+func newZygoteMap() zygoteMap {
+	return zygoteMap{
+		byKey: make(map[string]*zygoteEntry),
+		byPid: make(map[sp.Tpid]*zygoteEntry),
+	}
+}
+
+func (zm *zygoteMap) getByKey(key string) (*zygoteEntry, bool) {
+	ze, ok := zm.byKey[key]
+	return ze, ok
+}
+
+func (zm *zygoteMap) getByPid(pid sp.Tpid) (*zygoteEntry, bool) {
+	ze, ok := zm.byPid[pid]
+	return ze, ok
+}
+
+func (zm *zygoteMap) add(ze *zygoteEntry) {
+	zm.byKey[ze.key] = ze
+	zm.byPid[ze.zygProc.GetPid()] = ze
+}
+
+// Makes the zygote inaccessible for new forks by removing it from the byKey map.
+func (zm *zygoteMap) makeInaccessible(ze *zygoteEntry) {
+	if current, ok := zm.byKey[ze.key]; !ok || current != ze {
+		return
+	}
+	delete(zm.byKey, ze.key)
+}
+
+// Removes the zygote from both maps unconditionally.
+func (zm *zygoteMap) remove(ze *zygoteEntry) {
+	delete(zm.byPid, ze.zygProc.GetPid())
+
+	if current, ok := zm.byKey[ze.key]; !ok || current != ze {
+		return
+	}
+	delete(zm.byKey, ze.key)
+}
+
 // zygoteState represents the lifecycle of a zygote process
 type zygoteState int
 
@@ -90,10 +136,9 @@ const (
 )
 
 type forkMgr struct {
-	ps       *ProcSrv
-	mu       sync.RWMutex
-	zygotes  map[string]*zygoteEntry
-	shutdown chan struct{}
+	ps      *ProcSrv
+	mu      sync.RWMutex
+	zygotes zygoteMap
 }
 
 type zygoteEntry struct {
@@ -133,14 +178,13 @@ type zygoteEntry struct {
 
 func newForkMgr(ps *ProcSrv) *forkMgr {
 	return &forkMgr{
-		ps:       ps,
-		zygotes:  make(map[string]*zygoteEntry),
-		shutdown: make(chan struct{}),
+		ps:      ps,
+		zygotes: newZygoteMap(),
 	}
 }
 
 func (fm *forkMgr) forkSockHostPath(pid sp.Tpid) string {
-	return filepath.Join(sp.SIGMAHOME, "jail", pid.String(), "tmp", filepath.Base(defaultSockRel))
+	return filepath.Join(scontainer.JailPath(pid), "tmp", filepath.Base(defaultSockRel))
 }
 
 // getState returns the current state safely
@@ -175,7 +219,7 @@ func (fm *forkMgr) ensureZygote(uproc *proc.Proc) (*zygoteEntry, error) {
 
 	// Fast path: check if we have a usable zygote
 	fm.mu.RLock()
-	if ze, ok := fm.zygotes[key]; ok && ze.isUsable() {
+	if ze, ok := fm.zygotes.getByKey(key); ok && ze.isUsable() {
 		fm.mu.RUnlock()
 		return ze, nil
 	}
@@ -186,7 +230,7 @@ func (fm *forkMgr) ensureZygote(uproc *proc.Proc) (*zygoteEntry, error) {
 	defer fm.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if ze, ok := fm.zygotes[key]; ok && ze.isUsable() {
+	if ze, ok := fm.zygotes.getByKey(key); ok && ze.isUsable() {
 		return ze, nil
 	}
 
@@ -270,7 +314,7 @@ func (fm *forkMgr) ensureZygote(uproc *proc.Proc) (*zygoteEntry, error) {
 	ze.zygCmd = cmd
 
 	// Register in map before starting goroutines
-	fm.zygotes[key] = ze
+	fm.zygotes.add(ze)
 
 	// Start background goroutines
 	ze.wg.Add(2)
@@ -404,25 +448,24 @@ func (fm *forkMgr) handleChild(ze *zygoteEntry, conn *net.UnixConn, m *forkMsg) 
 	_ = writeFrame(conn, forkMsg{Type: "ok"})
 }
 
+// Monitor the zygote and trigger cleanup on exit
 func (fm *forkMgr) monitorZygote(ze *zygoteEntry) {
-	defer ze.wg.Done()
-
 	err := ze.zygCmd.Wait()
 	ze.exitErr = err
+
+	ze.wg.Done()
 
 	if err != nil {
 		db.DPrintf(db.PROCD_ERR, "zygote %s exited: %v", ze.key, err)
 	}
 
-	// Trigger cleanup
-	ze.cancel()
+	// CLEAN UP
+	fm.mu.Lock()
+	fm.zygotes.makeInaccessible(ze)
 	ze.setState(stateClosed)
+	ze.cancel()
+	fm.mu.Unlock()
 
-	// Cleanup resources
-	fm.cleanupZygote(ze)
-}
-
-func (fm *forkMgr) cleanupZygote(ze *zygoteEntry) {
 	// Close all connections
 	ze.connMu.Lock()
 	if ze.listener != nil {
@@ -451,32 +494,26 @@ func (fm *forkMgr) cleanupZygote(ze *zygoteEntry) {
 	}
 	ze.childMu.Unlock()
 
-	// Cleanup container
-	// TODO: Handle zygote dying with running children
-	if ze.zygCmd != nil {
-		scontainer.CleanupUProc(ze.zygCmd)
-	}
-
-	// Remove from manager's map
-	fm.mu.Lock()
-	if fm.zygotes[ze.key] == ze {
-		delete(fm.zygotes, ze.key)
-	}
-	fm.mu.Unlock()
-
-	// Wait for all goroutines to finish
+	// Wait for all goroutines to finish, and all children to exit
 	ze.wg.Wait()
+	scontainer.CleanupUProc(ze.zygCmd)
+
+	fm.mu.Lock()
+	fm.zygotes.remove(ze)
+	fm.mu.Unlock()
 }
 
-func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, error) {
+// Ensures a matching zygote is running and requests it to fork a child proc.
+// Returns the host PID of the forked child, and a unique ID for the zygote.
+func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
 	fp := uproc.GetForkProc()
 	if fp == nil {
-		return 0, fmt.Errorf("forkChild called for non-fork proc")
+		return 0, "", fmt.Errorf("forkChild called for non-fork proc")
 	}
 
 	ze, err := fm.ensureZygote(uproc)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	// Wait for zygote to be ready
@@ -484,19 +521,19 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, error) {
 	case <-ze.readyCh:
 		// Ready to proceed
 	case <-ze.ctx.Done():
-		return 0, fmt.Errorf("zygote exited before ready: %v", ze.exitErr)
+		return 0, "", fmt.Errorf("zygote exited before ready: %v", ze.exitErr)
 	case <-time.After(1 * time.Minute):
-		return 0, fmt.Errorf("zygote setup timed out")
+		return 0, "", fmt.Errorf("zygote setup timed out")
 	}
 
 	// Verify still usable after waiting
 	if !ze.isUsable() {
-		return 0, fmt.Errorf("zygote became unusable")
+		return 0, "", fmt.Errorf("zygote became unusable")
 	}
 
 	reqID, err := randID()
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	respCh := make(chan int, 1)
@@ -518,7 +555,7 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, error) {
 	ze.connMu.Unlock()
 
 	if conn == nil {
-		return 0, fmt.Errorf("zygote connection missing")
+		return 0, "", fmt.Errorf("zygote connection missing")
 	}
 
 	err = writeFrame(conn, forkMsg{
@@ -528,29 +565,30 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, error) {
 		Args:  fp.GetChildArgs(),
 	})
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 
 	// Wait for response
 	select {
 	case hostPid, ok := <-respCh:
 		if !ok {
-			return 0, fmt.Errorf("zygote closed while waiting for fork")
+			return 0, "", fmt.Errorf("zygote closed while waiting for fork")
 		}
 		ze.childMu.Lock()
+		ze.wg.Add(1)
 		ze.children++
 		ze.childMu.Unlock()
-		return hostPid, nil
+		return hostPid, ze.zygProc.GetPid(), nil
 	case <-ze.ctx.Done():
-		return 0, fmt.Errorf("zygote exited while forking: %v", ze.exitErr)
+		return 0, "", fmt.Errorf("zygote exited while forking: %v", ze.exitErr)
 	case <-time.After(10 * time.Second):
-		return 0, fmt.Errorf("timeout waiting for forked child")
+		return 0, "", fmt.Errorf("timeout waiting for forked child")
 	}
 }
 
-func (fm *forkMgr) childDone(zygoteKey string) {
+func (fm *forkMgr) childDone(zygotePid sp.Tpid) {
 	fm.mu.RLock()
-	ze := fm.zygotes[zygoteKey]
+	ze, _ := fm.zygotes.getByPid(zygotePid)
 	fm.mu.RUnlock()
 
 	if ze == nil {
@@ -562,6 +600,7 @@ func (fm *forkMgr) childDone(zygoteKey string) {
 
 	if ze.children > 0 {
 		ze.children--
+		ze.wg.Done()
 	}
 	ze.lastIdle = time.Now()
 
@@ -584,6 +623,13 @@ func (fm *forkMgr) childDone(zygoteKey string) {
 
 func (fm *forkMgr) tryEvict(ze *zygoteEntry) {
 	fm.mu.Lock()
+
+	zeState := ze.getState()
+	if zeState == stateEvicting || zeState == stateClosed {
+		fm.mu.Unlock()
+		return
+	}
+
 	ze.childMu.Lock()
 
 	// Re-check the eviction condition
@@ -601,9 +647,7 @@ func (fm *forkMgr) tryEvict(ze *zygoteEntry) {
 
 	// Point of no return
 	ze.setState(stateEvicting)
-	if current, ok := fm.zygotes[ze.key]; ok && current == ze {
-		delete(fm.zygotes, ze.key)
-	}
+	fm.zygotes.makeInaccessible(ze)
 	fm.mu.Unlock()
 
 	// Close connections to trigger shutdown
@@ -619,7 +663,7 @@ func (fm *forkMgr) tryEvict(ze *zygoteEntry) {
 	// Wait for graceful shutdown with timeout
 	done := make(chan struct{})
 	go func() {
-		ze.wg.Wait()
+		ze.zygCmd.Wait()
 		close(done)
 	}()
 
@@ -639,6 +683,10 @@ func waitForHostPIDExit(hostPid int) error {
 		return fmt.Errorf("pidfd_open(%d): %w", hostPid, err)
 	}
 	defer unix.Close(fd)
+
+	if err := unix.PidfdSendSignal(fd, 0, nil, 0); err != nil {
+		return nil // Already exited
+	}
 
 	_, err = unix.Poll([]unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}, -1)
 	if err != nil {

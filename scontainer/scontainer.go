@@ -47,7 +47,7 @@ func (upc *UProcCmd) Kill() error {
 func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
 	db.DPrintf(db.CONTAINER, "RunUProc dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
 
-	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: jailPath(uproc.GetPid())}
+	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: JailPath(uproc.GetPid())}
 
 	straceProcs := proc.GetLabels(uproc.GetProcEnv().GetStrace())
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
@@ -152,10 +152,10 @@ func CleanupUProc(uprocCmd *UProcCmd) {
 	}
 }
 
-func jailPath(pid sp.Tpid) string {
+func JailPath(pid sp.Tpid) string {
 	return filepath.Join(sp.SIGMAHOME, "jail", pid.String())
 }
 
 func pyEnvPath(pid sp.Tpid) string {
-	return filepath.Join(jailPath(pid), "python", "env")
+	return filepath.Join(JailPath(pid), "python", "env")
 }

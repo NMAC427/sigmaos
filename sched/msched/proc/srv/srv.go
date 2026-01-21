@@ -398,7 +398,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	// Fork procs are created by forking a warm zygote (managed by procd) instead
 	// of starting a new container from scratch.
 	if isForkProc {
-		hostPid, err := ps.forkmgr.forkChild(uproc)
+		hostPid, zygPid, err := ps.forkmgr.forkChild(uproc)
 		if err != nil {
 			return err
 		}
@@ -408,9 +408,8 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 			pe.insertSignal(uproc)
 		}
 		err = waitForHostPIDExit(hostPid)
-		if fp := uproc.GetForkProc(); fp != nil {
-			ps.forkmgr.childDone(fp.GetZygoteKey())
-		}
+
+		ps.forkmgr.childDone(zygPid)
 		ps.procs.Delete(hostPid)
 		if uproc.GetProcEnv().UseSPProxy {
 			if e := ps.spc.InformProcDone(uproc); e != nil {
