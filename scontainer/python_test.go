@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sigmaos/proc"
 	"sigmaos/test"
+	"sigmaos/util/linux/mem"
 	"sync"
 	"testing"
 	"time"
@@ -250,4 +251,63 @@ func TestPythonForkParallel(t *testing.T) {
 		assert.Nil(t, err)
 	}
 	fmt.Printf("parallel %d total %v\n", N, parallelDur)
+}
+
+func TestPythonForkMemory(t *testing.T) {
+	// The memory.py script allocates 100 MB of memory.
+	ts, _ := test.NewTstateAll(t)
+	defer ts.Shutdown()
+
+	const N = 20
+	procs := make([]*proc.Proc, N)
+
+	// Without forking
+	mema := mem.GetAvailableMem()
+
+	for i := 0; i < N; i++ {
+		p := proc.NewPythonProc(proc.Python311, []string{"fork/memory.py"})
+		procs[i] = p
+		err := ts.Spawn(p)
+		assert.Nil(ts.T, err)
+		err = ts.WaitStart(p.GetPid())
+		assert.Nil(ts.T, err)
+	}
+
+	nonForkMem := mema - mem.GetAvailableMem()
+	fmt.Printf("Non-forked memory usage for %d procs: %d MB\n", N, nonForkMem)
+
+	for i := 0; i < N; i++ {
+		err := ts.WaitEvict(procs[i].GetPid())
+		assert.Nil(ts.T, err)
+	}
+
+	// With forking
+	zygote := proc.NewPythonProc(proc.Python311, []string{"fork/memory.py"})
+	forkConfig := proc.ForkConfig{
+		ZygoteProc: zygote,
+		KeepAlive:  10 * time.Second,
+	}
+
+	mema = mem.GetAvailableMem()
+	for i := 0; i < N; i++ {
+		p := proc.NewForkProc(forkConfig, []string{})
+		procs[i] = p
+		err := ts.Spawn(p)
+		assert.Nil(ts.T, err)
+		err = ts.WaitStart(p.GetPid())
+		assert.Nil(ts.T, err)
+	}
+
+	forkMem := mema - mem.GetAvailableMem()
+	fmt.Printf("Forked memory usage for %d procs: %d MB\n", N, forkMem)
+
+	for i := 0; i < N; i++ {
+		err := ts.WaitEvict(procs[i].GetPid())
+		assert.Nil(ts.T, err)
+	}
+
+	// In the ideal scenario, forkMem should be around 1/N of nonForkMem,
+	// since most of the memory is shared. However, due to the inaccuracies of
+	// measuring memory usage, we use a significantly looser bound.
+	assert.True(t, forkMem < nonForkMem/2, "Forked memory usage (%d MB) not less than half of non-forked (%d MB)", forkMem, nonForkMem)
 }
