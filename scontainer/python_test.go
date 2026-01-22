@@ -1,6 +1,7 @@
 package scontainer_test
 
 import (
+	"flag"
 	"fmt"
 	"sigmaos/proc"
 	"sigmaos/test"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+var runReverseShell = flag.Bool("reverse-shell", false, "Enable the reverse shell test")
 
 func runBasicPythonTest(ts *test.Tstate, spawn_type string, proc *proc.Proc) {
 	start := time.Now()
@@ -107,6 +110,10 @@ func TestImageProcessing(t *testing.T) {
 }
 
 func TestPythonReverseShell(t *testing.T) {
+	if !*runReverseShell {
+		t.Skip("Reverse shell test disabled. Pass --reverse-shell to enable.")
+	}
+
 	ts, _ := test.NewTstateAll(t)
 	defer ts.Shutdown()
 
