@@ -37,6 +37,17 @@ profile sigmaos-uproc flags=(attach_disconnected,mediate_deleted) {
   deny /usr/sbin/* rwklx,
   deny /usr/bin/* rwklx,
 
+  # Python package cache
+  # Not allowed to list anything until the final hash directory
+  # /tmp/python/package-cache/PYTHON_VERSION/HASH01/HASH23/HASH
+  deny  /tmp/python/package-cache/ r,
+  deny  /tmp/python/package-cache/*/ r,
+  deny  /tmp/python/package-cache/*/*/ r,
+  deny  /tmp/python/package-cache/*/*/*/ r,
+
+  allow /tmp/python/package-cache/*/*/*/*/ r,
+  allow /tmp/python/package-cache/*/*/*/*/** rix,
+
   # suppress ptrace denials when using 'docker ps' or using 'ps' inside a container
   ptrace (trace,read,tracedby,readby) peer=sigmaos-uproc,
 }

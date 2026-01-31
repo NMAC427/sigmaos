@@ -56,7 +56,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
 	pythonVersion := python.IsSupportedPythonVersion(uproc.GetProgram())
 	isPythonProc := pythonVersion != nil
 	if isPythonProc {
-		pythonPath := pythonVersion.PythonPath
+		pythonPath := pythonVersion.PythonPath()
 
 		// uproc-trampoline will mount the correct python interpreter files
 		// from /home/sigmaos/bin/kernel/<python-version> to the sigma container
@@ -92,7 +92,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
 
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 		uproc.AppendEnv("PYTHONPATH", pythonPath)
-		uproc.AppendEnv("SIGMA_PYTHON_VERSION", pythonVersion.Version)
+		uproc.AppendEnv("SIGMA_PYTHON_VERSION", pythonVersion.Version())
 	}
 
 	// Optionally strace the proc

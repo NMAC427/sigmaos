@@ -190,6 +190,7 @@ fn jail_proc(
         "tmp/spproxyd",
         "tmp/python/python",
         "tmp/python/pyproc",
+        "tmp/python/package-cache",
     ];
 
     let newroot = "/home/sigmaos/jail/";
@@ -285,6 +286,11 @@ fn jail_proc(
             .fstype("none")
             .flags(MountFlags::BIND | MountFlags::RDONLY)
             .mount("/home/sigmaos/bin/kernel/pyproc", "tmp/python/pyproc")?;
+
+        Mount::builder()
+            .fstype("none")
+            .flags(MountFlags::BIND | MountFlags::RDONLY)
+            .mount("/tmp/python/package-cache", "tmp/python/package-cache")?;
     }
 
     Mount::builder()

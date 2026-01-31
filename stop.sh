@@ -111,7 +111,7 @@ fi
 sudo rm -rf $TMP_BASE/sigmaos-bin/*
 sudo rm -rf $TMP_BASE/sigmaos-kernel-start-logs
 
-sudo rm -rf "${TMP_BASE}/sigmaos-python/*"
+sudo rm -rf $TMP_BASE/sigmaos-python/*
 
 # delete all keys from etcd
 if docker ps | grep -q $ETCD_CTR_NAME ; then
