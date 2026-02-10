@@ -114,6 +114,9 @@ func Run(args []string) error {
 		if err := sc.MountTree(rootEP, sp.LCSCHEDREL, sp.LCSCHED); err != nil {
 			db.DFatalf("Err MountTree lcsched: ep %v err %v", rootEP, err)
 		}
+		if err := sc.MountTree(rootEP, sp.PYENVREL, sp.PYENV); err != nil {
+			db.DFatalf("Err MountTree pyenv: ep %v err %v", rootEP, err)
+		}
 	}
 
 	// Now that the scheduler dirs are mounted, create a procclnt
@@ -309,7 +312,7 @@ func (nd *Named) watchLeased() {
 }
 
 // XXX same as initRootDir?
-var warmRootDir = []string{sp.BOOT, sp.KPIDS, sp.MEMFS, sp.LCSCHED, sp.BESCHED, sp.MSCHED, sp.UX, sp.S3, sp.DB, sp.MONGO, sp.REALM, sp.CHUNKD}
+var warmRootDir = []string{sp.BOOT, sp.KPIDS, sp.MEMFS, sp.LCSCHED, sp.BESCHED, sp.MSCHED, sp.UX, sp.S3, sp.DB, sp.MONGO, sp.REALM, sp.CHUNKD, sp.PYENV}
 
 func (nd *Named) warmCache() error {
 	for _, n := range warmRootDir {

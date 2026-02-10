@@ -420,7 +420,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	}
 
 	perf.LogSpawnLatency("ProcSrv.Run StartSigmaContainer", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
-	cmd, err := scontainer.StartSigmaContainer(uproc, ps.dialproxy)
+	cmd, err := scontainer.StartSigmaContainer(uproc, ps.dialproxy, ps.sc)
 	if err != nil {
 		return err
 	}

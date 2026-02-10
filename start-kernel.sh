@@ -30,19 +30,19 @@ while [[ "$#" -gt 1 ]]; do
     shift
     case "$1" in
         "all")
-            BOOT="knamed;besched;lcsched;msched;ux;s3;chunkd;db;mongo"
+            BOOT="knamed;besched;lcsched;msched;ux;s3;chunkd;pyenv;db;mongo"
             ;;
         "all_no_besched")
-            BOOT="knamed;lcsched;msched;ux;s3;chunkd;db;mongo"
+            BOOT="knamed;lcsched;msched;ux;s3;chunkd;pyenv;db;mongo"
             ;;
         "node")
-            BOOT="besched;msched;ux;s3;db;chunkd;mongo"
+            BOOT="besched;msched;ux;s3;db;chunkd;pyenv;mongo"
             ;;
         "node_no_besched")
-            BOOT="msched;ux;s3;db;chunkd;mongo"
+            BOOT="msched;ux;s3;db;chunkd;pyenv;mongo"
             ;;
         "minnode")
-            BOOT="msched;ux;s3;chunkd"
+            BOOT="msched;ux;s3;chunkd;pyenv"
             ;;
         "besched_node")
             BOOT="besched"
@@ -54,10 +54,10 @@ while [[ "$#" -gt 1 ]]; do
             BOOT="spproxyd"
             ;;
         "realm")
-            BOOT="knamed;besched;lcsched;msched;realmd;ux;s3;chunkd;db;mongo"
+            BOOT="knamed;besched;lcsched;msched;realmd;ux;s3;chunkd;pyenv;db;mongo"
             ;;
         "realm_no_besched")
-            BOOT="knamed;lcsched;msched;realmd;ux;s3;chunkd;db;mongo"
+            BOOT="knamed;lcsched;msched;realmd;ux;s3;chunkd;pyenv;db;mongo"
             ;;
         *)
             echo "unexpected argument $1 to boot"
@@ -150,7 +150,7 @@ DATA_DIR="${TMP_BASE}/sigmaos-data"
 PERF_DIR="${TMP_BASE}/sigmaos-perf"
 KERNEL_DIR="${TMP_BASE}/sigmaos"
 SPPROXY_DIR="${TMP_BASE}/spproxyd"
-PYTHON_DIR="${TMP_BASE}/sigmaos-python/${KERNELID}"
+PYTHON_PKG_CACHE_DIR="${TMP_BASE}/sigmaos-python"
 
 mkdir -p $SPPROXY_DIR
 mkdir -p $HOST_BIN_CACHE
@@ -159,7 +159,7 @@ mkdir -p $DATA_DIR
 mkdir -p $PERF_DIR
 chmod a+w $PERF_DIR
 mkdir -p $KERNEL_DIR
-mkdir -p $PYTHON_DIR
+mkdir -p $PYTHON_PKG_CACHE_DIR
 
 # Pull latest docker images, if not running a local build.
 if [ "$TAG" != "local-build" ]; then
@@ -190,15 +190,15 @@ MOUNTS="--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
   --mount type=bind,src=$SPPROXY_DIR,dst=/tmp/spproxyd \
   --mount type=bind,src=$DATA_DIR,dst=/home/sigmaos/data \
   --mount type=bind,src=$HOST_BIN_CACHE/${KERNELID},dst=/home/sigmaos/bin/user/realms \
-  --mount type=bind,src=$PYTHON_DIR,dst=/tmp/python\
+  --mount type=bind,src=$PYTHON_PKG_CACHE_DIR,dst=/tmp/python/package-cache \
   --mount type=bind,src=$PERF_DIR,dst=/tmp/sigmaos-perf \
   --mount type=bind,src=$HOMEDIR/.aws,dst=/home/sigmaos/.aws"
 # If running in local configuration, mount bin directory.
 if [ "$TAG" == "local-build" ]; then
   MOUNTS="$MOUNTS\
-    --mount type=bind,src=$PROJECT_ROOT/bin/user,dst=/home/sigmaos/bin/user/common \
-    --mount type=bind,src=$PROJECT_ROOT/bin/kernel,dst=/home/sigmaos/bin/kernel \
-    --mount type=bind,src=$PROJECT_ROOT/bin/linux,dst=/home/sigmaos/bin/linux"
+    --mount type=bind,src=$PROJECT_ROOT/bin/user,dst=/home/sigmaos/bin/user/common,ro \
+    --mount type=bind,src=$PROJECT_ROOT/bin/kernel,dst=/home/sigmaos/bin/kernel,ro \
+    --mount type=bind,src=$PROJECT_ROOT/bin/linux,dst=/home/sigmaos/bin/linux,ro"
 fi
 
 CID=$(docker run -dit \

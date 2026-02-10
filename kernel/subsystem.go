@@ -96,6 +96,8 @@ func (s *KernelSubsystem) Run(how proc.Thow, kernelId string, localIP sp.Tip) er
 		if err := s.NewProc(s.p, proc.HDOCKER, kernelId); err != nil {
 			return err
 		}
+		// Set the kernel ID on the proc before finalizing the environment
+		s.p.SetKernelID(kernelId, false)
 		h := sp.SIGMAHOME
 		s.p.AppendEnv("PATH", h+"/bin/user:"+h+"/bin/user/common:"+h+"/bin/kernel:/usr/sbin:/usr/bin:/bin")
 		s.p.FinalizeEnv(localIP, localIP, sp.Tpid(sp.NOT_SET))

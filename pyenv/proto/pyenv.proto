@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option go_package = "sigmaos/pyenv/proto";
+
+// Wheel represents a Python wheel package from pylock.toml
+message Wheel {
+  string name = 1;
+  string url = 2;
+  string path = 3;
+  int64 size = 4;
+  map<string, string> hashes = 5;
+}
+
+// PythonVersion represents a supported Python runtime
+message PythonVersion {
+  string version = 1;
+  string python_path = 2;
+  repeated string sys_tags = 3;
+  map<string, string> env_markers = 4;
+  string dcontainer_path = 5;
+}
+
+// InstallWheelReq requests installation of a wheel
+message InstallWheelReq {
+  Wheel wheel = 1;
+  PythonVersion py_version = 2;
+}
+
+// InstallWheelRep returns the installation result
+message InstallWheelRep {
+  string install_path = 1;
+  string error = 2;
+}
+
+// GetPyVersionReq requests Python version information
+message GetPyVersionReq {
+  string version = 1;  // e.g., "python3.11"
+}
+
+// GetPyVersionRep returns Python version information
+message GetPyVersionRep {
+  PythonVersion py_version = 1;
+  string error = 2;
+}

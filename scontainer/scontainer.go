@@ -15,6 +15,7 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	"sigmaos/sched/msched/proc/srv/binsrv"
+	"sigmaos/sigmaclnt"
 	"sigmaos/scontainer/python"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/perf"
@@ -44,7 +45,7 @@ func (upc *UProcCmd) Kill() error {
 }
 
 // Contain user procs using uproc-trampoline trampoline
-func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
+func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaClnt) (*UProcCmd, error) {
 	db.DPrintf(db.CONTAINER, "RunUProc dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
 
 	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: JailPath(uproc.GetPid())}
@@ -75,7 +76,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool) (*UProcCmd, error) {
 			// Set up python environment based on pylock file (if present)
 			if pylockPath, err := python.GetPylockPath("/home/sigmaos/bin/kernel/pyproc", pythonFile); err == nil {
 				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
-				sitePackagesDir, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath)
+				sitePackagesDir, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, sc)
 				if err != nil {
 					err = fmt.Errorf("setting up python site-packages failed: %w", err)
 					db.DPrintf(db.CONTAINER, "%v", err)

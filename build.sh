@@ -217,7 +217,7 @@ ensure_builder() {
   if [ -z "$cid" ] && [ "$REBUILD_BUILDER" != "true" ]; then
     if docker image inspect "$name" >/dev/null 2>&1; then
       echo "========== No ${name} running; starting from existing image =========="
-      if docker run --rm -d -it \
+      if docker run --rm -d \
         --name "$name" \
         --mount type=bind,src="$ROOT",dst=/home/sigmaos/ \
         "$name"; then
@@ -246,7 +246,7 @@ ensure_builder() {
       . 2>&1 | tee "$BUILD_LOG/${logbase}.out"
     echo "========== Done building ${name} =========="
     echo "========== Starting ${name} container =========="
-    docker run --rm -d -it \
+    docker run --rm -d \
       --name "$name" \
       --mount type=bind,src="$ROOT",dst=/home/sigmaos/ \
       "$name"
@@ -277,7 +277,7 @@ if [ "${NO_GO}" != "true" ]; then
 
   echo "========== Building kernel bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-kernel.out
-  run_with_log "make kernel" "$BUILD_OUT_FILE" docker exec -it $buildercid \
+  run_with_log "make kernel" "$BUILD_OUT_FILE" docker exec $buildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make.sh $BUILD_ARGS kernel
   # Copy named, which is also a user bin
@@ -287,7 +287,7 @@ if [ "${NO_GO}" != "true" ]; then
   if [ "${NO_GO_USER}" != "true" ]; then
     echo "========== Building user bins =========="
     BUILD_OUT_FILE=$BUILD_LOG/make-user.out
-    run_with_log "make user" "$BUILD_OUT_FILE" docker exec -it $buildercid \
+    run_with_log "make user" "$BUILD_OUT_FILE" docker exec $buildercid \
       /usr/bin/time -f "Build time: %e sec" \
       ./make.sh $BUILD_ARGS --userbin $USERBIN user --version $VERSION
     echo "========== Done building user bins =========="
@@ -300,7 +300,7 @@ if [ "${NO_RS}" != "true" ]; then
 
   echo "========== Building Rust bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-rs.out
-  run_with_log "make rust" "$BUILD_OUT_FILE" docker exec -it $rsbuildercid \
+  run_with_log "make rust" "$BUILD_OUT_FILE" docker exec $rsbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-rs.sh $RS_BUILD_ARGS --version $VERSION
   echo "========== Done building Rust bins =========="
@@ -312,7 +312,7 @@ if [ "${NO_CPP}" != "true" ]; then
 
   echo "========== Building CPP bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-cpp.out
-  run_with_log "make cpp" "$BUILD_OUT_FILE" docker exec -it $cppbuildercid \
+  run_with_log "make cpp" "$BUILD_OUT_FILE" docker exec $cppbuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-cpp.sh $CPP_BUILD_ARGS --version $VERSION
   echo "========== Done building CPP bins =========="
@@ -321,7 +321,7 @@ fi
 if [ "${NO_PY}" != "true" ]; then
   echo "========== Building Python bins =========="
   BUILD_OUT_FILE=$BUILD_LOG/make-user-py.out
-  run_with_log "make python" "$BUILD_OUT_FILE" docker exec -it $pybuildercid \
+  run_with_log "make python" "$BUILD_OUT_FILE" docker exec $pybuildercid \
     /usr/bin/time -f "Build time: %e sec" \
     ./make-python.sh --version $VERSION
   echo "========== Done building Python bins =========="

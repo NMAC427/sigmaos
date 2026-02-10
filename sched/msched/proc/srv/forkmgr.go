@@ -305,7 +305,7 @@ func (fm *forkMgr) ensureZygote(uproc *proc.Proc) (*zygoteEntry, error) {
 		fm.ps.pe.GetOuterContainerIP(), fm.ps.pe.GetPID())
 
 	// Start the zygote container
-	cmd, err := scontainer.StartSigmaContainer(zyg, fm.ps.dialproxy)
+	cmd, err := scontainer.StartSigmaContainer(zyg, fm.ps.dialproxy, fm.ps.sc)
 	if err != nil {
 		cancel()
 		_ = listener.Close()

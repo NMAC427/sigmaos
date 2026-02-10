@@ -123,8 +123,8 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 		// python dir
 		mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   path.Join(tmpBase, "sigmaos-python", kernelId),
-			Target:   "/tmp/python",
+			Source:   path.Join(tmpBase, "sigmaos-python"),
+			Target:   "/tmp/python/package-cache",
 			ReadOnly: false,
 		},
 		// perf output dir

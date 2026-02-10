@@ -29,6 +29,7 @@ for PP in \
   sched/msched/proc/chunk \
   apps/imgresize \
   proxy/mongo \
+  pyenv \
   example/example_echo_server \
   apps/spin \
   apps/cossim \

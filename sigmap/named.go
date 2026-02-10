@@ -46,6 +46,8 @@ const (
 	DBD         = DB + ANY + "/"
 	MONGOREL    = "mongo"
 	MONGO       = NAMED + MONGOREL + "/"
+	PYENVREL    = "pyenv"
+	PYENV       = NAMED + PYENVREL + "/"
 
 	IMGREL = "img"
 	IMG    = NAMED + IMGREL + "/"
@@ -103,6 +105,7 @@ var RootNamedMountedDirs map[string]bool = map[string]bool{
 	BOOTREL:    true,
 	DBREL:      true,
 	MONGOREL:   true,
+	PYENVREL:   true,
 }
 
 // Linux path

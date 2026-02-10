@@ -102,6 +102,7 @@ var InitRootDir = []string{
 	sp.MONGO,
 	sp.REALM,
 	sp.CHUNKD,
+	sp.PYENV,
 	sp.REALMS,
 }
 

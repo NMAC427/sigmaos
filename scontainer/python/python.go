@@ -14,20 +14,23 @@ import (
 	"syscall"
 
 	db "sigmaos/debug"
+	"sigmaos/pyenv/clnt"
+	"sigmaos/sigmaclnt"
 	"sigmaos/scontainer/python/pylock"
 
 	"github.com/google/uuid"
 )
 
 const (
-	PYTHON_PACKAGE_CACHE_DIR = "/tmp/python/package-cache"
-	PYTHON_TMP_INSTALL_DIR   = PYTHON_PACKAGE_CACHE_DIR + "/tmp"
+	PYTHON_BASE_PATH         = "/tmp/python"
+	PYTHON_PACKAGE_CACHE_DIR = PYTHON_BASE_PATH + "/package-cache" // Shared
+	PYTHON_TMP_DIR           = PYTHON_BASE_PATH + "/tmp"           // Not shared
 )
 
 type PythonVersion struct {
-	version    string
-	pythonPath string
-
+	version        string
+	pythonPath     string
+	index          int
 	sysTags        []string
 	envMarkers     map[string]string
 	dcontainerPath string
@@ -39,6 +42,18 @@ func (p *PythonVersion) Version() string {
 
 func (p *PythonVersion) PythonPath() string {
 	return p.pythonPath
+}
+
+func (p *PythonVersion) SysTags() []string {
+	return p.sysTags
+}
+
+func (p *PythonVersion) EnvMarkers() map[string]string {
+	return p.envMarkers
+}
+
+func (p *PythonVersion) DcontainerPath() string {
+	return p.dcontainerPath
 }
 
 func loadSysTags(path string) []string {
@@ -70,17 +85,16 @@ func loadEnvMarkers(path string) map[string]string {
 }
 
 var (
-	py311  *PythonVersion
 	pyOnce sync.Once
+
+	pyVersions []*PythonVersion
+	py311      *PythonVersion
 )
 
-func IsSupportedPythonVersion(version string) *PythonVersion {
-	if !strings.HasPrefix(version, "python") {
-		return nil
-	}
-
+func initPython() {
 	pyOnce.Do(func() {
 		os.MkdirAll(PYTHON_PACKAGE_CACHE_DIR, 0777)
+		os.MkdirAll(PYTHON_TMP_DIR, 0777)
 
 		py311 = &PythonVersion{
 			version:        "cpython3.11",
@@ -89,7 +103,20 @@ func IsSupportedPythonVersion(version string) *PythonVersion {
 			envMarkers:     loadEnvMarkers("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/env_markers.json"),
 			dcontainerPath: "/home/sigmaos/bin/kernel/cpython3.11",
 		}
+
+		pyVersions = []*PythonVersion{py311}
+		for i, py := range pyVersions {
+			py.index = i
+		}
 	})
+}
+
+func IsSupportedPythonVersion(version string) *PythonVersion {
+	if !strings.HasPrefix(version, "python") {
+		return nil
+	}
+
+	initPython()
 
 	switch version {
 	case "python3.11":
@@ -175,12 +202,7 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *PythonVersion) ([]pylock.
 func downloadWheel(wheel pylock.Wheel) (string, error) {
 	db.DPrintf(db.CONTAINER, "downloading python wheel: %v", wheel.Name)
 
-	sha256, found := wheel.Hashes["sha256"]
-	if !found {
-		return "", fmt.Errorf("Wheel %q has no sha256 hash", wheel.Name)
-	}
-
-	outPath := filepath.Join("/tmp/python-wheels", sha256, wheel.Name)
+	outPath := filepath.Join(PYTHON_TMP_DIR, uuid.NewString()+"-"+wheel.Name)
 	if _, err := os.Stat(outPath); err == nil {
 		// File already exists, skip download
 		return outPath, nil
@@ -268,7 +290,7 @@ func installWheel(wheelPath string, pyVersion *PythonVersion) (string, error) {
 
 	// Install into temporary directory first, and then move to final location
 	// to avoid partially installed wheels if installation fails.
-	tmpInstallDir := filepath.Join(PYTHON_TMP_INSTALL_DIR, uuid.New().String())
+	tmpInstallDir := filepath.Join(PYTHON_TMP_DIR, uuid.NewString())
 	if err := os.MkdirAll(tmpInstallDir, 0777); err != nil {
 		return "", err
 	}
@@ -287,7 +309,7 @@ func installWheel(wheelPath string, pyVersion *PythonVersion) (string, error) {
 // TODO: Must keep track of which wheels are currently being used
 // by running containers. For automatic eviction of unused wheels,
 // we need to only evict wheels not currently in use.
-func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath string) (string, error) {
+func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath string, sc *sigmaclnt.SigmaClnt) (string, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
 		return "", err
@@ -311,14 +333,27 @@ func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath s
 		err  error
 	}
 
-	pm := GetPyMgr()
+	// Create PyEnvClnt to communicate with pysrvd
+	pyenvClnt, err := clnt.NewPyEnvClnt(sc.FsLib, sc.ProcEnv().GetKernelID())
+	if err != nil {
+		return "", fmt.Errorf("failed to create pyenv client: %w", err)
+	}
+
 	results := make([]result, len(wheels))
 	wg := sync.WaitGroup{}
 	for i, wheel := range wheels {
 		wg.Add(1)
 		go func(idx int, wheel pylock.Wheel) {
 			defer wg.Done()
-			path, err := pm.InstallWheel(&wheel, pyVersion)
+			// Convert to PyVersion for the client
+			pyVer := clnt.NewPyVersionFromScontainer(
+				pyVersion.Version(),
+				pyVersion.PythonPath(),
+				pyVersion.DcontainerPath(),
+				pyVersion.SysTags(),
+				pyVersion.EnvMarkers(),
+			)
+			path, err := pyenvClnt.InstallWheel(&wheel, pyVer)
 			results[idx] = result{path: path, err: err}
 		}(i, wheel)
 	}
