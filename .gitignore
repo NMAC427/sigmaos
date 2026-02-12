@@ -21,3 +21,4 @@ env/user.sh
 cpp/build
 .vscode
 notes
+*.etcd

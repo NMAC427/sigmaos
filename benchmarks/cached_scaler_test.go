@@ -201,7 +201,7 @@ func NewCachedScalerJob(ts *test.RealmTstate, jobName string, cacheCfg *benchmar
 				db.DPrintf(db.TEST, "Cache miss (key=%v)! force %v genuine %v cnt %v err %v", key, forceMiss, err != nil, misscnt.Add(1), err)
 				// Fetch from cossim server
 				if ji.cacheCfg.CosSimBackend {
-					_, _, err := ji.cossimJ.Clnt.CosSimLeastLoaded(cossimInputVec, ranges)
+					_, _, err := ji.cossimJ.Clnt.CosSimLeastLoaded(cossimInputVec, ranges, true)
 					assert.Nil(ji.Ts.T, err, "CosSim req: %v", err)
 				} else {
 					// Simulate fetching the data with a fixed delay
@@ -300,19 +300,28 @@ func (ji *CachedScalerJobInstance) Wait() {
 
 func (ji *CachedScalerJobInstance) manuallyScaleCached() {
 	// If not scaling, bail out early
-	if !ji.cacheCfg.Scale.GetShouldScale() {
+	if !ji.cacheCfg.ManuallyScale.GetShouldScale() {
 		return
 	}
-	time.Sleep(ji.cacheCfg.Scale.GetScalingDelay())
-	ji.scaling = true
-	// TODO: More scaling
-	db.DPrintf(db.TEST, "Add scaler server")
-	if err := ji.cm.AddScalerServerWithSigmaPath(chunk.ChunkdPath(ji.warmCachedSrvKID), ji.cacheCfg.DelegateInit, ji.cacheCfg.CPP, true); !assert.Nil(ji.Ts.T, err, "Err add scaler server: %v", err) {
-		return
+	delays := ji.cacheCfg.ManuallyScale.GetScalingDelays()
+	deltas := ji.cacheCfg.ManuallyScale.GetScalingDeltas()
+	for i := 0; i < len(delays) && i < len(deltas); i++ {
+		time.Sleep(delays[i])
+		if deltas[i] > 0 {
+			db.DPrintf(db.TEST, "Manual scale: Scale up cached servers by %v", deltas[i])
+			ji.scaling = true
+			for j := 0; j < deltas[i]; j++ {
+				if err := ji.cm.AddScalerServerWithSigmaPath(chunk.ChunkdPath(ji.warmCachedSrvKID), ji.cacheCfg.DelegateInit, ji.cacheCfg.CPP, true); !assert.Nil(ji.Ts.T, err, "Err add scaler server: %v", err) {
+					return
+				}
+			}
+			ji.scaling = false
+			ji.lastScaled = time.Now()
+			db.DPrintf(db.TEST, "Manual scale: Done scale up cached servers by %v", deltas[i])
+		} else if deltas[i] < 0 {
+			db.DPrintf(db.TEST, "Manual scale: Scale down cached servers by %v not implemented", -deltas[i])
+		}
 	}
-	ji.scaling = false
-	ji.lastScaled = time.Now()
-	db.DPrintf(db.TEST, "Done add scaler server")
 }
 
 // Write vector DB to cache srv

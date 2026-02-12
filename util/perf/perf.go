@@ -88,13 +88,17 @@ type Perf struct {
 	pprofMutex     prof
 	pprofBlock     prof
 	tpt            bool
+	val            bool
 	cpuCyclesBusy  []float64
 	cpuCyclesTotal []float64
 	cpuUtilPct     []float64
 	cores          map[string]bool
 	tpts           []float64
+	vals           []float64
 	times          []time.Time
+	tptSampleHz    int
 	tptFile        *os.File
+	valFile        *os.File
 	sigc           chan os.Signal
 }
 
@@ -102,12 +106,17 @@ func NewPerf(pe *proc.ProcEnv, s Tselector) (*Perf, error) {
 	return NewPerfMulti(pe, s, "")
 }
 
+func NewPerfMulti(pe *proc.ProcEnv, s Tselector, s2 string) (*Perf, error) {
+	return NewPerfMultiTptSampleHz(pe, s, s2, sp.Conf.Perf.CPU_UTIL_SAMPLE_HZ)
+}
+
 // A slight hack for benchmarks which wish to have 2 perf structures (one for
 // each realm).
-func NewPerfMulti(pe *proc.ProcEnv, s Tselector, s2 string) (*Perf, error) {
+func NewPerfMultiTptSampleHz(pe *proc.ProcEnv, s Tselector, s2 string, tptSampleHz int) (*Perf, error) {
 	initLabels(pe)
 	db.DPrintf(db.PERF, "Perf tracking selector %v labels %v", s, labels)
 	p := &Perf{}
+	p.tptSampleHz = tptSampleHz
 	p.selector = s
 	p.utilChan = make(chan bool, 1)
 	sigc := make(chan os.Signal, 1)
@@ -158,7 +167,12 @@ func NewPerfMulti(pe *proc.ProcEnv, s Tselector, s2 string) (*Perf, error) {
 	// Set up throughput caputre
 	if ok := labels[s+TPT]; ok {
 		db.DPrintf(db.PERF, "Set up pprof tpt capture")
-		p.setupTpt(sp.Conf.Perf.CPU_UTIL_SAMPLE_HZ, basePath+"-tpt.out")
+		p.setupTpt(tptSampleHz, basePath+"-tpt.out")
+	}
+	// Set up value caputre
+	if ok := labels[s+VAL]; ok {
+		db.DPrintf(db.PERF, "Set up pprof val capture")
+		p.setupVal(sp.Conf.Perf.CPU_UTIL_SAMPLE_HZ, basePath+"-val.out")
 	}
 	return p, nil
 }
@@ -176,17 +190,37 @@ func (p *Perf) TptTick(tpt float64) {
 	p.tptTickL(tpt)
 }
 
+// Register that an event has happened with a given instantaneous value.
+func (p *Perf) ValTick(val float64) {
+	// If we aren't recording throughput, return.
+	if !p.val {
+		return
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.valTickL(val)
+}
+
 func (p *Perf) tptTickL(tpt float64) {
 	// If it has been long enough since we started incrementing this slot, seal
 	// it and move to the next slot. In this way, we always expect
 	// len(p.times) == len(p.tpts) - 1
-	if time.Since(p.times[len(p.times)-1]).Milliseconds() > int64(1000/sp.Conf.Perf.CPU_UTIL_SAMPLE_HZ) {
+	if time.Since(p.times[len(p.times)-1]).Milliseconds() > int64(1000/p.tptSampleHz) {
 		p.tpts = append(p.tpts, 0.0)
 		p.times = append(p.times, time.Now())
 	}
 
 	// Increment the current tpt slot.
 	p.tpts[len(p.tpts)-1] += tpt
+}
+
+func (p *Perf) valTickL(val float64) {
+	p.vals = append(p.vals, 0.0)
+	p.times = append(p.times, time.Now())
+	// Set the current val slot.
+	p.vals[len(p.vals)-1] = val
 }
 
 func (p *Perf) SumTicks() float64 {
@@ -214,6 +248,7 @@ func (p *Perf) Done() {
 		p.teardownPprofBlock()
 		p.teardownUtil()
 		p.teardownTpt()
+		p.teardownVal()
 	}
 }
 
@@ -402,6 +437,25 @@ func (p *Perf) setupTpt(sampleHz int, fpath string) {
 	p.mu.Unlock()
 }
 
+func (p *Perf) setupVal(sampleHz int, fpath string) {
+	p.mu.Lock()
+
+	p.val = true
+	f, err := os.Create(fpath)
+	if err != nil {
+		db.DFatalf("Create val file %v failed %v", fpath, err)
+	}
+	p.valFile = f
+	// Pre-allocate a large number of entries (40 secs worth)
+	p.times = make([]time.Time, 0, 40*sampleHz)
+	p.vals = make([]float64, 0, 40*sampleHz)
+
+	p.times = append(p.times, time.Now())
+	p.vals = append(p.vals, 0.0)
+
+	p.mu.Unlock()
+}
+
 func (p *Perf) setupPprof(fpath string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -546,5 +600,20 @@ func (p *Perf) teardownTpt() {
 			}
 		}
 		p.tptFile.Close()
+	}
+}
+
+// Caller holds lock.
+func (p *Perf) teardownVal() {
+	if p.val {
+		p.val = false
+		db.DPrintf(db.PERF, "Tear down val perf tracker num entries %v", len(p.times))
+		defer db.DPrintf(db.PERF, "Done Tear down val perf tracker")
+		for i := 0; i < len(p.times); i++ {
+			if _, err := p.valFile.WriteString(fmt.Sprintf("%vus,%f\n", p.times[i].UnixMicro(), p.vals[i])); err != nil {
+				db.DFatalf("Error writing to val file: %v", err)
+			}
+		}
+		p.valFile.Close()
 	}
 }

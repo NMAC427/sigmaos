@@ -62,6 +62,8 @@ proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/spin/proto --proto_path apps/spin
 proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cossim/proto --proto_path apps/cossim/proto cossim.proto")
 proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/epcache/proto --proto_path apps/epcache/proto epcache.proto")
 proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cache/proto --proto_path apps/cache/proto cache.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cache/proto --proto_path apps/cache/proto get.proto")
+proto_cmds+=("protoc -I=. --cpp_out=./cpp/apps/cache/proto --proto_path apps/cache/proto dump.proto")
 proto_cmds+=("protoc -I=. --cpp_out=./cpp util/tracing/proto/tracing.proto")
 
 printf "%s\n" "${proto_cmds[@]}" | parallel -j"$NJOBS" --verbose
@@ -69,6 +71,16 @@ printf "%s\n" "${proto_cmds[@]}" | parallel -j"$NJOBS" --verbose
 # Make a build directory
 cd cpp
 mkdir -p build
+
+# Generate build files
+cd build
+cmake ..
+# Uncomment below to compile with debug symbols
+#ccache -c && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+export EXIT_STATUS=$?
+if [ $EXIT_STATUS  -ne 0 ]; then
+  exit $EXIT_STATUS
+fi
 
 # Run the build
 cd build

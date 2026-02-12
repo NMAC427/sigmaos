@@ -122,13 +122,14 @@ func (lcs *LCSched) schedule() {
 			db.DPrintf(db.LCSCHED, "Try to schedule realm %v", realm)
 			for kid, r := range lcs.mscheds {
 				p, ch, enqueueT, ok := q.Dequeue(func(p *proc.Proc) bool {
-					return isEligible(p, r.mcpu, r.mem)
+					return r.IsEligible(p)
 				})
 				if ok {
-					db.DPrintf(db.LCSCHED, "Successfully schedule realm %v", realm)
+					db.DPrintf(db.LCSCHED, "Successfully schedule realm %v kid %v p %v", realm, kid, p.GetProgram())
 					perf.LogSpawnLatency("LCSched.Dequeue found eligible msched", p.GetPid(), p.GetSpawnTime(), enqueueT)
 					// Alloc resources for the proc
 					r.alloc(p)
+					db.DPrintf(db.LCSCHED, "Realm %v kid %v nRunning %v p %v", realm, kid, r.nRunning, p.GetProgram())
 					go lcs.runProc(kid, p, ch, r)
 					success = true
 					// Move on to the next realm
@@ -199,13 +200,6 @@ func (lcs *LCSched) addProc(p *proc.Proc, ch chan string) {
 	q.Enqueue(p, ch)
 	// Signal that a new proc may be runnable.
 	lcs.cond.Signal()
-}
-
-func isEligible(p *proc.Proc, mcpu proc.Tmcpu, mem proc.Tmem) bool {
-	if p.GetMem() <= mem && p.GetMcpu() <= mcpu {
-		return true
-	}
-	return false
 }
 
 // Caller must hold lock.

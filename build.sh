@@ -3,7 +3,7 @@
 set -eo pipefail
 
 usage() {
-  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [-j NJOBS] [--no_go] [--no_go_user] [--no_rs] [--no_docker] [--no_cpp] [--no_py] [--rebuildbuilder] [--nocache] [--debug]" 1>&2
+  echo "Usage: $0 [--push TAG] [--target TARGET] [--version VERSION] [--userbin USERBIN] [-j NJOBS] [--no_go] [--no_go_user] [--no_rs] [--no_docker] [--no_cpp] [--no_py]  [--refresh_gvisor_bundle] [--rebuildbuilder] [--nocache] [--debug]" 1>&2
 }
 
 NJOBS="$(nproc)"
@@ -19,6 +19,7 @@ NO_GO="false"
 NO_GO_USER="false"
 NO_PY="false"
 NO_DOCKER="false"
+REFRESH_GVISOR_BUNDLE="false"
 NORACE="--norace"
 DEBUG=""
 while [[ "$#" -gt 0 ]]; do
@@ -59,6 +60,10 @@ while [[ "$#" -gt 0 ]]; do
   --nocache)
     shift
     NO_CACHE="--no-cache"
+    ;;
+  --refresh_gvisor_bundle)
+    shift
+    REFRESH_GVISOR_BUNDLE="true"
     ;;
   --push)
     shift
@@ -351,6 +356,12 @@ if [ "${NO_DOCKER}" != "true" ]; then
   echo "========== Start Docker targets build =========="
   parallel --verbose -j"$NJOBS" --tag \
     "DOCKER_BUILDKIT=1 docker build --progress=plain -f docker/target.Dockerfile --target {} -t {}$BUILD_TARGET_SUFFIX . 2>&1 | tee $BUILD_LOG/{}.out" ::: $targets
+  docker_build_status=$?
+  if [ $docker_build_status -ne 0 ]; then
+    printf "\n!!!!!!!!!! BUILD ERROR !!!!!!!!!!\n";
+    echo "!!!!!!!!!! ABORTING BUILD !!!!!!!!!!"
+    exit 1
+  fi
   echo "========== Done building Docker targets =========="
 fi
 
@@ -381,4 +392,13 @@ if ! [ -z "$TAG" ]; then
   docker push arielszekely/sigmaos:$TAG
   docker tag sigmauser arielszekely/sigmauser:$TAG
   docker push arielszekely/sigmauser:$TAG
+  echo "========== Done pushing container images to DockerHub =========="
+fi
+
+# If gVisor rootfs doesn't exist, create it
+GVISOR_BUNDLE=/tmp/sigmaos-base-user-bundle
+if [ "${REFRESH_GVISOR_BUNDLE}" == "true" ] || ! [ -d $GVISOR_BUNDLE ]; then
+  echo "========== Create GVisor Bundle =========="
+  ./create-gvisor-bundle.sh
+  echo "========== Done creating GVisor Bundle =========="
 fi

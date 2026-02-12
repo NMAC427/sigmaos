@@ -285,6 +285,21 @@ func newCachedScalerJobs(ts *test.RealmTstate, jobName string, cacheCfg *benchma
 	return ws, is
 }
 
+// ========== Start Latency Helpers ==========
+
+func newStartLatencyJobs(ts *test.RealmTstate, cfg *benchmarks.StartLatencyBenchConfig, cacheCfg *benchmarks.CacheBenchConfig, cossimCfg *benchmarks.CosSimBenchConfig, etcdCfg *benchmarks.EtcdBenchConfig, memcachedCfg *benchmarks.MemcachedBenchConfig) ([]*StartLatencyJobInstance, []interface{}) {
+	// n is ntrials, which is always 1.
+	n := 1
+	ws := make([]*StartLatencyJobInstance, 0, n)
+	is := make([]interface{}, 0, n)
+	for i := 0; i < n; i++ {
+		i := NewStartLatencyJob(ts, cfg, cacheCfg, cossimCfg, etcdCfg, memcachedCfg)
+		ws = append(ws, i)
+		is = append(is, i)
+	}
+	return ws, is
+}
+
 // ========== MSched Helpers ==========
 
 func newMSchedJobs(ts *test.RealmTstate, nclnt int, dur string, maxrps string, progname string, sfn mschedFn, kernels []string, withKernelPref, skipstats bool) ([]*MSchedJobInstance, []interface{}) {
@@ -302,13 +317,13 @@ func newMSchedJobs(ts *test.RealmTstate, nclnt int, dur string, maxrps string, p
 
 // ========== Hotel Helpers ==========
 
-func newHotelJobs(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, cfg *benchmarks.HotelBenchConfig, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
+func newHotelJobs(ts *test.RealmTstate, p *perf.Perf, dc *DeploymentCost, sigmaos bool, cfg *benchmarks.HotelBenchConfig, fn hotelFn) ([]*HotelJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*HotelJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewHotelJob(ts, p, sigmaos, fn, false, cfg)
+		i := NewHotelJob(ts, p, dc, sigmaos, fn, false, cfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
@@ -321,7 +336,7 @@ func newHotelJobsCli(ts *test.RealmTstate, sigmaos bool, cfg *benchmarks.HotelBe
 	ws := make([]*HotelJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewHotelJob(ts, nil, sigmaos, fn, true, cfg)
+		i := NewHotelJob(ts, nil, nil, sigmaos, fn, true, cfg)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
@@ -329,13 +344,13 @@ func newHotelJobsCli(ts *test.RealmTstate, sigmaos bool, cfg *benchmarks.HotelBe
 }
 
 // ========== ImgResize Helpers ==========
-func newImgResizeJob(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, input string, ntasks int, ninputs int, mcpu proc.Tmcpu, mem proc.Tmem, nrounds int, imgdmcpu proc.Tmcpu) ([]*ImgResizeJobInstance, []interface{}) {
+func newImgResizeJob(ts *test.RealmTstate, p *perf.Perf, cfg *benchmarks.ImgBenchConfig, sigmaos bool) ([]*ImgResizeJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*ImgResizeJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewImgResizeJob(ts, p, sigmaos, input, ntasks, ninputs, 0, time.Second, mcpu, mem, nrounds, imgdmcpu)
+		i := NewImgResizeJob(ts, p, cfg, sigmaos)
 		ws = append(ws, i)
 		is = append(is, i)
 	}
@@ -343,13 +358,13 @@ func newImgResizeJob(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, input str
 }
 
 // ========== ImgResizeRPC Helpers ==========
-func newImgResizeRPCJob(ts *test.RealmTstate, p *perf.Perf, sigmaos bool, input string, tasksPerSec int, dur time.Duration, mcpu proc.Tmcpu, mem proc.Tmem, nrounds int, imgdmcpu proc.Tmcpu) ([]*ImgResizeJobInstance, []interface{}) {
+func newImgResizeRPCJob(ts *test.RealmTstate, p *perf.Perf, cfg *benchmarks.ImgBenchConfig, sigmaos bool) ([]*ImgResizeJobInstance, []interface{}) {
 	// n is ntrials, which is always 1.
 	n := 1
 	ws := make([]*ImgResizeJobInstance, 0, n)
 	is := make([]interface{}, 0, n)
 	for i := 0; i < n; i++ {
-		i := NewImgResizeJob(ts, p, sigmaos, input, 0, 0, tasksPerSec, dur, mcpu, mem, nrounds, imgdmcpu)
+		i := NewImgResizeJob(ts, p, cfg, sigmaos)
 		ws = append(ws, i)
 		is = append(is, i)
 	}

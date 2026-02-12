@@ -11,6 +11,7 @@ import (
 	epcacheclnt "sigmaos/apps/epcache/clnt"
 	epcacheproto "sigmaos/apps/epcache/proto"
 	db "sigmaos/debug"
+	rpcproto "sigmaos/rpc/proto"
 	"sigmaos/sigmaclnt/fslib"
 	sp "sigmaos/sigmap"
 )
@@ -47,13 +48,12 @@ func (c *clnt) GetSrvID() string {
 }
 
 type CosSimShardClnt struct {
-	mu         sync.Mutex
-	fsl        *fslib.FsLib
-	clnts      map[string]*clnt
-	clntsSlice []*CosSimClnt
-	epcc       *epcacheclnt.EndpointCacheClnt
-	lastEPV    epcache.Tversion
-	done       bool
+	mu      sync.Mutex
+	fsl     *fslib.FsLib
+	clnts   map[string]*clnt
+	epcc    *epcacheclnt.EndpointCacheClnt
+	lastEPV epcache.Tversion
+	done    bool
 }
 
 func NewCosSimShardClnt(fsl *fslib.FsLib, epcc *epcacheclnt.EndpointCacheClnt) (*CosSimShardClnt, error) {
@@ -68,31 +68,56 @@ func NewCosSimShardClnt(fsl *fslib.FsLib, epcc *epcacheclnt.EndpointCacheClnt) (
 	return cssc, nil
 }
 
-func (cssc *CosSimShardClnt) CosSimLeastLoaded(v []float64, ranges []*proto.VecRange) (uint64, float64, error) {
-	start := time.Now()
-	srvID, clnt, err := cssc.GetLeastLoadedClnt()
-	if err != nil {
-		db.DPrintf(db.COSSIMCLNT_ERR, "Err GetLeastLoadedClnt: %v", err)
-		return 0, 0.0, err
+func (cssc *CosSimShardClnt) CosSimLeastLoaded(v []float64, ranges []*proto.VecRange, retry bool) (uint64, float64, error) {
+	ignore := map[string]bool{}
+	// Keep retrying, ignoring clients which produced errors before
+	for {
+		start := time.Now()
+		srvID, clnt, err := cssc.getLeastLoadedClnt(ignore)
+		if err != nil {
+			db.DPrintf(db.COSSIMCLNT_ERR, "Err GetLeastLoadedClnt: %v", err)
+			return 0, 0.0, err
+		}
+		db.DPrintf(db.COSSIMCLNT, "Least loaded server: %v lat:%v", srvID, time.Since(start))
+		id, val, err := cssc.runReq(srvID, clnt, v, ranges)
+		// Optionally retry
+		if err != nil && retry {
+			ignore[srvID] = true
+			db.DPrintf(db.COSSIMCLNT_ERR, "Err runReq[%v] retry: %v", srvID, err)
+			continue
+		}
+		return id, val, err
 	}
-	db.DPrintf(db.COSSIMCLNT, "Least loaded server: %v lat:%v", srvID, time.Since(start))
+}
+
+func (cssc *CosSimShardClnt) runReq(srvID string, clnt *CosSimClnt, v []float64, ranges []*proto.VecRange) (uint64, float64, error) {
 	defer cssc.PutClnt(srvID)
 	return clnt.CosSim(v, ranges)
 }
 
 func (cssc *CosSimShardClnt) GetLeastLoadedClnt() (string, *CosSimClnt, error) {
+	return cssc.getLeastLoadedClnt(nil)
+}
+
+func (cssc *CosSimShardClnt) getLeastLoadedClnt(ignore map[string]bool) (string, *CosSimClnt, error) {
 	cssc.mu.Lock()
 	defer cssc.mu.Unlock()
 
 	if len(cssc.clnts) == 0 {
-		return sp.NOT_SET, nil, fmt.Errorf("No cossim clients available")
+		return sp.NOT_SET, nil, fmt.Errorf("No cossim clients available, ignoring %v", ignore)
 	}
 
 	var minClnt *clnt
 	for _, clnt := range cssc.clnts {
+		if ignore[clnt.GetSrvID()] {
+			continue
+		}
 		if minClnt == nil || clnt.GetNOutstanding() < minClnt.GetNOutstanding() {
 			minClnt = clnt
 		}
+	}
+	if minClnt == nil {
+		return sp.NOT_SET, nil, fmt.Errorf("No cossim clients available, ignoring %v", ignore)
 	}
 	return minClnt.GetSrvID(), minClnt.Get(), nil
 }
@@ -119,7 +144,7 @@ func (cssc *CosSimShardClnt) PutClnt(srvID string) {
 
 	clnt, ok := cssc.clnts[srvID]
 	if !ok {
-		db.DPrintf(db.ERROR, "Err put clnt unknown clnt: %v", srvID)
+		db.DPrintf(db.COSSIMCLNT_ERR, "Err put clnt unknown clnt: %v", srvID)
 		return
 	}
 	clnt.Put()
@@ -135,17 +160,21 @@ func (cssc *CosSimShardClnt) monitorShards() {
 			continue
 		}
 		// Update set of available clients
-		cssc.addClnts(instances)
+		cssc.updateClnts(instances)
 		// Update last endpoint version
 		cssc.lastEPV = v
 	}
 }
 
-func (cssc *CosSimShardClnt) addClnts(instances []*epcacheproto.Instance) {
+func (cssc *CosSimShardClnt) updateClnts(instances []*epcacheproto.Instance) {
 	cssc.mu.Lock()
 	defer cssc.mu.Unlock()
 
+	// Note servers which are still registered as being up
+	stillUp := make(map[string]bool)
 	for _, i := range instances {
+		// Server is still up
+		stillUp[i.ID] = true
 		// If client already exists, move along
 		if _, ok := cssc.clnts[i.ID]; ok {
 			continue
@@ -156,8 +185,34 @@ func (cssc *CosSimShardClnt) addClnts(instances []*epcacheproto.Instance) {
 			db.DPrintf(db.COSSIMCLNT_ERR, "Err new cossim clnt: %v", err)
 		}
 		cssc.clnts[i.ID] = newClnt(i.ID, clnt)
-		cssc.clntsSlice = append(cssc.clntsSlice, clnt)
 	}
+	for id, _ := range cssc.clnts {
+		if !stillUp[id] {
+			// Server is down
+			db.DPrintf(db.COSSIMCLNT, "Server %v no longer up, removing clnt", id)
+			delete(cssc.clnts, id)
+		}
+	}
+}
+
+func (cssc *CosSimShardClnt) GetAllServerMetrics() (map[string]*rpcproto.MetricsRep, error) {
+	cssc.mu.Lock()
+	clnts := make(map[string]*clnt)
+	for srvID, clnt := range cssc.clnts {
+		clnts[srvID] = clnt
+	}
+	cssc.mu.Unlock()
+
+	metrics := make(map[string]*rpcproto.MetricsRep)
+	for srvID, clnt := range clnts {
+		rep, err := clnt.c.GetMetrics()
+		if err != nil {
+			db.DPrintf(db.COSSIMCLNT_ERR, "Err GetMetrics for srv %v: %v", srvID, err)
+			continue
+		}
+		metrics[srvID] = rep
+	}
+	return metrics, nil
 }
 
 func (cssc *CosSimShardClnt) Stop() {

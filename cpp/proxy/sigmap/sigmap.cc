@@ -18,6 +18,8 @@ void Clnt::init_conn() {
   auto res = _rpcc->RPC("SPProxySrvAPI.Init", req, rep);
   LogSpawnLatency(ProcEnv()->GetPID(), ProcEnv()->GetSpawnTime(), startInit,
                   "Initialization.InitSPProxyConn");
+  LogSpawnLatency(ProcEnv()->GetPID(), ProcEnv()->GetSpawnTime(), startInit,
+                  "Paper.Initialization.InitSPProxyConn");
   // Make sure to release the proc env proto pointer so it isn't destroyed
   auto _ = req.release_procenvproto();
   if (!res.has_value()) {
@@ -663,6 +665,9 @@ std::expected<int, sigmaos::serr::Error> Clnt::RegisterEP(
   req.set_path(pn);
   req.set_allocated_endpoint(ep.get());
   auto res = _rpcc->RPC("SPProxySrvAPI.RegisterEP", req, rep);
+  LogSpawnLatency(ProcEnv()->GetPID(), ProcEnv()->GetSpawnTime(),
+                  startServiceDiscovery,
+                  "Paper.Initialization.ServiceDiscovery");
   LogSpawnLatency(ProcEnv()->GetPID(), ProcEnv()->GetSpawnTime(),
                   startServiceDiscovery, "Initialization.ServiceDiscovery");
   auto _ = req.release_endpoint();

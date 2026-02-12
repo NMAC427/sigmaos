@@ -15,9 +15,10 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	"sigmaos/sched/msched/proc/srv/binsrv"
-	"sigmaos/sigmaclnt"
 	"sigmaos/scontainer/python"
+	"sigmaos/sigmaclnt"
 	sp "sigmaos/sigmap"
+	"sigmaos/util/linux/mem"
 	"sigmaos/util/perf"
 )
 
@@ -37,6 +38,10 @@ func (upc *UProcCmd) Pid() int {
 	return upc.cmd.Process.Pid
 }
 
+func (upc *UProcCmd) GetPSS() (proc.Tmem, error) {
+	return mem.GetAggregatePSS(upc.cmd.Process.Pid)
+}
+
 func (upc *UProcCmd) Kill() error {
 	if upc == nil || upc.cmd == nil || upc.cmd.Process == nil {
 		return nil
@@ -46,7 +51,7 @@ func (upc *UProcCmd) Kill() error {
 
 // Contain user procs using uproc-trampoline trampoline
 func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaClnt) (*UProcCmd, error) {
-	db.DPrintf(db.CONTAINER, "RunUProc dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
+	db.DPrintf(db.CONTAINER, "RunUProc scontainer dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
 
 	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: JailPath(uproc.GetPid())}
 

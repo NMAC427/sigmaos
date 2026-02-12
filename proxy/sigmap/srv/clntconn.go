@@ -9,6 +9,8 @@ import (
 	"time"
 	"unsafe"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"sigmaos/api/fs"
 	sos "sigmaos/api/sigmaos"
 	epcacheclnt "sigmaos/apps/epcache/clnt"
@@ -76,7 +78,11 @@ func (scc *SigmaClntConn) ReportError(err error) {
 func (scc *SigmaClntConn) close() error {
 	if !scc.api.testAndSetClosed() {
 		db.DPrintf(db.ALWAYS, "close: sigmaclntconn close %v", scc.api)
-		scc.api.sc.Close()
+		if scc.api.sc == nil {
+			db.DPrintf(db.ERROR, "Try to close sigmaclntconn for nil sigmaclnt: %v", scc.api.pe.GetPID())
+		} else {
+			scc.api.sc.Close()
+		}
 	}
 	if err := scc.conn.Close(); err != nil {
 		return err
@@ -97,6 +103,7 @@ type SPProxySrvAPI struct {
 	sc                  *sigmaclnt.SigmaClnt
 	epcc                *epcacheclnt.EndpointCacheClnt
 	spps                *SPProxySrv
+	pe                  *proc.ProcEnv
 }
 
 func (scc *SPProxySrvAPI) testAndSetClosed() bool {
@@ -112,6 +119,7 @@ func NewSPProxySrvAPI(spps *SPProxySrv, pe *proc.ProcEnv, fidc *fidclnt.FidClnt)
 		sc:   nil,
 		fidc: fidc,
 		spps: spps,
+		pe:   pe,
 	}
 	sca.cond = sync.NewCond(&sca.mu)
 	return sca, nil
@@ -407,6 +415,13 @@ func (sca *SPProxySrvAPI) RegisterEP(ctx fs.CtxI, req scproto.SigmaRegisterEPReq
 			db.DPrintf(db.SPPROXYSRV_ERR, "%v: RegisterEP EPCC err: %v", sca.sc.ClntId(), err)
 		}
 	}
+	if err == nil {
+		// Note that this proc has registered an EP
+		if err := sca.spps.psm.AddRegisteredEP(sca.sc.ProcEnv().GetPID(), filepath.Dir(req.Path), filepath.Base(req.Path), ep); err != nil {
+			db.DPrintf(db.SPPROXYSRV_ERR, "%v: AddRegisteredEP err: %v", sca.sc.ProcEnv().GetPID(), err)
+			db.DPrintf(db.ERROR, "%v: AddRegisteredEP err: %v", sca.sc.ProcEnv().GetPID(), err)
+		}
+	}
 	rep.Err = sca.setErr(err)
 	db.DPrintf(db.SPPROXYSRV, "%v: RegisterEP (useEPCC:%v) done %v %v", sca.sc.ClntId(), useEPCC, req, rep)
 	return nil
@@ -427,6 +442,28 @@ func (sca *SPProxySrvAPI) Started(ctx fs.CtxI, req scproto.SigmaNullReq, rep *sc
 }
 
 func (sca *SPProxySrvAPI) Exited(ctx fs.CtxI, req scproto.SigmaExitedReq, rep *scproto.SigmaErrRep) error {
+	// Unregister any endpoints registered byt his proc
+	eps, err := sca.spps.psm.GetRegisteredEPs(sca.sc.ProcEnv().GetPID())
+	if err != nil {
+		db.DPrintf(db.SPPROXYSRV_ERR, "%v: GetRegisteredEPs err: %v", sca.sc.ProcEnv().GetPID(), err)
+	} else {
+		db.DPrintf(db.SPPROXYSRV, "%v: Deregister EPs: %v", sca.sc.ProcEnv().GetPID(), eps)
+		for _, ep := range eps {
+			useEPCC := sca.epcc != nil
+			if useEPCC {
+				if err := sca.epcc.DeregisterEndpoint(ep.svcName, ep.instanceName); err != nil {
+					db.DPrintf(db.SPPROXYSRV_ERR, "%v: DeregisterEP EPCC err: %v", sca.sc.ProcEnv().GetPID(), err)
+					db.DPrintf(db.ERROR, "%v: DeregisterEP EPCC err: %v", sca.sc.ProcEnv().GetPID(), err)
+				}
+			} else {
+				if err := sca.sc.Remove(filepath.Join(ep.svcName, ep.instanceName)); err != nil {
+					db.DPrintf(db.SPPROXYSRV_ERR, "%v: DeregisterEP RmEndpointFile err: %v", sca.sc.ClntId(), err)
+					db.DPrintf(db.ERROR, "%v: DeregisterEP RmEndpointFile err: %v", sca.sc.ClntId(), err)
+				}
+			}
+		}
+		db.DPrintf(db.SPPROXYSRV, "%v: Done deregister EPs: %v", sca.sc.ProcEnv().GetPID(), eps)
+	}
 	status := proc.Tstatus(req.Status)
 	db.DPrintf(db.SPPROXYSRV, "%v: Exited status %v  msg %v", sca.sc.ClntId(), status, req.Msg)
 	sca.sc.Exited(proc.NewStatusInfo(proc.Tstatus(req.Status), req.Msg, nil))
@@ -477,6 +514,7 @@ func (sca *SPProxySrvAPI) GetDelegatedRPCReply(ctx fs.CtxI, req scproto.SigmaDel
 		rep.UseShmem = true
 		db.DPrintf(db.SPPROXYSRV, "%v: GetDelegatedRPCReply(%v) calculate shmem offsets done", sca.sc.ClntId(), req.RPCIdx)
 	}
+	rep.TransferStartPB = timestamppb.New(time.Now())
 	return nil
 }
 
@@ -495,6 +533,19 @@ func (sca *SPProxySrvAPI) GetMultiDelegatedRPCReplies(ctx fs.CtxI, req scproto.S
 		rep.NIOVs = append(rep.NIOVs, uint64(iov.Len()))
 		rep.Errs = append(rep.Errs, sca.setErr(err))
 	}
+	rep.TransferStartPB = timestamppb.New(time.Now())
 	db.DPrintf(db.SPPROXYSRV, "%v: GetMultiDelegatedRPCReply done totalLen %v req %v", sca.sc.ClntId(), totalLen, req)
+	return nil
+}
+
+func (sca *SPProxySrvAPI) OutgoingDelegatedRPC(ctx fs.CtxI, req scproto.SigmaOutgoingDelegatedRPCReq, rep *scproto.SigmaErrRep) error {
+	db.DPrintf(db.ALWAYS, "[%v] Time transferOutgoingDelegatedRPC: %v", sca.sc.ProcEnv().GetPID(), time.Since(req.TransferStartPB.AsTime()))
+	db.DPrintf(db.SPPROXYSRV, "%v: OutgoingDelegatedRPC(%v)", sca.sc.ClntId(), req.RPCIdx)
+	iov := req.Blob.GetIoVec()
+	start := time.Now()
+	// Insert the reply in the table
+	sca.spps.psm.InsertReply(sca.sc.ProcEnv(), uint64(req.RPCIdx), iov, nil, start)
+	db.DPrintf(db.SPPROXYSRV, "%v: OutgoingDelegatedRPC(%v) done", sca.sc.ClntId(), req.RPCIdx)
+	rep.Err = sca.setErr(nil)
 	return nil
 }

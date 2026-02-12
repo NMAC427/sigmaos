@@ -12,6 +12,11 @@ message ProcSeqno {
   string mSchedID = 4;
 }
 
+message ResourceReservationProto {
+  uint32 mcpuInt = 1;
+  uint32 memInt = 2; // memory reservation, in MB
+}
+
 message ProcEnvProto {
   string pidStr = 1;
   string program = 2;
@@ -43,23 +48,29 @@ message ProcEnvProto {
   string valgrind = 28;
   bool runBootScriptFlag = 29;
   bool useShmem = 30;
-  bool useSPProxyProcClnt = 31;
-  string debugProcs = 32;
+  uint64 shmemMBInt = 31;
+  bool useSPProxyProcClnt = 32;
+  string debugProcs = 33;
 }
 
 message ProcProto {
   ProcEnvProto procEnvProto = 1;
   repeated string args = 2;
-  map<string, string> env = 3;
-  Blob blob = 4; // boot script
-  bytes bootScriptInput = 5;
-  uint32 typeInt = 6;
-  uint32 mcpuInt = 7;
-  uint32 memInt = 8;
+  repeated string addedBins = 3;
+  map<string, string> env = 4;
+  Blob blob = 5; // boot script
+  bytes bootScriptInput = 6;
+  uint32 typeInt = 7;
+  bool runAfterBootScript = 8;
+  uint64 queueableResourcePoolID = 9;
+  ResourceReservationProto resourceRes = 10;
+  ResourceReservationProto bootScriptResourceRes = 11;
+  bool measurePSS = 12;
+  uint64 measurePSSDelayMS = 13;
 
   // If set, this proc should be created by forking a Zygote rather than by
   // starting a fresh σcontainer from scratch.
-  ForkProcProto forkProc = 9;
+  ForkProcProto forkProc = 14;
 }
 
 message ForkProcProto {

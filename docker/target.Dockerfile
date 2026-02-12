@@ -33,7 +33,22 @@ RUN apt install -y \
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 RUN mkdir jail && \
-    mkdir /tmp/spproxyd
+    mkdir /tmp/sigmaos-proc-bundle-overlays && \
+    mkdir /tmp/spproxyd && \
+    mkdir /sigmaos-realm-bins-gvisor
+
+RUN apt-get update && \
+    apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    libevent-dev
+
+# Install gVisor in user container
+RUN curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+RUN apt-get update && apt-get install -y runsc
 
 # ========== remote user image ==========
 FROM sigmauser-local AS sigmauser-remote
@@ -55,15 +70,16 @@ ENV dbip x.x.x.x
 ENV mongoip x.x.x.x
 ENV buildtag "local-build"
 ENV dialproxy "false"
+ENV gvisor "false"
 # Install docker-cli
-RUN apt install -y docker.io
+RUN apt update && apt install -y docker.io
 ENV reserveMcpu "0"
 ENV netmode "host"
 ENV sigmauser "NOT_SET"
 
 # Make a directory for binaries shared between realms.
 RUN mkdir -p /home/sigmaos/bin/user/common
-CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser}"]
+CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser} ${gvisor}"]
 
 # ========== remote kernel image ==========
 FROM sigmaos-local AS sigmaos-remote
@@ -76,4 +92,4 @@ COPY bin/kernel /home/sigmaos/bin/kernel/
 COPY create-net.sh /home/sigmaos/bin/kernel/create-net.sh
 # Copy named
 RUN cp /home/sigmaos/bin/kernel/named /home/sigmaos/bin/user/common/named
-CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser}"]
+CMD ["/bin/sh", "-c", "bin/linux/bootkernel ${kernelid} ${named} ${boot} ${dbip} ${mongoip} ${reserveMcpu} ${buildtag} ${dialproxy} ${netmode} ${sigmauser} ${gvisor}"]

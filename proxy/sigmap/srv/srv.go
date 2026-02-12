@@ -17,9 +17,11 @@ import (
 	dialproxysrv "sigmaos/dialproxy/srv"
 	"sigmaos/proc"
 	"sigmaos/proxy/sigmap/clnt"
+	wasmrpc "sigmaos/proxy/wasm/rpc"
 	"sigmaos/sigmaclnt"
 	"sigmaos/sigmaclnt/fidclnt"
 	sp "sigmaos/sigmap"
+	"sigmaos/util/linux/mem"
 	"sigmaos/util/perf"
 )
 
@@ -133,6 +135,13 @@ func (spps *SPProxySrv) IncomingProc(p *proc.Proc) {
 	spps.psm.AllocProcState(p.GetProcEnv(), p)
 }
 
+func (spps *SPProxySrv) WaitBootScriptCompletion(pid sp.Tpid) (wasmrpc.Tstatus, string, error) {
+	db.DPrintf(db.SPPROXYSRV, "[%v] Wait for completion of bootscript", pid)
+	status, msg, err := spps.psm.WaitBootScriptCompletion(pid)
+	db.DPrintf(db.SPPROXYSRV, "[%v] Done waiting for completion of bootscript: %v %v %v", pid, status, msg, err)
+	return status, msg, err
+}
+
 func (spps *SPProxySrv) ProcDone(p *proc.Proc) {
 	db.DPrintf(db.SPPROXYSRV, "Informed proc done %v", p.GetPid())
 	spps.mu.Lock()
@@ -175,8 +184,16 @@ func (sppsc *SPProxySrvCmd) InformIncomingProc(p *proc.Proc) error {
 	return sppsc.cc.InformIncomingProc(p)
 }
 
+func (sppsc *SPProxySrvCmd) GetPSS() (proc.Tmem, error) {
+	return mem.GetAggregatePSS(sppsc.cmd.Process.Pid)
+}
+
 func (sppsc *SPProxySrvCmd) InformProcDone(p *proc.Proc) error {
 	return sppsc.cc.InformProcDone(p)
+}
+
+func (sppsc *SPProxySrvCmd) WaitBootScriptCompletion(pid sp.Tpid) (wasmrpc.Tstatus, string, error) {
+	return sppsc.cc.WaitBootScriptCompletion(pid)
 }
 
 func (sppsc *SPProxySrvCmd) GetProc() *proc.Proc {

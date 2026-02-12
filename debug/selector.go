@@ -16,10 +16,12 @@ const (
 
 // Benchmarks
 const (
-	LOADGEN    Tselector = "LOADGEN"
-	BENCH      Tselector = "BENCH"
-	THROUGHPUT Tselector = "THROUGHPUT"
-	CPU_UTIL   Tselector = "CPU_UTIL"
+	LOADGEN        Tselector = "LOADGEN"
+	BENCH          Tselector = "BENCH"
+	THROUGHPUT     Tselector = "THROUGHPUT"
+	CPU_UTIL       Tselector = "CPU_UTIL"
+	AUTOSCALER     Tselector = "AUTOSCALER"
+	AUTOSCALER_ERR Tselector = AUTOSCALER + ERR
 )
 
 // Latency break-down.
@@ -98,10 +100,22 @@ const (
 	MATMUL         Tselector = "MATMUL"
 )
 
+// Etcd
+const (
+	ETCD     Tselector = "ETCD"
+	ETCD_ERR           = ETCD + ERR
+)
+
+// Memcached
+const (
+	MEMCACHED     Tselector = "MEMCACHED"
+	MEMCACHED_ERR           = MEMCACHED + ERR
+)
+
 // Img
 const (
 	IMGD     Tselector = "IMGD"
-	IMGD_ERR           = "IMGD" + ERR
+	IMGD_ERR           = IMGD + ERR
 )
 
 // MR
@@ -142,9 +156,18 @@ const (
 
 // Boot
 const (
-	BOOTCLNT  Tselector = "BOOTCLNT"
-	BOOT      Tselector = "BOOT"
-	CONTAINER Tselector = "CONTAINER"
+	BOOTCLNT   Tselector = "BOOTCLNT"
+	BOOT       Tselector = "BOOT"
+	CONTAINER  Tselector = "CONTAINER"
+	GVISOR     Tselector = "GVISOR"
+	GVISOR_ERR Tselector = "GVISOR" + ERR
+	K8S        Tselector = "K8S"
+	K8S_ERR    Tselector = "K8S" + ERR
+)
+
+const (
+	PSS     Tselector = "PSS"
+	PSS_ERR Tselector = PSS + ERR
 )
 
 // Named
@@ -198,7 +221,13 @@ const (
 // Proxies
 const (
 	S3             Tselector = "S3"
+	S3_ERR                   = S3 + ERR
+	S3CLNT2                  = "S3CLNT2"
+	S3CLNT2_ERR              = S3CLNT2 + ERR
 	UX                       = "UX"
+	UX_ERR                   = UX + ERR
+	UXCLNT                   = "UXCLNT"
+	UXCLNT_ERR               = UXCLNT + ERR
 	DB                       = "DB"
 	MONGO                    = "MONGO"
 	MONGO_ERR                = "MONGO" + ERR

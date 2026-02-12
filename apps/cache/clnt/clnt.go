@@ -18,6 +18,7 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/rpc"
 	rpcclntcache "sigmaos/rpc/clnt/cache"
+	rpcclntopts "sigmaos/rpc/clnt/opts"
 	sprpcclnt "sigmaos/rpc/clnt/sigmap"
 	rpcdev "sigmaos/rpc/dev"
 	"sigmaos/sigmaclnt/fslib"
@@ -40,7 +41,7 @@ func NewCacheClnt(fsl *fslib.FsLib, job string, nshard int, lazyInit bool) *Cach
 	return &CacheClnt{
 		fsl:       fsl,
 		nshard:    uint32(nshard),
-		ClntCache: rpcclntcache.NewRPCClntCache(sprpcclnt.WithSPChannel(fsl, lazyInit), sprpcclnt.WithDelegatedSPProxyChannel(fsl)),
+		ClntCache: rpcclntcache.NewRPCClntCache(sprpcclnt.WithSPChannel(fsl, lazyInit), sprpcclnt.WithDelegatedSPProxyChannel(fsl), rpcclntopts.WithShmem(fsl.GetShmemSegment())),
 	}
 }
 
@@ -76,6 +77,17 @@ func (cc *CacheClnt) PutTracedFenced(sctx *tproto.SpanContextConfig, srv, key st
 	}
 	var res cacheproto.CacheRep
 	if err := cc.RPC(srv, "CacheSrv.Put", req, &res); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cc *CacheClnt) PrepareToMigrate(srv string) error {
+	req := &cacheproto.CacheString{
+		Val: "migrate",
+	}
+	var res cacheproto.CacheOK
+	if err := cc.RPC(srv, "CacheSrv.PrepareToMigrate", req, &res); err != nil {
 		return err
 	}
 	return nil
@@ -161,7 +173,7 @@ func (cc *CacheClnt) NewGet(sctx *tproto.SpanContextConfig, key string, f *sp.Tf
 
 func (c *CacheClnt) DelegatedGetHotShards(srv string, rpcIdx uint64) ([]cache.Tshard, []uint64, error) {
 	var res cacheproto.HotShardsRep
-	if err := c.DelegatedRPC(srv, uint64(rpcIdx), &res); err != nil {
+	if _, err := c.DelegatedRPC(srv, uint64(rpcIdx), &res); err != nil {
 		return nil, nil, err
 	}
 	shardIDs := make([]cache.Tshard, 0, len(res.ShardIDs))
@@ -317,7 +329,7 @@ func (c *CacheClnt) DelegatedDumpShard(srv string, rpcIdx int) (cache.Tcache, er
 	perf.LogSpawnLatency("CacheClnt.DelegatedDumpShard start %d", sp.NOT_SET, perf.TIME_NOT_SET, perf.TIME_NOT_SET, rpcIdx)
 	start := time.Now()
 	var res cacheproto.ShardData
-	if err := c.DelegatedRPC(srv, uint64(rpcIdx), &res); err != nil {
+	if _, err := c.DelegatedRPC(srv, uint64(rpcIdx), &res); err != nil {
 		return nil, err
 	}
 	perf.LogSpawnLatency("CacheClnt.DelegatedDumpShard done %d", sp.NOT_SET, perf.TIME_NOT_SET, start, rpcIdx)

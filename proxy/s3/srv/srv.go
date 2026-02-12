@@ -1,4 +1,4 @@
-package fss3
+package srv
 
 import (
 	"context"
@@ -24,8 +24,9 @@ var fss3 *Fss3
 
 type Fss3 struct {
 	*sigmasrv.SigmaSrv
-	mu      sync.Mutex
-	clients map[sp.TprincipalID]*s3.Client
+	mu       sync.Mutex
+	clients  map[sp.TprincipalID]*s3.Client
+	S3RpcAPI *S3RpcAPI
 }
 
 func (fss3 *Fss3) getClient(ctx fs.CtxI) (*s3.Client, *serr.Err) {
@@ -69,11 +70,15 @@ func RunFss3() {
 	fss3 = &Fss3{
 		clients: make(map[sp.TprincipalID]*s3.Client),
 	}
+	fss3.S3RpcAPI = newRPCAPI(fss3)
 	root := newDir("", path.Tpathname{}, sp.DMDIR)
 	addr := sp.NewTaddrAnyPort()
 	ssrv, err := sigmasrv.NewSigmaSrvRootClnt(root, addr, sp.ProxyPathname(sp.S3, pe.GetKernelID()), sc)
 	if err != nil {
 		db.DFatalf("Error NewSigmaSrv: %v", err)
+	}
+	if err := ssrv.MountRPCSrv(fss3.S3RpcAPI); err != nil {
+		db.DFatalf("Err add S3RpcAPI: %v", err)
 	}
 	p, err := perf.NewPerf(ssrv.MemFs.SigmaClnt().ProcEnv(), perf.S3)
 	if err != nil {

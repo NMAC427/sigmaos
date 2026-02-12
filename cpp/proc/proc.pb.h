@@ -77,6 +77,9 @@ extern ProcProto_EnvEntry_DoNotUseDefaultTypeInternal _ProcProto_EnvEntry_DoNotU
 class ProcSeqno;
 struct ProcSeqnoDefaultTypeInternal;
 extern ProcSeqnoDefaultTypeInternal _ProcSeqno_default_instance_;
+class ResourceReservationProto;
+struct ResourceReservationProtoDefaultTypeInternal;
+extern ResourceReservationProtoDefaultTypeInternal _ResourceReservationProto_default_instance_;
 PROTOBUF_NAMESPACE_OPEN
 template<> ::ForkProcProto* Arena::CreateMaybeMessage<::ForkProcProto>(Arena*);
 template<> ::ForkProcProto_ZygoteEnvEntry_DoNotUse* Arena::CreateMaybeMessage<::ForkProcProto_ZygoteEnvEntry_DoNotUse>(Arena*);
@@ -87,6 +90,7 @@ template<> ::ProcEnvProto_SecretsMapEntry_DoNotUse* Arena::CreateMaybeMessage<::
 template<> ::ProcProto* Arena::CreateMaybeMessage<::ProcProto>(Arena*);
 template<> ::ProcProto_EnvEntry_DoNotUse* Arena::CreateMaybeMessage<::ProcProto_EnvEntry_DoNotUse>(Arena*);
 template<> ::ProcSeqno* Arena::CreateMaybeMessage<::ProcSeqno>(Arena*);
+template<> ::ResourceReservationProto* Arena::CreateMaybeMessage<::ResourceReservationProto>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 
 // ===================================================================
@@ -282,6 +286,165 @@ class ProcSeqno final :
 };
 // -------------------------------------------------------------------
 
+class ResourceReservationProto final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:ResourceReservationProto) */ {
+ public:
+  inline ResourceReservationProto() : ResourceReservationProto(nullptr) {}
+  ~ResourceReservationProto() override;
+  explicit PROTOBUF_CONSTEXPR ResourceReservationProto(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ResourceReservationProto(const ResourceReservationProto& from);
+  ResourceReservationProto(ResourceReservationProto&& from) noexcept
+    : ResourceReservationProto() {
+    *this = ::std::move(from);
+  }
+
+  inline ResourceReservationProto& operator=(const ResourceReservationProto& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResourceReservationProto& operator=(ResourceReservationProto&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResourceReservationProto& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ResourceReservationProto* internal_default_instance() {
+    return reinterpret_cast<const ResourceReservationProto*>(
+               &_ResourceReservationProto_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(ResourceReservationProto& a, ResourceReservationProto& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ResourceReservationProto* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResourceReservationProto* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResourceReservationProto* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ResourceReservationProto>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const ResourceReservationProto& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const ResourceReservationProto& from) {
+    ResourceReservationProto::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ResourceReservationProto* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "ResourceReservationProto";
+  }
+  protected:
+  explicit ResourceReservationProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMcpuIntFieldNumber = 1,
+    kMemIntFieldNumber = 2,
+  };
+  // uint32 mcpuInt = 1;
+  void clear_mcpuint();
+  uint32_t mcpuint() const;
+  void set_mcpuint(uint32_t value);
+  private:
+  uint32_t _internal_mcpuint() const;
+  void _internal_set_mcpuint(uint32_t value);
+  public:
+
+  // uint32 memInt = 2;
+  void clear_memint();
+  uint32_t memint() const;
+  void set_memint(uint32_t value);
+  private:
+  uint32_t _internal_memint() const;
+  void _internal_set_memint(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:ResourceReservationProto)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t mcpuint_;
+    uint32_t memint_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_proc_2fproc_2eproto;
+};
+// -------------------------------------------------------------------
+
 class ProcEnvProto_EtcdEndpointsEntry_DoNotUse : public ::PROTOBUF_NAMESPACE_ID::internal::MapEntry<ProcEnvProto_EtcdEndpointsEntry_DoNotUse, 
     std::string, ::TendpointProto,
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
@@ -408,7 +571,7 @@ class ProcEnvProto final :
                &_ProcEnvProto_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   friend void swap(ProcEnvProto& a, ProcEnvProto& b) {
     a.Swap(&b);
@@ -506,7 +669,7 @@ class ProcEnvProto final :
     kVersionFieldNumber = 25,
     kFailFieldNumber = 26,
     kValgrindFieldNumber = 28,
-    kDebugProcsFieldNumber = 32,
+    kDebugProcsFieldNumber = 33,
     kPrincipalFieldNumber = 4,
     kSpawnTimePBFieldNumber = 17,
     kHowIntFieldNumber = 16,
@@ -514,8 +677,9 @@ class ProcEnvProto final :
     kUseSPProxyFieldNumber = 19,
     kUseDialProxyFieldNumber = 20,
     kRunBootScriptFlagFieldNumber = 29,
+    kShmemMBIntFieldNumber = 31,
     kUseShmemFieldNumber = 30,
-    kUseSPProxyProcClntFieldNumber = 31,
+    kUseSPProxyProcClntFieldNumber = 32,
   };
   // map<string, .TendpointProto> etcdEndpoints = 7;
   int etcdendpoints_size() const;
@@ -854,7 +1018,7 @@ class ProcEnvProto final :
   std::string* _internal_mutable_valgrind();
   public:
 
-  // string debugProcs = 32;
+  // string debugProcs = 33;
   void clear_debugprocs();
   const std::string& debugprocs() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -949,6 +1113,15 @@ class ProcEnvProto final :
   void _internal_set_runbootscriptflag(bool value);
   public:
 
+  // uint64 shmemMBInt = 31;
+  void clear_shmemmbint();
+  uint64_t shmemmbint() const;
+  void set_shmemmbint(uint64_t value);
+  private:
+  uint64_t _internal_shmemmbint() const;
+  void _internal_set_shmemmbint(uint64_t value);
+  public:
+
   // bool useShmem = 30;
   void clear_useshmem();
   bool useshmem() const;
@@ -958,7 +1131,7 @@ class ProcEnvProto final :
   void _internal_set_useshmem(bool value);
   public:
 
-  // bool useSPProxyProcClnt = 31;
+  // bool useSPProxyProcClnt = 32;
   void clear_usespproxyprocclnt();
   bool usespproxyprocclnt() const;
   void set_usespproxyprocclnt(bool value);
@@ -1017,6 +1190,7 @@ class ProcEnvProto final :
     bool usespproxy_;
     bool usedialproxy_;
     bool runbootscriptflag_;
+    uint64_t shmemmbint_;
     bool useshmem_;
     bool usespproxyprocclnt_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -1102,7 +1276,7 @@ class ProcProto final :
                &_ProcProto_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(ProcProto& a, ProcProto& b) {
     a.Swap(&b);
@@ -1179,14 +1353,19 @@ class ProcProto final :
 
   enum : int {
     kArgsFieldNumber = 2,
-    kEnvFieldNumber = 3,
-    kBootScriptInputFieldNumber = 5,
+    kAddedBinsFieldNumber = 3,
+    kEnvFieldNumber = 4,
+    kBootScriptInputFieldNumber = 6,
     kProcEnvProtoFieldNumber = 1,
-    kBlobFieldNumber = 4,
-    kForkProcFieldNumber = 9,
-    kTypeIntFieldNumber = 6,
-    kMcpuIntFieldNumber = 7,
-    kMemIntFieldNumber = 8,
+    kBlobFieldNumber = 5,
+    kResourceResFieldNumber = 10,
+    kBootScriptResourceResFieldNumber = 11,
+    kForkProcFieldNumber = 14,
+    kQueueableResourcePoolIDFieldNumber = 9,
+    kTypeIntFieldNumber = 7,
+    kRunAfterBootScriptFieldNumber = 8,
+    kMeasurePSSFieldNumber = 12,
+    kMeasurePSSDelayMSFieldNumber = 13,
   };
   // repeated string args = 2;
   int args_size() const;
@@ -1212,7 +1391,31 @@ class ProcProto final :
   std::string* _internal_add_args();
   public:
 
-  // map<string, string> env = 3;
+  // repeated string addedBins = 3;
+  int addedbins_size() const;
+  private:
+  int _internal_addedbins_size() const;
+  public:
+  void clear_addedbins();
+  const std::string& addedbins(int index) const;
+  std::string* mutable_addedbins(int index);
+  void set_addedbins(int index, const std::string& value);
+  void set_addedbins(int index, std::string&& value);
+  void set_addedbins(int index, const char* value);
+  void set_addedbins(int index, const char* value, size_t size);
+  std::string* add_addedbins();
+  void add_addedbins(const std::string& value);
+  void add_addedbins(std::string&& value);
+  void add_addedbins(const char* value);
+  void add_addedbins(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& addedbins() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_addedbins();
+  private:
+  const std::string& _internal_addedbins(int index) const;
+  std::string* _internal_add_addedbins();
+  public:
+
+  // map<string, string> env = 4;
   int env_size() const;
   private:
   int _internal_env_size() const;
@@ -1229,7 +1432,7 @@ class ProcProto final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_env();
 
-  // bytes bootScriptInput = 5;
+  // bytes bootScriptInput = 6;
   void clear_bootscriptinput();
   const std::string& bootscriptinput() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -1261,7 +1464,7 @@ class ProcProto final :
       ::ProcEnvProto* procenvproto);
   ::ProcEnvProto* unsafe_arena_release_procenvproto();
 
-  // .Blob blob = 4;
+  // .Blob blob = 5;
   bool has_blob() const;
   private:
   bool _internal_has_blob() const;
@@ -1279,7 +1482,43 @@ class ProcProto final :
       ::Blob* blob);
   ::Blob* unsafe_arena_release_blob();
 
-  // .ForkProcProto forkProc = 9;
+  // .ResourceReservationProto resourceRes = 10;
+  bool has_resourceres() const;
+  private:
+  bool _internal_has_resourceres() const;
+  public:
+  void clear_resourceres();
+  const ::ResourceReservationProto& resourceres() const;
+  PROTOBUF_NODISCARD ::ResourceReservationProto* release_resourceres();
+  ::ResourceReservationProto* mutable_resourceres();
+  void set_allocated_resourceres(::ResourceReservationProto* resourceres);
+  private:
+  const ::ResourceReservationProto& _internal_resourceres() const;
+  ::ResourceReservationProto* _internal_mutable_resourceres();
+  public:
+  void unsafe_arena_set_allocated_resourceres(
+      ::ResourceReservationProto* resourceres);
+  ::ResourceReservationProto* unsafe_arena_release_resourceres();
+
+  // .ResourceReservationProto bootScriptResourceRes = 11;
+  bool has_bootscriptresourceres() const;
+  private:
+  bool _internal_has_bootscriptresourceres() const;
+  public:
+  void clear_bootscriptresourceres();
+  const ::ResourceReservationProto& bootscriptresourceres() const;
+  PROTOBUF_NODISCARD ::ResourceReservationProto* release_bootscriptresourceres();
+  ::ResourceReservationProto* mutable_bootscriptresourceres();
+  void set_allocated_bootscriptresourceres(::ResourceReservationProto* bootscriptresourceres);
+  private:
+  const ::ResourceReservationProto& _internal_bootscriptresourceres() const;
+  ::ResourceReservationProto* _internal_mutable_bootscriptresourceres();
+  public:
+  void unsafe_arena_set_allocated_bootscriptresourceres(
+      ::ResourceReservationProto* bootscriptresourceres);
+  ::ResourceReservationProto* unsafe_arena_release_bootscriptresourceres();
+
+  // .ForkProcProto forkProc = 14;
   bool has_forkproc() const;
   private:
   bool _internal_has_forkproc() const;
@@ -1297,7 +1536,16 @@ class ProcProto final :
       ::ForkProcProto* forkproc);
   ::ForkProcProto* unsafe_arena_release_forkproc();
 
-  // uint32 typeInt = 6;
+  // uint64 queueableResourcePoolID = 9;
+  void clear_queueableresourcepoolid();
+  uint64_t queueableresourcepoolid() const;
+  void set_queueableresourcepoolid(uint64_t value);
+  private:
+  uint64_t _internal_queueableresourcepoolid() const;
+  void _internal_set_queueableresourcepoolid(uint64_t value);
+  public:
+
+  // uint32 typeInt = 7;
   void clear_typeint();
   uint32_t typeint() const;
   void set_typeint(uint32_t value);
@@ -1306,22 +1554,31 @@ class ProcProto final :
   void _internal_set_typeint(uint32_t value);
   public:
 
-  // uint32 mcpuInt = 7;
-  void clear_mcpuint();
-  uint32_t mcpuint() const;
-  void set_mcpuint(uint32_t value);
+  // bool runAfterBootScript = 8;
+  void clear_runafterbootscript();
+  bool runafterbootscript() const;
+  void set_runafterbootscript(bool value);
   private:
-  uint32_t _internal_mcpuint() const;
-  void _internal_set_mcpuint(uint32_t value);
+  bool _internal_runafterbootscript() const;
+  void _internal_set_runafterbootscript(bool value);
   public:
 
-  // uint32 memInt = 8;
-  void clear_memint();
-  uint32_t memint() const;
-  void set_memint(uint32_t value);
+  // bool measurePSS = 12;
+  void clear_measurepss();
+  bool measurepss() const;
+  void set_measurepss(bool value);
   private:
-  uint32_t _internal_memint() const;
-  void _internal_set_memint(uint32_t value);
+  bool _internal_measurepss() const;
+  void _internal_set_measurepss(bool value);
+  public:
+
+  // uint64 measurePSSDelayMS = 13;
+  void clear_measurepssdelayms();
+  uint64_t measurepssdelayms() const;
+  void set_measurepssdelayms(uint64_t value);
+  private:
+  uint64_t _internal_measurepssdelayms() const;
+  void _internal_set_measurepssdelayms(uint64_t value);
   public:
 
   // @@protoc_insertion_point(class_scope:ProcProto)
@@ -1333,6 +1590,7 @@ class ProcProto final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> args_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> addedbins_;
     ::PROTOBUF_NAMESPACE_ID::internal::MapField<
         ProcProto_EnvEntry_DoNotUse,
         std::string, std::string,
@@ -1341,10 +1599,14 @@ class ProcProto final :
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr bootscriptinput_;
     ::ProcEnvProto* procenvproto_;
     ::Blob* blob_;
+    ::ResourceReservationProto* resourceres_;
+    ::ResourceReservationProto* bootscriptresourceres_;
     ::ForkProcProto* forkproc_;
+    uint64_t queueableresourcepoolid_;
     uint32_t typeint_;
-    uint32_t mcpuint_;
-    uint32_t memint_;
+    bool runafterbootscript_;
+    bool measurepss_;
+    uint64_t measurepssdelayms_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1428,7 +1690,7 @@ class ForkProcProto final :
                &_ForkProcProto_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    9;
 
   friend void swap(ForkProcProto& a, ForkProcProto& b) {
     a.Swap(&b);
@@ -1506,9 +1768,9 @@ class ForkProcProto final :
   enum : int {
     kZygoteArgsFieldNumber = 3,
     kZygoteEnvFieldNumber = 4,
+    kChildArgsFieldNumber = 6,
     kZygoteKeyFieldNumber = 1,
     kZygoteProgramFieldNumber = 2,
-    kChildArgsFieldNumber = 6,
     kKeepAliveNsFieldNumber = 5,
   };
   // repeated string zygoteArgs = 3;
@@ -1552,6 +1814,30 @@ class ForkProcProto final :
   ::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >*
       mutable_zygoteenv();
 
+  // repeated string childArgs = 6;
+  int childargs_size() const;
+  private:
+  int _internal_childargs_size() const;
+  public:
+  void clear_childargs();
+  const std::string& childargs(int index) const;
+  std::string* mutable_childargs(int index);
+  void set_childargs(int index, const std::string& value);
+  void set_childargs(int index, std::string&& value);
+  void set_childargs(int index, const char* value);
+  void set_childargs(int index, const char* value, size_t size);
+  std::string* add_childargs();
+  void add_childargs(const std::string& value);
+  void add_childargs(std::string&& value);
+  void add_childargs(const char* value);
+  void add_childargs(const char* value, size_t size);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>& childargs() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>* mutable_childargs();
+  private:
+  const std::string& _internal_childargs(int index) const;
+  std::string* _internal_add_childargs();
+  public:
+
   // string zygoteKey = 1;
   void clear_zygotekey();
   const std::string& zygotekey() const;
@@ -1580,20 +1866,6 @@ class ForkProcProto final :
   std::string* _internal_mutable_zygoteprogram();
   public:
 
-  // bytes childArgs = 6;
-  void clear_childargs();
-  const std::string& childargs() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_childargs(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_childargs();
-  PROTOBUF_NODISCARD std::string* release_childargs();
-  void set_allocated_childargs(std::string* childargs);
-  private:
-  const std::string& _internal_childargs() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_childargs(const std::string& value);
-  std::string* _internal_mutable_childargs();
-  public:
-
   // uint64 keepAliveNs = 5;
   void clear_keepalivens();
   uint64_t keepalivens() const;
@@ -1617,9 +1889,9 @@ class ForkProcProto final :
         std::string, std::string,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING,
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::TYPE_STRING> zygoteenv_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string> childargs_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr zygotekey_;
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr zygoteprogram_;
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr childargs_;
     uint64_t keepalivens_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -1775,6 +2047,50 @@ inline void ProcSeqno::set_allocated_mschedid(std::string* mschedid) {
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:ProcSeqno.mSchedID)
+}
+
+// -------------------------------------------------------------------
+
+// ResourceReservationProto
+
+// uint32 mcpuInt = 1;
+inline void ResourceReservationProto::clear_mcpuint() {
+  _impl_.mcpuint_ = 0u;
+}
+inline uint32_t ResourceReservationProto::_internal_mcpuint() const {
+  return _impl_.mcpuint_;
+}
+inline uint32_t ResourceReservationProto::mcpuint() const {
+  // @@protoc_insertion_point(field_get:ResourceReservationProto.mcpuInt)
+  return _internal_mcpuint();
+}
+inline void ResourceReservationProto::_internal_set_mcpuint(uint32_t value) {
+  
+  _impl_.mcpuint_ = value;
+}
+inline void ResourceReservationProto::set_mcpuint(uint32_t value) {
+  _internal_set_mcpuint(value);
+  // @@protoc_insertion_point(field_set:ResourceReservationProto.mcpuInt)
+}
+
+// uint32 memInt = 2;
+inline void ResourceReservationProto::clear_memint() {
+  _impl_.memint_ = 0u;
+}
+inline uint32_t ResourceReservationProto::_internal_memint() const {
+  return _impl_.memint_;
+}
+inline uint32_t ResourceReservationProto::memint() const {
+  // @@protoc_insertion_point(field_get:ResourceReservationProto.memInt)
+  return _internal_memint();
+}
+inline void ResourceReservationProto::_internal_set_memint(uint32_t value) {
+  
+  _impl_.memint_ = value;
+}
+inline void ResourceReservationProto::set_memint(uint32_t value) {
+  _internal_set_memint(value);
+  // @@protoc_insertion_point(field_set:ResourceReservationProto.memInt)
 }
 
 // -------------------------------------------------------------------
@@ -3155,7 +3471,27 @@ inline void ProcEnvProto::set_useshmem(bool value) {
   // @@protoc_insertion_point(field_set:ProcEnvProto.useShmem)
 }
 
-// bool useSPProxyProcClnt = 31;
+// uint64 shmemMBInt = 31;
+inline void ProcEnvProto::clear_shmemmbint() {
+  _impl_.shmemmbint_ = uint64_t{0u};
+}
+inline uint64_t ProcEnvProto::_internal_shmemmbint() const {
+  return _impl_.shmemmbint_;
+}
+inline uint64_t ProcEnvProto::shmemmbint() const {
+  // @@protoc_insertion_point(field_get:ProcEnvProto.shmemMBInt)
+  return _internal_shmemmbint();
+}
+inline void ProcEnvProto::_internal_set_shmemmbint(uint64_t value) {
+  
+  _impl_.shmemmbint_ = value;
+}
+inline void ProcEnvProto::set_shmemmbint(uint64_t value) {
+  _internal_set_shmemmbint(value);
+  // @@protoc_insertion_point(field_set:ProcEnvProto.shmemMBInt)
+}
+
+// bool useSPProxyProcClnt = 32;
 inline void ProcEnvProto::clear_usespproxyprocclnt() {
   _impl_.usespproxyprocclnt_ = false;
 }
@@ -3175,7 +3511,7 @@ inline void ProcEnvProto::set_usespproxyprocclnt(bool value) {
   // @@protoc_insertion_point(field_set:ProcEnvProto.useSPProxyProcClnt)
 }
 
-// string debugProcs = 32;
+// string debugProcs = 33;
 inline void ProcEnvProto::clear_debugprocs() {
   _impl_.debugprocs_.ClearToEmpty();
 }
@@ -3396,7 +3732,82 @@ ProcProto::mutable_args() {
   return &_impl_.args_;
 }
 
-// map<string, string> env = 3;
+// repeated string addedBins = 3;
+inline int ProcProto::_internal_addedbins_size() const {
+  return _impl_.addedbins_.size();
+}
+inline int ProcProto::addedbins_size() const {
+  return _internal_addedbins_size();
+}
+inline void ProcProto::clear_addedbins() {
+  _impl_.addedbins_.Clear();
+}
+inline std::string* ProcProto::add_addedbins() {
+  std::string* _s = _internal_add_addedbins();
+  // @@protoc_insertion_point(field_add_mutable:ProcProto.addedBins)
+  return _s;
+}
+inline const std::string& ProcProto::_internal_addedbins(int index) const {
+  return _impl_.addedbins_.Get(index);
+}
+inline const std::string& ProcProto::addedbins(int index) const {
+  // @@protoc_insertion_point(field_get:ProcProto.addedBins)
+  return _internal_addedbins(index);
+}
+inline std::string* ProcProto::mutable_addedbins(int index) {
+  // @@protoc_insertion_point(field_mutable:ProcProto.addedBins)
+  return _impl_.addedbins_.Mutable(index);
+}
+inline void ProcProto::set_addedbins(int index, const std::string& value) {
+  _impl_.addedbins_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:ProcProto.addedBins)
+}
+inline void ProcProto::set_addedbins(int index, std::string&& value) {
+  _impl_.addedbins_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:ProcProto.addedBins)
+}
+inline void ProcProto::set_addedbins(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.addedbins_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:ProcProto.addedBins)
+}
+inline void ProcProto::set_addedbins(int index, const char* value, size_t size) {
+  _impl_.addedbins_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:ProcProto.addedBins)
+}
+inline std::string* ProcProto::_internal_add_addedbins() {
+  return _impl_.addedbins_.Add();
+}
+inline void ProcProto::add_addedbins(const std::string& value) {
+  _impl_.addedbins_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:ProcProto.addedBins)
+}
+inline void ProcProto::add_addedbins(std::string&& value) {
+  _impl_.addedbins_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:ProcProto.addedBins)
+}
+inline void ProcProto::add_addedbins(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.addedbins_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:ProcProto.addedBins)
+}
+inline void ProcProto::add_addedbins(const char* value, size_t size) {
+  _impl_.addedbins_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:ProcProto.addedBins)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+ProcProto::addedbins() const {
+  // @@protoc_insertion_point(field_list:ProcProto.addedBins)
+  return _impl_.addedbins_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+ProcProto::mutable_addedbins() {
+  // @@protoc_insertion_point(field_mutable_list:ProcProto.addedBins)
+  return &_impl_.addedbins_;
+}
+
+// map<string, string> env = 4;
 inline int ProcProto::_internal_env_size() const {
   return _impl_.env_.size();
 }
@@ -3425,7 +3836,7 @@ ProcProto::mutable_env() {
   return _internal_mutable_env();
 }
 
-// .Blob blob = 4;
+// .Blob blob = 5;
 inline bool ProcProto::_internal_has_blob() const {
   return this != internal_default_instance() && _impl_.blob_ != nullptr;
 }
@@ -3510,7 +3921,7 @@ inline void ProcProto::set_allocated_blob(::Blob* blob) {
   // @@protoc_insertion_point(field_set_allocated:ProcProto.blob)
 }
 
-// bytes bootScriptInput = 5;
+// bytes bootScriptInput = 6;
 inline void ProcProto::clear_bootscriptinput() {
   _impl_.bootscriptinput_.ClearToEmpty();
 }
@@ -3560,7 +3971,7 @@ inline void ProcProto::set_allocated_bootscriptinput(std::string* bootscriptinpu
   // @@protoc_insertion_point(field_set_allocated:ProcProto.bootScriptInput)
 }
 
-// uint32 typeInt = 6;
+// uint32 typeInt = 7;
 inline void ProcProto::clear_typeint() {
   _impl_.typeint_ = 0u;
 }
@@ -3580,47 +3991,267 @@ inline void ProcProto::set_typeint(uint32_t value) {
   // @@protoc_insertion_point(field_set:ProcProto.typeInt)
 }
 
-// uint32 mcpuInt = 7;
-inline void ProcProto::clear_mcpuint() {
-  _impl_.mcpuint_ = 0u;
+// bool runAfterBootScript = 8;
+inline void ProcProto::clear_runafterbootscript() {
+  _impl_.runafterbootscript_ = false;
 }
-inline uint32_t ProcProto::_internal_mcpuint() const {
-  return _impl_.mcpuint_;
+inline bool ProcProto::_internal_runafterbootscript() const {
+  return _impl_.runafterbootscript_;
 }
-inline uint32_t ProcProto::mcpuint() const {
-  // @@protoc_insertion_point(field_get:ProcProto.mcpuInt)
-  return _internal_mcpuint();
+inline bool ProcProto::runafterbootscript() const {
+  // @@protoc_insertion_point(field_get:ProcProto.runAfterBootScript)
+  return _internal_runafterbootscript();
 }
-inline void ProcProto::_internal_set_mcpuint(uint32_t value) {
+inline void ProcProto::_internal_set_runafterbootscript(bool value) {
   
-  _impl_.mcpuint_ = value;
+  _impl_.runafterbootscript_ = value;
 }
-inline void ProcProto::set_mcpuint(uint32_t value) {
-  _internal_set_mcpuint(value);
-  // @@protoc_insertion_point(field_set:ProcProto.mcpuInt)
+inline void ProcProto::set_runafterbootscript(bool value) {
+  _internal_set_runafterbootscript(value);
+  // @@protoc_insertion_point(field_set:ProcProto.runAfterBootScript)
 }
 
-// uint32 memInt = 8;
-inline void ProcProto::clear_memint() {
-  _impl_.memint_ = 0u;
+// uint64 queueableResourcePoolID = 9;
+inline void ProcProto::clear_queueableresourcepoolid() {
+  _impl_.queueableresourcepoolid_ = uint64_t{0u};
 }
-inline uint32_t ProcProto::_internal_memint() const {
-  return _impl_.memint_;
+inline uint64_t ProcProto::_internal_queueableresourcepoolid() const {
+  return _impl_.queueableresourcepoolid_;
 }
-inline uint32_t ProcProto::memint() const {
-  // @@protoc_insertion_point(field_get:ProcProto.memInt)
-  return _internal_memint();
+inline uint64_t ProcProto::queueableresourcepoolid() const {
+  // @@protoc_insertion_point(field_get:ProcProto.queueableResourcePoolID)
+  return _internal_queueableresourcepoolid();
 }
-inline void ProcProto::_internal_set_memint(uint32_t value) {
+inline void ProcProto::_internal_set_queueableresourcepoolid(uint64_t value) {
   
-  _impl_.memint_ = value;
+  _impl_.queueableresourcepoolid_ = value;
 }
-inline void ProcProto::set_memint(uint32_t value) {
-  _internal_set_memint(value);
-  // @@protoc_insertion_point(field_set:ProcProto.memInt)
+inline void ProcProto::set_queueableresourcepoolid(uint64_t value) {
+  _internal_set_queueableresourcepoolid(value);
+  // @@protoc_insertion_point(field_set:ProcProto.queueableResourcePoolID)
 }
 
-// .ForkProcProto forkProc = 9;
+// .ResourceReservationProto resourceRes = 10;
+inline bool ProcProto::_internal_has_resourceres() const {
+  return this != internal_default_instance() && _impl_.resourceres_ != nullptr;
+}
+inline bool ProcProto::has_resourceres() const {
+  return _internal_has_resourceres();
+}
+inline void ProcProto::clear_resourceres() {
+  if (GetArenaForAllocation() == nullptr && _impl_.resourceres_ != nullptr) {
+    delete _impl_.resourceres_;
+  }
+  _impl_.resourceres_ = nullptr;
+}
+inline const ::ResourceReservationProto& ProcProto::_internal_resourceres() const {
+  const ::ResourceReservationProto* p = _impl_.resourceres_;
+  return p != nullptr ? *p : reinterpret_cast<const ::ResourceReservationProto&>(
+      ::_ResourceReservationProto_default_instance_);
+}
+inline const ::ResourceReservationProto& ProcProto::resourceres() const {
+  // @@protoc_insertion_point(field_get:ProcProto.resourceRes)
+  return _internal_resourceres();
+}
+inline void ProcProto::unsafe_arena_set_allocated_resourceres(
+    ::ResourceReservationProto* resourceres) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.resourceres_);
+  }
+  _impl_.resourceres_ = resourceres;
+  if (resourceres) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ProcProto.resourceRes)
+}
+inline ::ResourceReservationProto* ProcProto::release_resourceres() {
+  
+  ::ResourceReservationProto* temp = _impl_.resourceres_;
+  _impl_.resourceres_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::ResourceReservationProto* ProcProto::unsafe_arena_release_resourceres() {
+  // @@protoc_insertion_point(field_release:ProcProto.resourceRes)
+  
+  ::ResourceReservationProto* temp = _impl_.resourceres_;
+  _impl_.resourceres_ = nullptr;
+  return temp;
+}
+inline ::ResourceReservationProto* ProcProto::_internal_mutable_resourceres() {
+  
+  if (_impl_.resourceres_ == nullptr) {
+    auto* p = CreateMaybeMessage<::ResourceReservationProto>(GetArenaForAllocation());
+    _impl_.resourceres_ = p;
+  }
+  return _impl_.resourceres_;
+}
+inline ::ResourceReservationProto* ProcProto::mutable_resourceres() {
+  ::ResourceReservationProto* _msg = _internal_mutable_resourceres();
+  // @@protoc_insertion_point(field_mutable:ProcProto.resourceRes)
+  return _msg;
+}
+inline void ProcProto::set_allocated_resourceres(::ResourceReservationProto* resourceres) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.resourceres_;
+  }
+  if (resourceres) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(resourceres);
+    if (message_arena != submessage_arena) {
+      resourceres = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, resourceres, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.resourceres_ = resourceres;
+  // @@protoc_insertion_point(field_set_allocated:ProcProto.resourceRes)
+}
+
+// .ResourceReservationProto bootScriptResourceRes = 11;
+inline bool ProcProto::_internal_has_bootscriptresourceres() const {
+  return this != internal_default_instance() && _impl_.bootscriptresourceres_ != nullptr;
+}
+inline bool ProcProto::has_bootscriptresourceres() const {
+  return _internal_has_bootscriptresourceres();
+}
+inline void ProcProto::clear_bootscriptresourceres() {
+  if (GetArenaForAllocation() == nullptr && _impl_.bootscriptresourceres_ != nullptr) {
+    delete _impl_.bootscriptresourceres_;
+  }
+  _impl_.bootscriptresourceres_ = nullptr;
+}
+inline const ::ResourceReservationProto& ProcProto::_internal_bootscriptresourceres() const {
+  const ::ResourceReservationProto* p = _impl_.bootscriptresourceres_;
+  return p != nullptr ? *p : reinterpret_cast<const ::ResourceReservationProto&>(
+      ::_ResourceReservationProto_default_instance_);
+}
+inline const ::ResourceReservationProto& ProcProto::bootscriptresourceres() const {
+  // @@protoc_insertion_point(field_get:ProcProto.bootScriptResourceRes)
+  return _internal_bootscriptresourceres();
+}
+inline void ProcProto::unsafe_arena_set_allocated_bootscriptresourceres(
+    ::ResourceReservationProto* bootscriptresourceres) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.bootscriptresourceres_);
+  }
+  _impl_.bootscriptresourceres_ = bootscriptresourceres;
+  if (bootscriptresourceres) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:ProcProto.bootScriptResourceRes)
+}
+inline ::ResourceReservationProto* ProcProto::release_bootscriptresourceres() {
+  
+  ::ResourceReservationProto* temp = _impl_.bootscriptresourceres_;
+  _impl_.bootscriptresourceres_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::ResourceReservationProto* ProcProto::unsafe_arena_release_bootscriptresourceres() {
+  // @@protoc_insertion_point(field_release:ProcProto.bootScriptResourceRes)
+  
+  ::ResourceReservationProto* temp = _impl_.bootscriptresourceres_;
+  _impl_.bootscriptresourceres_ = nullptr;
+  return temp;
+}
+inline ::ResourceReservationProto* ProcProto::_internal_mutable_bootscriptresourceres() {
+  
+  if (_impl_.bootscriptresourceres_ == nullptr) {
+    auto* p = CreateMaybeMessage<::ResourceReservationProto>(GetArenaForAllocation());
+    _impl_.bootscriptresourceres_ = p;
+  }
+  return _impl_.bootscriptresourceres_;
+}
+inline ::ResourceReservationProto* ProcProto::mutable_bootscriptresourceres() {
+  ::ResourceReservationProto* _msg = _internal_mutable_bootscriptresourceres();
+  // @@protoc_insertion_point(field_mutable:ProcProto.bootScriptResourceRes)
+  return _msg;
+}
+inline void ProcProto::set_allocated_bootscriptresourceres(::ResourceReservationProto* bootscriptresourceres) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.bootscriptresourceres_;
+  }
+  if (bootscriptresourceres) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(bootscriptresourceres);
+    if (message_arena != submessage_arena) {
+      bootscriptresourceres = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, bootscriptresourceres, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.bootscriptresourceres_ = bootscriptresourceres;
+  // @@protoc_insertion_point(field_set_allocated:ProcProto.bootScriptResourceRes)
+}
+
+// bool measurePSS = 12;
+inline void ProcProto::clear_measurepss() {
+  _impl_.measurepss_ = false;
+}
+inline bool ProcProto::_internal_measurepss() const {
+  return _impl_.measurepss_;
+}
+inline bool ProcProto::measurepss() const {
+  // @@protoc_insertion_point(field_get:ProcProto.measurePSS)
+  return _internal_measurepss();
+}
+inline void ProcProto::_internal_set_measurepss(bool value) {
+  
+  _impl_.measurepss_ = value;
+}
+inline void ProcProto::set_measurepss(bool value) {
+  _internal_set_measurepss(value);
+  // @@protoc_insertion_point(field_set:ProcProto.measurePSS)
+}
+
+// uint64 measurePSSDelayMS = 13;
+inline void ProcProto::clear_measurepssdelayms() {
+  _impl_.measurepssdelayms_ = uint64_t{0u};
+}
+inline uint64_t ProcProto::_internal_measurepssdelayms() const {
+  return _impl_.measurepssdelayms_;
+}
+inline uint64_t ProcProto::measurepssdelayms() const {
+  // @@protoc_insertion_point(field_get:ProcProto.measurePSSDelayMS)
+  return _internal_measurepssdelayms();
+}
+inline void ProcProto::_internal_set_measurepssdelayms(uint64_t value) {
+  
+  _impl_.measurepssdelayms_ = value;
+}
+inline void ProcProto::set_measurepssdelayms(uint64_t value) {
+  _internal_set_measurepssdelayms(value);
+  // @@protoc_insertion_point(field_set:ProcProto.measurePSSDelayMS)
+}
+
+// .ForkProcProto forkProc = 14;
 inline bool ProcProto::_internal_has_forkproc() const {
   return this != internal_default_instance() && _impl_.forkproc_ != nullptr;
 }
@@ -3940,59 +4571,86 @@ inline void ForkProcProto::set_keepalivens(uint64_t value) {
   // @@protoc_insertion_point(field_set:ForkProcProto.keepAliveNs)
 }
 
-// bytes childArgs = 6;
+// repeated string childArgs = 6;
+inline int ForkProcProto::_internal_childargs_size() const {
+  return _impl_.childargs_.size();
+}
+inline int ForkProcProto::childargs_size() const {
+  return _internal_childargs_size();
+}
 inline void ForkProcProto::clear_childargs() {
-  _impl_.childargs_.ClearToEmpty();
+  _impl_.childargs_.Clear();
 }
-inline const std::string& ForkProcProto::childargs() const {
-  // @@protoc_insertion_point(field_get:ForkProcProto.childArgs)
-  return _internal_childargs();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void ForkProcProto::set_childargs(ArgT0&& arg0, ArgT... args) {
- 
- _impl_.childargs_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:ForkProcProto.childArgs)
-}
-inline std::string* ForkProcProto::mutable_childargs() {
-  std::string* _s = _internal_mutable_childargs();
-  // @@protoc_insertion_point(field_mutable:ForkProcProto.childArgs)
+inline std::string* ForkProcProto::add_childargs() {
+  std::string* _s = _internal_add_childargs();
+  // @@protoc_insertion_point(field_add_mutable:ForkProcProto.childArgs)
   return _s;
 }
-inline const std::string& ForkProcProto::_internal_childargs() const {
-  return _impl_.childargs_.Get();
+inline const std::string& ForkProcProto::_internal_childargs(int index) const {
+  return _impl_.childargs_.Get(index);
 }
-inline void ForkProcProto::_internal_set_childargs(const std::string& value) {
-  
-  _impl_.childargs_.Set(value, GetArenaForAllocation());
+inline const std::string& ForkProcProto::childargs(int index) const {
+  // @@protoc_insertion_point(field_get:ForkProcProto.childArgs)
+  return _internal_childargs(index);
 }
-inline std::string* ForkProcProto::_internal_mutable_childargs() {
-  
-  return _impl_.childargs_.Mutable(GetArenaForAllocation());
+inline std::string* ForkProcProto::mutable_childargs(int index) {
+  // @@protoc_insertion_point(field_mutable:ForkProcProto.childArgs)
+  return _impl_.childargs_.Mutable(index);
 }
-inline std::string* ForkProcProto::release_childargs() {
-  // @@protoc_insertion_point(field_release:ForkProcProto.childArgs)
-  return _impl_.childargs_.Release();
+inline void ForkProcProto::set_childargs(int index, const std::string& value) {
+  _impl_.childargs_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:ForkProcProto.childArgs)
 }
-inline void ForkProcProto::set_allocated_childargs(std::string* childargs) {
-  if (childargs != nullptr) {
-    
-  } else {
-    
-  }
-  _impl_.childargs_.SetAllocated(childargs, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (_impl_.childargs_.IsDefault()) {
-    _impl_.childargs_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:ForkProcProto.childArgs)
+inline void ForkProcProto::set_childargs(int index, std::string&& value) {
+  _impl_.childargs_.Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:ForkProcProto.childArgs)
+}
+inline void ForkProcProto::set_childargs(int index, const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.childargs_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:ForkProcProto.childArgs)
+}
+inline void ForkProcProto::set_childargs(int index, const char* value, size_t size) {
+  _impl_.childargs_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:ForkProcProto.childArgs)
+}
+inline std::string* ForkProcProto::_internal_add_childargs() {
+  return _impl_.childargs_.Add();
+}
+inline void ForkProcProto::add_childargs(const std::string& value) {
+  _impl_.childargs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:ForkProcProto.childArgs)
+}
+inline void ForkProcProto::add_childargs(std::string&& value) {
+  _impl_.childargs_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:ForkProcProto.childArgs)
+}
+inline void ForkProcProto::add_childargs(const char* value) {
+  GOOGLE_DCHECK(value != nullptr);
+  _impl_.childargs_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:ForkProcProto.childArgs)
+}
+inline void ForkProcProto::add_childargs(const char* value, size_t size) {
+  _impl_.childargs_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:ForkProcProto.childArgs)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>&
+ForkProcProto::childargs() const {
+  // @@protoc_insertion_point(field_list:ForkProcProto.childArgs)
+  return _impl_.childargs_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField<std::string>*
+ForkProcProto::mutable_childargs() {
+  // @@protoc_insertion_point(field_mutable_list:ForkProcProto.childArgs)
+  return &_impl_.childargs_;
 }
 
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -4,8 +4,6 @@ package dcontainer
 
 import (
 	"context"
-	"errors"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -23,6 +21,7 @@ import (
 
 	"sigmaos/dcontainer/cgroup"
 	db "sigmaos/debug"
+	"sigmaos/gvisor"
 	"sigmaos/proc"
 	chunksrv "sigmaos/sched/msched/proc/chunk/srv"
 	sp "sigmaos/sigmap"
@@ -50,39 +49,7 @@ type cpustats struct {
 	util                float64
 }
 
-func execInContainer(ctx context.Context, cli *client.Client, containerID string, cmd string) error {
-	execResp, err := cli.ContainerExecCreate(ctx, containerID, types.ExecConfig{
-		Cmd:          []string{"sh", "-c", cmd},
-		AttachStdout: true,
-		AttachStderr: true,
-	})
-	if err != nil {
-		db.DPrintf(db.CONTAINER, "ExecCreate err %v\n", err)
-		return err
-	}
-	attachResp, err := cli.ContainerExecAttach(ctx, execResp.ID, types.ExecStartCheck{})
-	if err != nil {
-		db.DPrintf(db.CONTAINER, "ExecStart err %v\n", err)
-		return err
-	}
-	defer attachResp.Close()
-
-	io.Copy(os.Stdout, attachResp.Reader)
-
-	execInspect, err := cli.ContainerExecInspect(ctx, execResp.ID)
-	if err != nil {
-		db.DPrintf(db.CONTAINER, "ExecInspect err %v\n", err)
-		return err
-	}
-	if execInspect.ExitCode != 0 {
-		db.DPrintf(db.CONTAINER, "ExecInspect failure with exit code %v\n", execInspect.ExitCode)
-		return errors.New("ExecInspect failure")
-	}
-
-	return nil
-}
-
-func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DContainer, error) {
+func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string, useGVisor bool) (*DContainer, error) {
 	image := "sigmauser"
 	tmpBase := "/tmp"
 	if user != sp.NOT_SET {
@@ -146,6 +113,17 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string) (*DConta
 				Type:     mount.TypeBind,
 				Source:   procdBin,
 				Target:   filepath.Join(sp.SIGMAHOME, "bin/kernel"),
+				ReadOnly: true,
+			},
+		)
+	}
+
+	if useGVisor {
+		mnts = append(mnts,
+			mount.Mount{
+				Type:     mount.TypeBind,
+				Source:   gvisor.BASE_BUNDLE_PATH,
+				Target:   gvisor.BASE_BUNDLE_PATH,
 				ReadOnly: true,
 			},
 		)

@@ -1,7 +1,7 @@
 package srv
 
 import (
-	"fmt"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 
@@ -17,17 +17,26 @@ import (
 )
 
 type WASMRPCProxy struct {
-	spp *SPProxySrv
-	sc  *sigmaclnt.SigmaClnt
-	p   *proc.Proc
+	mu         sync.Mutex
+	cond       *sync.Cond
+	wg         sync.WaitGroup
+	spp        *SPProxySrv
+	sc         *sigmaclnt.SigmaClnt
+	p          *proc.Proc
+	exitStatus wasmrpc.Tstatus
+	exitMsg    string
+	exitErr    error
+	exited     bool
 }
 
-func NewWASMRPCProxy(spp *SPProxySrv, sc *sigmaclnt.SigmaClnt, p *proc.Proc) wasmrpc.RPCAPI {
-	return &WASMRPCProxy{
+func NewWASMRPCProxy(spp *SPProxySrv, sc *sigmaclnt.SigmaClnt, p *proc.Proc) wasmrpc.CoSandboxAPIImpl {
+	wp := &WASMRPCProxy{
 		spp: spp,
 		sc:  sc,
 		p:   p,
 	}
+	wp.cond = sync.NewCond(&wp.mu)
+	return wp
 }
 
 func (wp *WASMRPCProxy) Send(rpcIdx uint64, pn string, method string, b []byte, nOutIOV uint64) error {
@@ -41,17 +50,25 @@ func (wp *WASMRPCProxy) Send(rpcIdx uint64, pn string, method string, b []byte, 
 		db.DPrintf(db.SPPROXYSRV_ERR, "[%v] Error wrap & marshal WASM-proxied RPC request: %v", wp.p.GetPid(), err)
 		return err
 	}
+	wp.wg.Add(1)
 	// Run the delegated RPC asynchronously, and add an extra output IOVec slot
 	// for the RPC wrapper
-	go wp.spp.runDelegatedRPC(wp.sc, wp.p, rpcIdx, pn, iniov, nOutIOV+1)
+	go func() {
+		defer wp.wg.Done()
+		wp.spp.runDelegatedRPC(wp.sc, wp.p, rpcIdx, pn, iniov, nOutIOV+1)
+	}()
 	return nil
 }
 
-func (wp *WASMRPCProxy) Recv(rpcIdx uint64) ([]byte, error) {
+func (wp *WASMRPCProxy) Recv(rpcIdx uint64, getData bool) (*sessp.IoVec, error) {
 	outiov, err := wp.spp.psm.GetReply(wp.p.GetPid(), rpcIdx)
 	if err != nil {
 		db.DPrintf(db.SPPROXYSRV_ERR, "[%v] Err GetReply(%v) in WasmRPCRecv: %v", wp.p.GetPid(), err)
 		return nil, err
+	}
+	// If the wasm module doesn't want the data back, bail out
+	if !getData {
+		return nil, nil
 	}
 	// Remove the RPC wrapper
 	rep := &rpcproto.Rep{}
@@ -63,10 +80,51 @@ func (wp *WASMRPCProxy) Recv(rpcIdx uint64) ([]byte, error) {
 		db.DPrintf(db.SPPROXYSRV_ERR, "[%v] Err ErrCode(%v) in WasmRPCRecv: %v", wp.p.GetPid(), rep.Err.ErrCode)
 		return nil, sp.NewErr(rep.Err)
 	}
-	// We don't handle blobs right now, so we only expect 2 out IOVecs
-	if outiov.Len() != 2 {
-		db.DPrintf(db.SPPROXYSRV_ERR, "[%v] Err RPC(%v) unexpected outiov len: %v", wp.p.GetPid(), outiov.Len())
-		return nil, serr.NewErrError(fmt.Errorf("Err unexpected outiov len: %v", outiov.Len()))
+	db.DPrintf(db.SPPROXYSRV, "[%v] RPC(%v) outiov len: %v", wp.p.GetPid(), outiov.Len()-1)
+	return outiov, nil
+}
+
+func (wp *WASMRPCProxy) Forward(rpcIdx uint64, newRPCIdx uint64, pn string, nOutIOV uint64) error {
+	// Get the RPC to forward
+	iniov, err := wp.spp.psm.GetReply(wp.p.GetPid(), rpcIdx)
+	if err != nil {
+		db.DPrintf(db.SPPROXYSRV_ERR, "[%v] Error GetReply to forward for WASM-proxied RPC request: %v", wp.p.GetPid(), err)
+		return err
 	}
-	return outiov.GetFrame(1).GetBuf(), nil
+	wp.wg.Add(1)
+	// Forward the delegated RPC synchronously, and add an extra output IOVec slot
+	// for the RPC wrapper
+	defer wp.wg.Done()
+	wp.spp.runDelegatedRPC(wp.sc, wp.p, newRPCIdx, pn, iniov, nOutIOV+1)
+	return nil
+}
+
+func (wp *WASMRPCProxy) Exit(status wasmrpc.Tstatus, msg string) error {
+	db.DPrintf(db.SPPROXYSRV, "[%v] BootScript called exited status %v msg %v", wp.p.GetPid(), status, msg)
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	wp.exitStatus = status
+	wp.exitMsg = msg
+	wp.exitErr = nil
+	wp.exited = true
+	wp.cond.Broadcast()
+
+	db.DPrintf(db.SPPROXYSRV, "[%v] BootScript exited RPCs done status %v msg %v", wp.p.GetPid(), status, msg)
+	return nil
+}
+
+func (wp *WASMRPCProxy) WaitExit() (wasmrpc.Tstatus, string, error) {
+	db.DPrintf(db.SPPROXYSRV, "[%v] BootScript WaitExit", wp.p.GetPid())
+	// Wait for any outstanding RPCs
+	wp.wg.Wait()
+
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	for !wp.exited {
+		wp.cond.Wait()
+	}
+	db.DPrintf(db.SPPROXYSRV, "[%v] BootScript WaitExit done", wp.p.GetPid())
+	return wp.exitStatus, wp.exitMsg, wp.exitErr
 }

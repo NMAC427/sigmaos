@@ -24,17 +24,6 @@ message CacheReq {
   TfenceProto fence = 6;
 }
 
-message CacheGetDescriptor {
-  string key = 1;
-  uint32 shard = 2;
-}
-
-message CacheMultiGetReq {
-  repeated CacheGetDescriptor gets = 1; // (key, shard) pairs of get requests
-  SpanContextConfig spanContextConfig = 2;
-  TfenceProto fence = 3;
-}
-
 message CacheMultiGetRep {
   repeated uint64 lengths = 1;
   Blob blob = 2;
@@ -45,17 +34,6 @@ message ShardReq {
   TfenceProto fence = 2;
   map<string, bytes> vals = 3;
   bool empty = 4; // Empty the shard, deleting all of its keys and values
-}
-
-message MultiShardReq {
-  repeated uint32 shards = 1;
-  TfenceProto fence = 2;
-}
-
-message MultiShardRep {
-  repeated string keys = 1;
-  repeated uint32 lens = 2;
-  Blob blob = 3;
 }
 
 message CacheOK {}

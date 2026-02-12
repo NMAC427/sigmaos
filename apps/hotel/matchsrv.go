@@ -21,13 +21,19 @@ import (
 	"sigmaos/util/tracing"
 )
 
+const (
+	CACHE_MISS_SAMPLE_HZ = 500
+)
+
 type Match struct {
-	sync.Mutex
+	mu         sync.Mutex
 	inputVecs  map[uint64][]float64
 	cossimClnt *cossimclnt.CosSimShardClnt
 	cc         *cachegrpclnt.CachedSvcClnt
 	pds        *sigmasrv.SigmaSrv
 	tracer     *tracing.Tracer
+	pHit       *perf.Perf
+	pMiss      *perf.Perf
 }
 
 // Run starts the server
@@ -62,12 +68,26 @@ func RunMatchSrv(job string) error {
 	}
 	defer p.Done()
 
+	pMiss, err := perf.NewPerfMultiTptSampleHz(ssrv.MemFs.SigmaClnt().ProcEnv(), perf.HOTEL_MATCH, "miss", 500)
+	if err != nil {
+		db.DFatalf("NewPerf err %v\n", err)
+	}
+	defer pMiss.Done()
+	s.pMiss = pMiss
+
+	pHit, err := perf.NewPerfMultiTptSampleHz(ssrv.MemFs.SigmaClnt().ProcEnv(), perf.HOTEL_MATCH, "hit", 500)
+	if err != nil {
+		db.DFatalf("NewPerf err %v\n", err)
+	}
+	defer pHit.Done()
+	s.pHit = pHit
+
 	return ssrv.RunServer()
 }
 
 func (s *Match) getInputVec(userVecID uint64) ([]float64, error) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if vec, ok := s.inputVecs[userVecID]; ok {
 		return vec, nil
 	}
@@ -92,36 +112,39 @@ func (s *Match) getInputVec(userVecID uint64) ([]float64, error) {
 // Nearby returns ids of nearby hotels order by results of ratesrv
 func (s *Match) UserPreference(ctx fs.CtxI, req proto.MatchReq, res *proto.MatchRep) error {
 	db.DPrintf(db.HOTEL_MATCH, "Match UserPreference: %v", req)
-
-	cacheKey := fmt.Sprintf("user-preference-%v", req.UserVecID)
-
+	cacheKey := fmt.Sprintf("user-preference-%v", req.UserID)
 	if req.TryCache {
 		v := &cossimproto.CosSimRep{}
 		err := s.cc.Get(cacheKey, v)
 		if err != nil {
-			if !cache.IsMiss(err) {
+			// Migration- and true-misses both count as a miss
+			if cache.IsMiss(err) || cache.IsMigrating(err) {
+				s.pMiss.TptTick(1.0)
+				if cache.IsMigrating(err) {
+					db.DPrintf(db.HOTEL_MATCH_ERR, "Try to get %v during migration", cacheKey)
+				}
+			} else {
 				db.DPrintf(db.HOTEL_MATCH_ERR, "Err cache get: %v", err)
 				return err
 			}
 		} else {
+			s.pHit.TptTick(1.0)
 			res.ID = v.ID
 			res.Val = v.Val
 			res.WasCached = true
 			return nil
 		}
 	}
-	// TODO: cache input vecs locally
 	inputVec, err := s.getInputVec(req.UserVecID)
 	if err != nil {
 		db.DPrintf(db.HOTEL_MATCH_ERR, "Err get input vec: %v", err)
 		return err
 	}
-	id, val, err := s.cossimClnt.CosSimLeastLoaded(inputVec, req.VecRanges)
+	id, val, err := s.cossimClnt.CosSimLeastLoaded(inputVec, req.VecRanges, true)
 	if err != nil {
 		db.DPrintf(db.HOTEL_MATCH_ERR, "Err CosSimLeastLoaded: %v", err)
 		return err
 	}
-
 	// Cache must have missed. Insert result in the cache.
 	if req.TryCache {
 		err := s.cc.Put(cacheKey, &cossimproto.CosSimRep{
@@ -129,12 +152,15 @@ func (s *Match) UserPreference(ctx fs.CtxI, req proto.MatchReq, res *proto.Match
 			Val: val,
 		})
 		if err != nil {
+			// If put fails due to migration, move on
+			if cache.IsMigrating(err) {
+				db.DPrintf(db.HOTEL_MATCH_ERR, "Try to put %v during migration", cacheKey)
+				return nil
+			}
 			db.DPrintf(db.HOTEL_MATCH_ERR, "Err CachePut: %v", err)
 			return err
 		}
 	}
-
 	db.DPrintf(db.HOTEL_MATCH, "Match done: %v %v", req, res)
-
 	return nil
 }

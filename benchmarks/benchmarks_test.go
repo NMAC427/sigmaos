@@ -86,14 +86,6 @@ var MAX_RPS int
 var SOCIAL_NETWORK_DURS string
 var SOCIAL_NETWORK_MAX_RPS string
 var SOCIAL_NETWORK_READ_ONLY bool
-var IMG_RESIZE_INPUT_PATH string
-var N_IMG_RESIZE_TASKS int
-var IMG_RESIZE_DUR time.Duration
-var N_IMG_RESIZE_TASKS_PER_SECOND int
-var N_IMG_RESIZE_INPUTS_PER_TASK int
-var IMG_RESIZE_MCPU int
-var IMG_RESIZE_MEM_MB int
-var IMG_RESIZE_N_ROUNDS int
 var SLEEP time.Duration
 var REDIS_ADDR string
 var N_PROC int
@@ -162,14 +154,6 @@ func init() {
 	flag.Float64Var(&CONTENDERS_FRAC, "contenders", 4000, "Fraction of cores which should be taken up by contending procs.")
 	flag.IntVar(&GO_MAX_PROCS, "gomaxprocs", int(linuxsched.GetNCores()), "Go maxprocs setting for procs to be spawned.")
 	flag.IntVar(&MAX_PARALLEL, "max_parallel", 1, "Max amount of parallelism.")
-	flag.StringVar(&IMG_RESIZE_INPUT_PATH, "imgresize_path", "name/s3/"+sp.LOCAL+"/9ps3/img/1.jpg", "Path of img resize input file.")
-	flag.IntVar(&N_IMG_RESIZE_TASKS, "n_imgresize", 10, "Number of img resize tasks.")
-	flag.IntVar(&N_IMG_RESIZE_TASKS_PER_SECOND, "imgresize_tps", 1, "Number of img resize tasks/second.")
-	flag.DurationVar(&IMG_RESIZE_DUR, "imgresize_dur", 10*time.Second, "Duration of imgresize job")
-	flag.IntVar(&N_IMG_RESIZE_INPUTS_PER_TASK, "n_imgresize_per", 1, "Number of img resize inputs per job.")
-	flag.IntVar(&IMG_RESIZE_MCPU, "imgresize_mcpu", 100, "MCPU for img resize worker.")
-	flag.IntVar(&IMG_RESIZE_MEM_MB, "imgresize_mem", 0, "Mem for img resize worker.")
-	flag.IntVar(&IMG_RESIZE_N_ROUNDS, "imgresize_nround", 1, "Number of rounds of computation for each image")
 
 	db.DPrintf(db.ALWAYS, "ncore: %v", linuxsched.GetNCores())
 }
@@ -657,7 +641,10 @@ func TestRealmBalanceMRHotel(t *testing.T) {
 	// Prep MR job
 	mrjobs, mrapps := newNMRJobs(mrts.GetRealm(REALM2), p1, 1, MR_APP, chooseMRJobRoot(mrts.GetRealm(REALM2)), proc.Tmem(MR_MEM_REQ))
 	// Prep Hotel job
-	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
+	pc2 := newRealmCostPerf(mrts.GetRealm(REALM1))
+	defer pc2.Done()
+	dc2 := NewDeploymentCost(pc2)
+	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, dc2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
 		//		hotel.RunDSB(mrts.GetRealm(REALM1).T, 1, wc, r)
 		err := hotel.RandSearchReq(wc, r)
 		assert.Nil(t, err, "SearchReq %v", err)
@@ -736,9 +723,12 @@ func TestRealmBalanceHotelRPCImgResize(t *testing.T) {
 	p2 := newRealmPerf(mrts.GetRealm(REALM1))
 	defer p2.Done()
 	// Prep ImgResize job
-	imgJobs, imgApps := newImgResizeRPCJob(mrts.GetRealm(REALM2), p1, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS_PER_SECOND, IMG_RESIZE_DUR, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+	imgJobs, imgApps := newImgResizeRPCJob(mrts.GetRealm(REALM2), p1, ImgBenchConfig, true)
 	// Prep Hotel job
-	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
+	pc2 := newRealmCostPerf(mrts.GetRealm(REALM1))
+	defer pc2.Done()
+	dc2 := NewDeploymentCost(pc2)
+	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, dc2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
 		//		hotel.RunDSB(mrts.GetRealm(REALM1).T, 1, wc, r)
 		err := hotel.RandSearchReq(wc, r)
 		assert.Nil(t, err, "SearchReq %v", err)
@@ -809,9 +799,12 @@ func TestRealmBalanceHotelImgResize(t *testing.T) {
 	p2 := newRealmPerf(mrts.GetRealm(REALM1))
 	defer p2.Done()
 	// Prep ImgResize job
-	imgJobs, imgApps := newImgResizeJob(mrts.GetRealm(REALM2), p1, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, 0)
+	imgJobs, imgApps := newImgResizeJob(mrts.GetRealm(REALM2), p1, ImgBenchConfig, true)
 	// Prep Hotel job
-	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
+	pc2 := newRealmCostPerf(mrts.GetRealm(REALM1))
+	defer pc2.Done()
+	dc2 := NewDeploymentCost(pc2)
+	hotelJobs, ji := newHotelJobs(mrts.GetRealm(REALM1), p2, dc2, true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
 		//		hotel.RunDSB(mrts.GetRealm(REALM1).T, 1, wc, r)
 		err := hotel.RandSearchReq(wc, r)
 		assert.Nil(t, err, "SearchReq %v", err)
@@ -939,7 +932,7 @@ func TestRealmBalanceImgResizeRPCImgResizeRPC(t *testing.T) {
 		rses[i] = benchmarks.NewResults(1, benchmarks.E2E)
 		ps[i] = newRealmPerf(mrts.GetRealm(realms[i]))
 		defer ps[i].Done()
-		imgjob, imgapp := newImgResizeRPCJob(mrts.GetRealm(realms[i]), ps[i], true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS_PER_SECOND, IMG_RESIZE_DUR, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+		imgjob, imgapp := newImgResizeRPCJob(mrts.GetRealm(realms[i]), ps[i], ImgBenchConfig, true)
 		imgjobs[i] = imgjob
 		imgapps[i] = imgapp
 	}
@@ -996,7 +989,7 @@ func TestRealmBalanceImgResizeImgResize(t *testing.T) {
 		rses[i] = benchmarks.NewResults(1, benchmarks.E2E)
 		ps[i] = newRealmPerf(mrts.GetRealm(realms[i]))
 		defer ps[i].Done()
-		imgjob, imgapp := newImgResizeJob(mrts.GetRealm(realms[i]), ps[i], true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+		imgjob, imgapp := newImgResizeJob(mrts.GetRealm(realms[i]), ps[i], ImgBenchConfig, true)
 		imgjobs[i] = imgjob
 		imgapps[i] = imgapp
 	}
@@ -1032,7 +1025,10 @@ func TestRealmBalanceImgResizeImgResize(t *testing.T) {
 
 func testHotel(rootts *test.Tstate, ts1 *test.RealmTstate, p *perf.Perf, sigmaos bool, fn hotelFn) {
 	rs := benchmarks.NewResults(1, benchmarks.E2E)
-	jobs, ji := newHotelJobs(ts1, p, sigmaos, HotelBenchConfig, fn)
+	pc := newRealmCostPerf(ts1)
+	defer pc.Done()
+	dc := NewDeploymentCost(pc)
+	jobs, ji := newHotelJobs(ts1, p, dc, sigmaos, HotelBenchConfig, fn)
 	go func() {
 		for _, j := range jobs {
 			// Wait until ready
@@ -1240,7 +1236,7 @@ func TestHotelSigmaosMatch(t *testing.T) {
 
 	testHotel(mrts.GetRoot(), mrts.GetRealm(REALM1), nil, true, func(wc *hotel.WebClnt, r *rand.Rand) {
 		// TODO: use caching
-		err := hotel.RandMatchReq(wc, r, 0, uint64(HotelBenchConfig.CosSimBenchCfg.NVecToQuery), HotelBenchConfig.MatchUseCaching)
+		err := hotel.RandMatchReq(wc, r, HotelBenchConfig.CachedUserFrac, 0, uint64(HotelBenchConfig.CosSimBenchCfg.NVecToQuery), HotelBenchConfig.MatchUseCaching)
 		assert.Nil(t, err, "Error search req: %v", err)
 	})
 }
@@ -1264,8 +1260,7 @@ func TestHotelSigmaosJustCliMatch(t *testing.T) {
 	// Sleep for a bit
 	time.Sleep(SLEEP)
 	jobs, ji := newHotelJobsCli(mrts.GetRealm(REALM1), true, HotelBenchConfig, func(wc *hotel.WebClnt, r *rand.Rand) {
-		// TODO: use caching
-		err := hotel.RandMatchReq(wc, r, 0, uint64(HotelBenchConfig.CosSimBenchCfg.NVecToQuery), HotelBenchConfig.MatchUseCaching)
+		err := hotel.RandMatchReq(wc, r, HotelBenchConfig.CachedUserFrac, 0, uint64(HotelBenchConfig.CosSimBenchCfg.NVecToQuery), HotelBenchConfig.MatchUseCaching)
 		assert.Nil(t, err, "Error search req: %v", err)
 	})
 	go func() {
@@ -1528,7 +1523,7 @@ func TestImgResize(t *testing.T) {
 	rs := benchmarks.NewResults(1, benchmarks.E2E)
 	p := newRealmPerf(mrts.GetRealm(REALM1))
 	defer p.Done()
-	jobs, apps := newImgResizeJob(mrts.GetRealm(REALM1), p, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+	jobs, apps := newImgResizeJob(mrts.GetRealm(REALM1), p, ImgBenchConfig, true)
 	go func() {
 		for _, j := range jobs {
 			// Wait until ready
@@ -1597,9 +1592,9 @@ func TestRealmBalanceSimpleImgResize(t *testing.T) {
 	defer p2.Done()
 	// Prep resize jobs
 	imgJobsBE, imgAppsBE := newImgResizeJob(
-		mrts.GetRealm(REALM1), p1, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, 0, proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+		mrts.GetRealm(REALM1), p1, ImgBenchConfig, true)
 	imgJobsLC, imgAppsLC := newImgResizeJob(
-		mrts.GetRealm(REALM2), p2, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, proc.Tmcpu(IMG_RESIZE_MCPU), proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, proc.Tmcpu(1000))
+		mrts.GetRealm(REALM2), p2, ImgBenchConfig, true)
 
 	// Run image resize jobs
 	go func() {
@@ -1655,7 +1650,7 @@ func TestRealmBalanceSocialNetworkImgResize(t *testing.T) {
 	defer p2.Done()
 	// Prep image resize job
 	imgJobs, imgApps := newImgResizeJob(
-		mrts.GetRealm(REALM1), p1, true, IMG_RESIZE_INPUT_PATH, N_IMG_RESIZE_TASKS, N_IMG_RESIZE_INPUTS_PER_TASK, 0, proc.Tmem(IMG_RESIZE_MEM_MB), IMG_RESIZE_N_ROUNDS, 0)
+		mrts.GetRealm(REALM1), p1, ImgBenchConfig, true)
 	// Prep social network job
 	snJobs, snApps := newSocialNetworkJobs(mrts.GetRealm(REALM2), p2, true, SOCIAL_NETWORK_READ_ONLY, SOCIAL_NETWORK_DURS, SOCIAL_NETWORK_MAX_RPS, 3)
 	// Run social network job
@@ -1806,7 +1801,7 @@ func TestCosSim(t *testing.T) {
 
 	rs := benchmarks.NewResults(1, benchmarks.E2E)
 	jobs, ji := newCosSimJobs(ts1, p, nil, nil, nil, sigmaos, CosSimBenchConfig, func(j *cossimsrv.CosSimJob, r *rand.Rand) {
-		_, _, err := j.Clnt.CosSimLeastLoaded(v, ranges)
+		_, _, err := j.Clnt.CosSimLeastLoaded(v, ranges, true)
 		assert.Nil(t, err, "CosSim req: %v", err)
 	})
 	go func() {
@@ -1886,4 +1881,44 @@ func TestCachedScaler(t *testing.T) {
 	if sigmaos {
 		mrts.Shutdown()
 	}
+}
+
+func TestStartLatency(t *testing.T) {
+	const (
+		sigmaos = true
+	)
+	mrts, err1 := test.NewMultiRealmTstate(t, []sp.Trealm{REALM1})
+	if !assert.Nil(t, err1, "Error New Tstate: %v", err1) {
+		return
+	}
+	defer mrts.Shutdown()
+	//	const N = 3
+	//	err := mrts.GetRealm(REALM1).BootNode(N)
+	//	assert.Nil(t, err, "Boot node: %v", err)
+
+	ts1 := mrts.GetRealm(REALM1)
+
+	p := newRealmPerf(mrts.GetRealm(REALM1))
+	defer p.Done()
+
+	rs := benchmarks.NewResults(1, benchmarks.E2E)
+	jobs, ji := newStartLatencyJobs(mrts.GetRealm(REALM1), StartLatencyBenchConfig, CacheBenchConfig, CosSimBenchConfig, EtcdBenchConfig, MemcachedBenchConfig)
+	go func() {
+		for _, j := range jobs {
+			// Wait until ready
+			<-j.ready
+			// Ack to allow the job to proceed.
+			j.ready <- true
+		}
+	}()
+	if sigmaos {
+		p := newRealmPerf(ts1)
+		defer p.Done()
+		monitorCPUUtil(ts1, p)
+	}
+	db.DPrintf(db.TEST, "Run start latency job")
+	runOps(ts1, ji, runStartLatency, rs)
+	db.DPrintf(db.TEST, "Done run start latency job")
+	//	printResultSummary(rs)
+	mrts.Shutdown()
 }

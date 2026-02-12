@@ -36,6 +36,20 @@ struct ProcSeqnoDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProcSeqnoDefaultTypeInternal _ProcSeqno_default_instance_;
+PROTOBUF_CONSTEXPR ResourceReservationProto::ResourceReservationProto(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.mcpuint_)*/0u
+  , /*decltype(_impl_.memint_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ResourceReservationProtoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResourceReservationProtoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResourceReservationProtoDefaultTypeInternal() {}
+  union {
+    ResourceReservationProto _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceReservationProtoDefaultTypeInternal _ResourceReservationProto_default_instance_;
 PROTOBUF_CONSTEXPR ProcEnvProto_EtcdEndpointsEntry_DoNotUse::ProcEnvProto_EtcdEndpointsEntry_DoNotUse(
     ::_pbi::ConstantInitialized) {}
 struct ProcEnvProto_EtcdEndpointsEntry_DoNotUseDefaultTypeInternal {
@@ -101,6 +115,7 @@ PROTOBUF_CONSTEXPR ProcEnvProto::ProcEnvProto(
   , /*decltype(_impl_.usespproxy_)*/false
   , /*decltype(_impl_.usedialproxy_)*/false
   , /*decltype(_impl_.runbootscriptflag_)*/false
+  , /*decltype(_impl_.shmemmbint_)*/uint64_t{0u}
   , /*decltype(_impl_.useshmem_)*/false
   , /*decltype(_impl_.usespproxyprocclnt_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
@@ -127,14 +142,19 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR ProcProto::ProcProto(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.args_)*/{}
+  , /*decltype(_impl_.addedbins_)*/{}
   , /*decltype(_impl_.env_)*/{::_pbi::ConstantInitialized()}
   , /*decltype(_impl_.bootscriptinput_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.procenvproto_)*/nullptr
   , /*decltype(_impl_.blob_)*/nullptr
+  , /*decltype(_impl_.resourceres_)*/nullptr
+  , /*decltype(_impl_.bootscriptresourceres_)*/nullptr
   , /*decltype(_impl_.forkproc_)*/nullptr
+  , /*decltype(_impl_.queueableresourcepoolid_)*/uint64_t{0u}
   , /*decltype(_impl_.typeint_)*/0u
-  , /*decltype(_impl_.mcpuint_)*/0u
-  , /*decltype(_impl_.memint_)*/0u
+  , /*decltype(_impl_.runafterbootscript_)*/false
+  , /*decltype(_impl_.measurepss_)*/false
+  , /*decltype(_impl_.measurepssdelayms_)*/uint64_t{0u}
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct ProcProtoDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ProcProtoDefaultTypeInternal()
@@ -160,9 +180,9 @@ PROTOBUF_CONSTEXPR ForkProcProto::ForkProcProto(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.zygoteargs_)*/{}
   , /*decltype(_impl_.zygoteenv_)*/{::_pbi::ConstantInitialized()}
+  , /*decltype(_impl_.childargs_)*/{}
   , /*decltype(_impl_.zygotekey_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.zygoteprogram_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.childargs_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.keepalivens_)*/uint64_t{0u}
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct ForkProcProtoDefaultTypeInternal {
@@ -174,7 +194,7 @@ struct ForkProcProtoDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ForkProcProtoDefaultTypeInternal _ForkProcProto_default_instance_;
-static ::_pb::Metadata file_level_metadata_proc_2fproc_2eproto[9];
+static ::_pb::Metadata file_level_metadata_proc_2fproc_2eproto[10];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_proc_2fproc_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_proc_2fproc_2eproto = nullptr;
 
@@ -189,6 +209,14 @@ const uint32_t TableStruct_proc_2fproc_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::ProcSeqno, _impl_.seqno_),
   PROTOBUF_FIELD_OFFSET(::ProcSeqno, _impl_.procqid_),
   PROTOBUF_FIELD_OFFSET(::ProcSeqno, _impl_.mschedid_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::ResourceReservationProto, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::ResourceReservationProto, _impl_.mcpuint_),
+  PROTOBUF_FIELD_OFFSET(::ResourceReservationProto, _impl_.memint_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto_EtcdEndpointsEntry_DoNotUse, _has_bits_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto_EtcdEndpointsEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -255,6 +283,7 @@ const uint32_t TableStruct_proc_2fproc_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.valgrind_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.runbootscriptflag_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.useshmem_),
+  PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.shmemmbint_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.usespproxyprocclnt_),
   PROTOBUF_FIELD_OFFSET(::ProcEnvProto, _impl_.debugprocs_),
   PROTOBUF_FIELD_OFFSET(::ProcProto_EnvEntry_DoNotUse, _has_bits_),
@@ -275,12 +304,17 @@ const uint32_t TableStruct_proc_2fproc_2eproto::offsets[] PROTOBUF_SECTION_VARIA
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.procenvproto_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.args_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.addedbins_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.env_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.blob_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.bootscriptinput_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.typeint_),
-  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.mcpuint_),
-  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.memint_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.runafterbootscript_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.queueableresourcepoolid_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.resourceres_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.bootscriptresourceres_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.measurepss_),
+  PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.measurepssdelayms_),
   PROTOBUF_FIELD_OFFSET(::ProcProto, _impl_.forkproc_),
   PROTOBUF_FIELD_OFFSET(::ForkProcProto_ZygoteEnvEntry_DoNotUse, _has_bits_),
   PROTOBUF_FIELD_OFFSET(::ForkProcProto_ZygoteEnvEntry_DoNotUse, _internal_metadata_),
@@ -307,18 +341,20 @@ const uint32_t TableStruct_proc_2fproc_2eproto::offsets[] PROTOBUF_SECTION_VARIA
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::ProcSeqno)},
-  { 10, 18, -1, sizeof(::ProcEnvProto_EtcdEndpointsEntry_DoNotUse)},
-  { 20, 28, -1, sizeof(::ProcEnvProto_SecretsMapEntry_DoNotUse)},
-  { 30, 38, -1, sizeof(::ProcEnvProto_CachedEndpointsEntry_DoNotUse)},
-  { 40, -1, -1, sizeof(::ProcEnvProto)},
-  { 78, 86, -1, sizeof(::ProcProto_EnvEntry_DoNotUse)},
-  { 88, -1, -1, sizeof(::ProcProto)},
-  { 103, 111, -1, sizeof(::ForkProcProto_ZygoteEnvEntry_DoNotUse)},
-  { 113, -1, -1, sizeof(::ForkProcProto)},
+  { 10, -1, -1, sizeof(::ResourceReservationProto)},
+  { 18, 26, -1, sizeof(::ProcEnvProto_EtcdEndpointsEntry_DoNotUse)},
+  { 28, 36, -1, sizeof(::ProcEnvProto_SecretsMapEntry_DoNotUse)},
+  { 38, 46, -1, sizeof(::ProcEnvProto_CachedEndpointsEntry_DoNotUse)},
+  { 48, -1, -1, sizeof(::ProcEnvProto)},
+  { 87, 95, -1, sizeof(::ProcProto_EnvEntry_DoNotUse)},
+  { 97, -1, -1, sizeof(::ProcProto)},
+  { 117, 125, -1, sizeof(::ForkProcProto_ZygoteEnvEntry_DoNotUse)},
+  { 127, -1, -1, sizeof(::ForkProcProto)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
   &::_ProcSeqno_default_instance_._instance,
+  &::_ResourceReservationProto_default_instance_._instance,
   &::_ProcEnvProto_EtcdEndpointsEntry_DoNotUse_default_instance_._instance,
   &::_ProcEnvProto_SecretsMapEntry_DoNotUse_default_instance_._instance,
   &::_ProcEnvProto_CachedEndpointsEntry_DoNotUse_default_instance_._instance,
@@ -334,45 +370,52 @@ const char descriptor_table_protodef_proc_2fproc_2eproto[] PROTOBUF_SECTION_VARI
   "tamp.proto\032\023sigmap/sigmap.proto\032\023rpc/pro"
   "to/rpc.proto\"L\n\tProcSeqno\022\r\n\005epoch\030\001 \001(\004"
   "\022\r\n\005seqno\030\002 \001(\004\022\017\n\007procqID\030\003 \001(\t\022\020\n\010mSch"
-  "edID\030\004 \001(\t\"\350\007\n\014ProcEnvProto\022\016\n\006pidStr\030\001 "
-  "\001(\t\022\017\n\007program\030\002 \001(\t\022\020\n\010realmStr\030\003 \001(\t\022\036"
-  "\n\tprincipal\030\004 \001(\0132\013.Tprincipal\022\017\n\007procDi"
-  "r\030\005 \001(\t\022\021\n\tparentDir\030\006 \001(\t\0227\n\retcdEndpoi"
-  "nts\030\007 \003(\0132 .ProcEnvProto.EtcdEndpointsEn"
-  "try\022\033\n\023outerContainerIPStr\030\010 \001(\t\022\033\n\023inne"
-  "rContainerIPStr\030\t \001(\t\022\020\n\010kernelID\030\n \001(\t\022"
-  "\020\n\010buildTag\030\013 \001(\t\022\014\n\004perf\030\014 \001(\t\022\r\n\005debug"
-  "\030\r \001(\t\022\023\n\013procdPIDStr\030\016 \001(\t\022\022\n\nprivilege"
-  "d\030\017 \001(\010\022\016\n\006howInt\030\020 \001(\005\022/\n\013spawnTimePB\030\021"
-  " \001(\0132\032.google.protobuf.Timestamp\022\016\n\006stra"
-  "ce\030\022 \001(\t\022\022\n\nuseSPProxy\030\023 \001(\010\022\024\n\014useDialP"
-  "roxy\030\024 \001(\010\0221\n\nsecretsMap\030\025 \003(\0132\035.ProcEnv"
-  "Proto.SecretsMapEntry\022\021\n\tsigmaPath\030\026 \003(\t"
-  "\022\017\n\007kernels\030\027 \003(\t\022\026\n\016realmSwitchStr\030\030 \001("
-  "\t\022\017\n\007version\030\031 \001(\t\022\014\n\004fail\030\032 \001(\t\022;\n\017cach"
-  "edEndpoints\030\033 \003(\0132\".ProcEnvProto.CachedE"
-  "ndpointsEntry\022\020\n\010valgrind\030\034 \001(\t\022\031\n\021runBo"
-  "otScriptFlag\030\035 \001(\010\022\020\n\010useShmem\030\036 \001(\010\022\032\n\022"
-  "useSPProxyProcClnt\030\037 \001(\010\022\022\n\ndebugProcs\030 "
-  " \001(\t\032E\n\022EtcdEndpointsEntry\022\013\n\003key\030\001 \001(\t\022"
-  "\036\n\005value\030\002 \001(\0132\017.TendpointProto:\0028\001\032\?\n\017S"
-  "ecretsMapEntry\022\013\n\003key\030\001 \001(\t\022\033\n\005value\030\002 \001"
-  "(\0132\014.SecretProto:\0028\001\032G\n\024CachedEndpointsE"
-  "ntry\022\013\n\003key\030\001 \001(\t\022\036\n\005value\030\002 \001(\0132\017.Tendp"
-  "ointProto:\0028\001\"\216\002\n\tProcProto\022#\n\014procEnvPr"
-  "oto\030\001 \001(\0132\r.ProcEnvProto\022\014\n\004args\030\002 \003(\t\022 "
-  "\n\003env\030\003 \003(\0132\023.ProcProto.EnvEntry\022\023\n\004blob"
-  "\030\004 \001(\0132\005.Blob\022\027\n\017bootScriptInput\030\005 \001(\014\022\017"
-  "\n\007typeInt\030\006 \001(\r\022\017\n\007mcpuInt\030\007 \001(\r\022\016\n\006memI"
-  "nt\030\010 \001(\r\022 \n\010forkProc\030\t \001(\0132\016.ForkProcPro"
-  "to\032*\n\010EnvEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001"
-  "(\t:\0028\001\"\331\001\n\rForkProcProto\022\021\n\tzygoteKey\030\001 "
-  "\001(\t\022\025\n\rzygoteProgram\030\002 \001(\t\022\022\n\nzygoteArgs"
-  "\030\003 \003(\t\0220\n\tzygoteEnv\030\004 \003(\0132\035.ForkProcProt"
-  "o.ZygoteEnvEntry\022\023\n\013keepAliveNs\030\005 \001(\004\022\021\n"
-  "\tchildArgs\030\006 \001(\014\0320\n\016ZygoteEnvEntry\022\013\n\003ke"
-  "y\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001B\016Z\014sigmaos/pr"
-  "ocb\006proto3"
+  "edID\030\004 \001(\t\";\n\030ResourceReservationProto\022\017"
+  "\n\007mcpuInt\030\001 \001(\r\022\016\n\006memInt\030\002 \001(\r\"\374\007\n\014Proc"
+  "EnvProto\022\016\n\006pidStr\030\001 \001(\t\022\017\n\007program\030\002 \001("
+  "\t\022\020\n\010realmStr\030\003 \001(\t\022\036\n\tprincipal\030\004 \001(\0132\013"
+  ".Tprincipal\022\017\n\007procDir\030\005 \001(\t\022\021\n\tparentDi"
+  "r\030\006 \001(\t\0227\n\retcdEndpoints\030\007 \003(\0132 .ProcEnv"
+  "Proto.EtcdEndpointsEntry\022\033\n\023outerContain"
+  "erIPStr\030\010 \001(\t\022\033\n\023innerContainerIPStr\030\t \001"
+  "(\t\022\020\n\010kernelID\030\n \001(\t\022\020\n\010buildTag\030\013 \001(\t\022\014"
+  "\n\004perf\030\014 \001(\t\022\r\n\005debug\030\r \001(\t\022\023\n\013procdPIDS"
+  "tr\030\016 \001(\t\022\022\n\nprivileged\030\017 \001(\010\022\016\n\006howInt\030\020"
+  " \001(\005\022/\n\013spawnTimePB\030\021 \001(\0132\032.google.proto"
+  "buf.Timestamp\022\016\n\006strace\030\022 \001(\t\022\022\n\nuseSPPr"
+  "oxy\030\023 \001(\010\022\024\n\014useDialProxy\030\024 \001(\010\0221\n\nsecre"
+  "tsMap\030\025 \003(\0132\035.ProcEnvProto.SecretsMapEnt"
+  "ry\022\021\n\tsigmaPath\030\026 \003(\t\022\017\n\007kernels\030\027 \003(\t\022\026"
+  "\n\016realmSwitchStr\030\030 \001(\t\022\017\n\007version\030\031 \001(\t\022"
+  "\014\n\004fail\030\032 \001(\t\022;\n\017cachedEndpoints\030\033 \003(\0132\""
+  ".ProcEnvProto.CachedEndpointsEntry\022\020\n\010va"
+  "lgrind\030\034 \001(\t\022\031\n\021runBootScriptFlag\030\035 \001(\010\022"
+  "\020\n\010useShmem\030\036 \001(\010\022\022\n\nshmemMBInt\030\037 \001(\004\022\032\n"
+  "\022useSPProxyProcClnt\030  \001(\010\022\022\n\ndebugProcs\030"
+  "! \001(\t\032E\n\022EtcdEndpointsEntry\022\013\n\003key\030\001 \001(\t"
+  "\022\036\n\005value\030\002 \001(\0132\017.TendpointProto:\0028\001\032\?\n\017"
+  "SecretsMapEntry\022\013\n\003key\030\001 \001(\t\022\033\n\005value\030\002 "
+  "\001(\0132\014.SecretProto:\0028\001\032G\n\024CachedEndpoints"
+  "Entry\022\013\n\003key\030\001 \001(\t\022\036\n\005value\030\002 \001(\0132\017.Tend"
+  "pointProto:\0028\001\"\326\003\n\tProcProto\022#\n\014procEnvP"
+  "roto\030\001 \001(\0132\r.ProcEnvProto\022\014\n\004args\030\002 \003(\t\022"
+  "\021\n\taddedBins\030\003 \003(\t\022 \n\003env\030\004 \003(\0132\023.ProcPr"
+  "oto.EnvEntry\022\023\n\004blob\030\005 \001(\0132\005.Blob\022\027\n\017boo"
+  "tScriptInput\030\006 \001(\014\022\017\n\007typeInt\030\007 \001(\r\022\032\n\022r"
+  "unAfterBootScript\030\010 \001(\010\022\037\n\027queueableReso"
+  "urcePoolID\030\t \001(\004\022.\n\013resourceRes\030\n \001(\0132\031."
+  "ResourceReservationProto\0228\n\025bootScriptRe"
+  "sourceRes\030\013 \001(\0132\031.ResourceReservationPro"
+  "to\022\022\n\nmeasurePSS\030\014 \001(\010\022\031\n\021measurePSSDela"
+  "yMS\030\r \001(\004\022 \n\010forkProc\030\016 \001(\0132\016.ForkProcPr"
+  "oto\032*\n\010EnvEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 "
+  "\001(\t:\0028\001\"\331\001\n\rForkProcProto\022\021\n\tzygoteKey\030\001"
+  " \001(\t\022\025\n\rzygoteProgram\030\002 \001(\t\022\022\n\nzygoteArg"
+  "s\030\003 \003(\t\0220\n\tzygoteEnv\030\004 \003(\0132\035.ForkProcPro"
+  "to.ZygoteEnvEntry\022\023\n\013keepAliveNs\030\005 \001(\004\022\021"
+  "\n\tchildArgs\030\006 \003(\t\0320\n\016ZygoteEnvEntry\022\013\n\003k"
+  "ey\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001B\016Z\014sigmaos/p"
+  "rocb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_proc_2fproc_2eproto_deps[3] = {
   &::descriptor_table_google_2fprotobuf_2ftimestamp_2eproto,
@@ -381,9 +424,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_proc_2fproc_2eproto
 };
 static ::_pbi::once_flag descriptor_table_proc_2fproc_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_proc_2fproc_2eproto = {
-    false, false, 1690, descriptor_table_protodef_proc_2fproc_2eproto,
+    false, false, 1971, descriptor_table_protodef_proc_2fproc_2eproto,
     "proc/proc.proto",
-    &descriptor_table_proc_2fproc_2eproto_once, descriptor_table_proc_2fproc_2eproto_deps, 3, 9,
+    &descriptor_table_proc_2fproc_2eproto_once, descriptor_table_proc_2fproc_2eproto_deps, 3, 10,
     schemas, file_default_instances, TableStruct_proc_2fproc_2eproto::offsets,
     file_level_metadata_proc_2fproc_2eproto, file_level_enum_descriptors_proc_2fproc_2eproto,
     file_level_service_descriptors_proc_2fproc_2eproto,
@@ -710,6 +753,217 @@ void ProcSeqno::InternalSwap(ProcSeqno* other) {
 
 // ===================================================================
 
+class ResourceReservationProto::_Internal {
+ public:
+};
+
+ResourceReservationProto::ResourceReservationProto(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:ResourceReservationProto)
+}
+ResourceReservationProto::ResourceReservationProto(const ResourceReservationProto& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  ResourceReservationProto* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.mcpuint_){}
+    , decltype(_impl_.memint_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.mcpuint_, &from._impl_.mcpuint_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.memint_) -
+    reinterpret_cast<char*>(&_impl_.mcpuint_)) + sizeof(_impl_.memint_));
+  // @@protoc_insertion_point(copy_constructor:ResourceReservationProto)
+}
+
+inline void ResourceReservationProto::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.mcpuint_){0u}
+    , decltype(_impl_.memint_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+ResourceReservationProto::~ResourceReservationProto() {
+  // @@protoc_insertion_point(destructor:ResourceReservationProto)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void ResourceReservationProto::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void ResourceReservationProto::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void ResourceReservationProto::Clear() {
+// @@protoc_insertion_point(message_clear_start:ResourceReservationProto)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.mcpuint_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.memint_) -
+      reinterpret_cast<char*>(&_impl_.mcpuint_)) + sizeof(_impl_.memint_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ResourceReservationProto::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 mcpuInt = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.mcpuint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 memInt = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.memint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ResourceReservationProto::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:ResourceReservationProto)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 mcpuInt = 1;
+  if (this->_internal_mcpuint() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_mcpuint(), target);
+  }
+
+  // uint32 memInt = 2;
+  if (this->_internal_memint() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_memint(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:ResourceReservationProto)
+  return target;
+}
+
+size_t ResourceReservationProto::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:ResourceReservationProto)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 mcpuInt = 1;
+  if (this->_internal_mcpuint() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_mcpuint());
+  }
+
+  // uint32 memInt = 2;
+  if (this->_internal_memint() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_memint());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData ResourceReservationProto::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    ResourceReservationProto::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ResourceReservationProto::GetClassData() const { return &_class_data_; }
+
+
+void ResourceReservationProto::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<ResourceReservationProto*>(&to_msg);
+  auto& from = static_cast<const ResourceReservationProto&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:ResourceReservationProto)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_mcpuint() != 0) {
+    _this->_internal_set_mcpuint(from._internal_mcpuint());
+  }
+  if (from._internal_memint() != 0) {
+    _this->_internal_set_memint(from._internal_memint());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ResourceReservationProto::CopyFrom(const ResourceReservationProto& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:ResourceReservationProto)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ResourceReservationProto::IsInitialized() const {
+  return true;
+}
+
+void ResourceReservationProto::InternalSwap(ResourceReservationProto* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ResourceReservationProto, _impl_.memint_)
+      + sizeof(ResourceReservationProto::_impl_.memint_)
+      - PROTOBUF_FIELD_OFFSET(ResourceReservationProto, _impl_.mcpuint_)>(
+          reinterpret_cast<char*>(&_impl_.mcpuint_),
+          reinterpret_cast<char*>(&other->_impl_.mcpuint_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ResourceReservationProto::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
+      file_level_metadata_proc_2fproc_2eproto[1]);
+}
+
+// ===================================================================
+
 ProcEnvProto_EtcdEndpointsEntry_DoNotUse::ProcEnvProto_EtcdEndpointsEntry_DoNotUse() {}
 ProcEnvProto_EtcdEndpointsEntry_DoNotUse::ProcEnvProto_EtcdEndpointsEntry_DoNotUse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
     : SuperType(arena) {}
@@ -719,7 +973,7 @@ void ProcEnvProto_EtcdEndpointsEntry_DoNotUse::MergeFrom(const ProcEnvProto_Etcd
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcEnvProto_EtcdEndpointsEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[1]);
+      file_level_metadata_proc_2fproc_2eproto[2]);
 }
 
 // ===================================================================
@@ -733,7 +987,7 @@ void ProcEnvProto_SecretsMapEntry_DoNotUse::MergeFrom(const ProcEnvProto_Secrets
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcEnvProto_SecretsMapEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[2]);
+      file_level_metadata_proc_2fproc_2eproto[3]);
 }
 
 // ===================================================================
@@ -747,7 +1001,7 @@ void ProcEnvProto_CachedEndpointsEntry_DoNotUse::MergeFrom(const ProcEnvProto_Ca
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcEnvProto_CachedEndpointsEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[3]);
+      file_level_metadata_proc_2fproc_2eproto[4]);
 }
 
 // ===================================================================
@@ -830,6 +1084,7 @@ ProcEnvProto::ProcEnvProto(const ProcEnvProto& from)
     , decltype(_impl_.usespproxy_){}
     , decltype(_impl_.usedialproxy_){}
     , decltype(_impl_.runbootscriptflag_){}
+    , decltype(_impl_.shmemmbint_){}
     , decltype(_impl_.useshmem_){}
     , decltype(_impl_.usespproxyprocclnt_){}
     , /*decltype(_impl_._cached_size_)*/{}};
@@ -1029,6 +1284,7 @@ inline void ProcEnvProto::SharedCtor(
     , decltype(_impl_.usespproxy_){false}
     , decltype(_impl_.usedialproxy_){false}
     , decltype(_impl_.runbootscriptflag_){false}
+    , decltype(_impl_.shmemmbint_){uint64_t{0u}}
     , decltype(_impl_.useshmem_){false}
     , decltype(_impl_.usespproxyprocclnt_){false}
     , /*decltype(_impl_._cached_size_)*/{}
@@ -1511,17 +1767,25 @@ const char* ProcEnvProto::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // bool useSPProxyProcClnt = 31;
+      // uint64 shmemMBInt = 31;
       case 31:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 248)) {
+          _impl_.shmemmbint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool useSPProxyProcClnt = 32;
+      case 32:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 0)) {
           _impl_.usespproxyprocclnt_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // string debugProcs = 32;
-      case 32:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 2)) {
+      // string debugProcs = 33;
+      case 33:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           auto str = _internal_mutable_debugprocs();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -1876,20 +2140,26 @@ uint8_t* ProcEnvProto::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteBoolToArray(30, this->_internal_useshmem(), target);
   }
 
-  // bool useSPProxyProcClnt = 31;
-  if (this->_internal_usespproxyprocclnt() != 0) {
+  // uint64 shmemMBInt = 31;
+  if (this->_internal_shmemmbint() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteBoolToArray(31, this->_internal_usespproxyprocclnt(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(31, this->_internal_shmemmbint(), target);
   }
 
-  // string debugProcs = 32;
+  // bool useSPProxyProcClnt = 32;
+  if (this->_internal_usespproxyprocclnt() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(32, this->_internal_usespproxyprocclnt(), target);
+  }
+
+  // string debugProcs = 33;
   if (!this->_internal_debugprocs().empty()) {
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_debugprocs().data(), static_cast<int>(this->_internal_debugprocs().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "ProcEnvProto.debugProcs");
     target = stream->WriteStringMaybeAliased(
-        32, this->_internal_debugprocs(), target);
+        33, this->_internal_debugprocs(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2070,7 +2340,7 @@ size_t ProcEnvProto::ByteSizeLong() const {
         this->_internal_valgrind());
   }
 
-  // string debugProcs = 32;
+  // string debugProcs = 33;
   if (!this->_internal_debugprocs().empty()) {
     total_size += 2 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
@@ -2118,12 +2388,19 @@ size_t ProcEnvProto::ByteSizeLong() const {
     total_size += 2 + 1;
   }
 
+  // uint64 shmemMBInt = 31;
+  if (this->_internal_shmemmbint() != 0) {
+    total_size += 2 +
+      ::_pbi::WireFormatLite::UInt64Size(
+        this->_internal_shmemmbint());
+  }
+
   // bool useShmem = 30;
   if (this->_internal_useshmem() != 0) {
     total_size += 2 + 1;
   }
 
-  // bool useSPProxyProcClnt = 31;
+  // bool useSPProxyProcClnt = 32;
   if (this->_internal_usespproxyprocclnt() != 0) {
     total_size += 2 + 1;
   }
@@ -2227,6 +2504,9 @@ void ProcEnvProto::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
   }
   if (from._internal_runbootscriptflag() != 0) {
     _this->_internal_set_runbootscriptflag(from._internal_runbootscriptflag());
+  }
+  if (from._internal_shmemmbint() != 0) {
+    _this->_internal_set_shmemmbint(from._internal_shmemmbint());
   }
   if (from._internal_useshmem() != 0) {
     _this->_internal_set_useshmem(from._internal_useshmem());
@@ -2341,7 +2621,7 @@ void ProcEnvProto::InternalSwap(ProcEnvProto* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcEnvProto::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[4]);
+      file_level_metadata_proc_2fproc_2eproto[5]);
 }
 
 // ===================================================================
@@ -2355,7 +2635,7 @@ void ProcProto_EnvEntry_DoNotUse::MergeFrom(const ProcProto_EnvEntry_DoNotUse& o
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcProto_EnvEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[5]);
+      file_level_metadata_proc_2fproc_2eproto[6]);
 }
 
 // ===================================================================
@@ -2364,6 +2644,8 @@ class ProcProto::_Internal {
  public:
   static const ::ProcEnvProto& procenvproto(const ProcProto* msg);
   static const ::Blob& blob(const ProcProto* msg);
+  static const ::ResourceReservationProto& resourceres(const ProcProto* msg);
+  static const ::ResourceReservationProto& bootscriptresourceres(const ProcProto* msg);
   static const ::ForkProcProto& forkproc(const ProcProto* msg);
 };
 
@@ -2374,6 +2656,14 @@ ProcProto::_Internal::procenvproto(const ProcProto* msg) {
 const ::Blob&
 ProcProto::_Internal::blob(const ProcProto* msg) {
   return *msg->_impl_.blob_;
+}
+const ::ResourceReservationProto&
+ProcProto::_Internal::resourceres(const ProcProto* msg) {
+  return *msg->_impl_.resourceres_;
+}
+const ::ResourceReservationProto&
+ProcProto::_Internal::bootscriptresourceres(const ProcProto* msg) {
+  return *msg->_impl_.bootscriptresourceres_;
 }
 const ::ForkProcProto&
 ProcProto::_Internal::forkproc(const ProcProto* msg) {
@@ -2399,14 +2689,19 @@ ProcProto::ProcProto(const ProcProto& from)
   ProcProto* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.args_){from._impl_.args_}
+    , decltype(_impl_.addedbins_){from._impl_.addedbins_}
     , /*decltype(_impl_.env_)*/{}
     , decltype(_impl_.bootscriptinput_){}
     , decltype(_impl_.procenvproto_){nullptr}
     , decltype(_impl_.blob_){nullptr}
+    , decltype(_impl_.resourceres_){nullptr}
+    , decltype(_impl_.bootscriptresourceres_){nullptr}
     , decltype(_impl_.forkproc_){nullptr}
+    , decltype(_impl_.queueableresourcepoolid_){}
     , decltype(_impl_.typeint_){}
-    , decltype(_impl_.mcpuint_){}
-    , decltype(_impl_.memint_){}
+    , decltype(_impl_.runafterbootscript_){}
+    , decltype(_impl_.measurepss_){}
+    , decltype(_impl_.measurepssdelayms_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -2425,12 +2720,18 @@ ProcProto::ProcProto(const ProcProto& from)
   if (from._internal_has_blob()) {
     _this->_impl_.blob_ = new ::Blob(*from._impl_.blob_);
   }
+  if (from._internal_has_resourceres()) {
+    _this->_impl_.resourceres_ = new ::ResourceReservationProto(*from._impl_.resourceres_);
+  }
+  if (from._internal_has_bootscriptresourceres()) {
+    _this->_impl_.bootscriptresourceres_ = new ::ResourceReservationProto(*from._impl_.bootscriptresourceres_);
+  }
   if (from._internal_has_forkproc()) {
     _this->_impl_.forkproc_ = new ::ForkProcProto(*from._impl_.forkproc_);
   }
-  ::memcpy(&_impl_.typeint_, &from._impl_.typeint_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.memint_) -
-    reinterpret_cast<char*>(&_impl_.typeint_)) + sizeof(_impl_.memint_));
+  ::memcpy(&_impl_.queueableresourcepoolid_, &from._impl_.queueableresourcepoolid_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.measurepssdelayms_) -
+    reinterpret_cast<char*>(&_impl_.queueableresourcepoolid_)) + sizeof(_impl_.measurepssdelayms_));
   // @@protoc_insertion_point(copy_constructor:ProcProto)
 }
 
@@ -2440,14 +2741,19 @@ inline void ProcProto::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.args_){arena}
+    , decltype(_impl_.addedbins_){arena}
     , /*decltype(_impl_.env_)*/{::_pbi::ArenaInitialized(), arena}
     , decltype(_impl_.bootscriptinput_){}
     , decltype(_impl_.procenvproto_){nullptr}
     , decltype(_impl_.blob_){nullptr}
+    , decltype(_impl_.resourceres_){nullptr}
+    , decltype(_impl_.bootscriptresourceres_){nullptr}
     , decltype(_impl_.forkproc_){nullptr}
+    , decltype(_impl_.queueableresourcepoolid_){uint64_t{0u}}
     , decltype(_impl_.typeint_){0u}
-    , decltype(_impl_.mcpuint_){0u}
-    , decltype(_impl_.memint_){0u}
+    , decltype(_impl_.runafterbootscript_){false}
+    , decltype(_impl_.measurepss_){false}
+    , decltype(_impl_.measurepssdelayms_){uint64_t{0u}}
     , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.bootscriptinput_.InitDefault();
@@ -2469,11 +2775,14 @@ ProcProto::~ProcProto() {
 inline void ProcProto::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.args_.~RepeatedPtrField();
+  _impl_.addedbins_.~RepeatedPtrField();
   _impl_.env_.Destruct();
   _impl_.env_.~MapField();
   _impl_.bootscriptinput_.Destroy();
   if (this != internal_default_instance()) delete _impl_.procenvproto_;
   if (this != internal_default_instance()) delete _impl_.blob_;
+  if (this != internal_default_instance()) delete _impl_.resourceres_;
+  if (this != internal_default_instance()) delete _impl_.bootscriptresourceres_;
   if (this != internal_default_instance()) delete _impl_.forkproc_;
 }
 
@@ -2492,6 +2801,7 @@ void ProcProto::Clear() {
   (void) cached_has_bits;
 
   _impl_.args_.Clear();
+  _impl_.addedbins_.Clear();
   _impl_.env_.Clear();
   _impl_.bootscriptinput_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.procenvproto_ != nullptr) {
@@ -2502,13 +2812,21 @@ void ProcProto::Clear() {
     delete _impl_.blob_;
   }
   _impl_.blob_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.resourceres_ != nullptr) {
+    delete _impl_.resourceres_;
+  }
+  _impl_.resourceres_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.bootscriptresourceres_ != nullptr) {
+    delete _impl_.bootscriptresourceres_;
+  }
+  _impl_.bootscriptresourceres_ = nullptr;
   if (GetArenaForAllocation() == nullptr && _impl_.forkproc_ != nullptr) {
     delete _impl_.forkproc_;
   }
   _impl_.forkproc_ = nullptr;
-  ::memset(&_impl_.typeint_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.memint_) -
-      reinterpret_cast<char*>(&_impl_.typeint_)) + sizeof(_impl_.memint_));
+  ::memset(&_impl_.queueableresourcepoolid_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.measurepssdelayms_) -
+      reinterpret_cast<char*>(&_impl_.queueableresourcepoolid_)) + sizeof(_impl_.measurepssdelayms_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2541,63 +2859,110 @@ const char* ProcProto::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // map<string, string> env = 3;
+      // repeated string addedBins = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            auto str = _internal_add_addedbins();
+            ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+            CHK_(ptr);
+            CHK_(::_pbi::VerifyUTF8(str, "ProcProto.addedBins"));
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // map<string, string> env = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr -= 1;
           do {
             ptr += 1;
             ptr = ctx->ParseMessage(&_impl_.env_, ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
-          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<34>(ptr));
         } else
           goto handle_unusual;
         continue;
-      // .Blob blob = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+      // .Blob blob = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_blob(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // bytes bootScriptInput = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+      // bytes bootScriptInput = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           auto str = _internal_mutable_bootscriptinput();
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // uint32 typeInt = 6;
-      case 6:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+      // uint32 typeInt = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
           _impl_.typeint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // uint32 mcpuInt = 7;
-      case 7:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
-          _impl_.mcpuint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // uint32 memInt = 8;
+      // bool runAfterBootScript = 8;
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
-          _impl_.memint_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          _impl_.runafterbootscript_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .ForkProcProto forkProc = 9;
+      // uint64 queueableResourcePoolID = 9;
       case 9:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
+          _impl_.queueableresourcepoolid_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .ResourceReservationProto resourceRes = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ctx->ParseMessage(_internal_mutable_resourceres(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .ResourceReservationProto bootScriptResourceRes = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          ptr = ctx->ParseMessage(_internal_mutable_bootscriptresourceres(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool measurePSS = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 96)) {
+          _impl_.measurepss_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint64 measurePSSDelayMS = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 104)) {
+          _impl_.measurepssdelayms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .ForkProcProto forkProc = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
           ptr = ctx->ParseMessage(_internal_mutable_forkproc(), ptr);
           CHK_(ptr);
         } else
@@ -2649,7 +3014,17 @@ uint8_t* ProcProto::_InternalSerialize(
     target = stream->WriteString(2, s, target);
   }
 
-  // map<string, string> env = 3;
+  // repeated string addedBins = 3;
+  for (int i = 0, n = this->_internal_addedbins_size(); i < n; i++) {
+    const auto& s = this->_internal_addedbins(i);
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      s.data(), static_cast<int>(s.length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "ProcProto.addedBins");
+    target = stream->WriteString(3, s, target);
+  }
+
+  // map<string, string> env = 4;
   if (!this->_internal_env().empty()) {
     using MapType = ::_pb::Map<std::string, std::string>;
     using WireHelper = ProcProto_EnvEntry_DoNotUse::Funcs;
@@ -2668,52 +3043,78 @@ uint8_t* ProcProto::_InternalSerialize(
 
     if (stream->IsSerializationDeterministic() && map_field.size() > 1) {
       for (const auto& entry : ::_pbi::MapSorterPtr<MapType>(map_field)) {
-        target = WireHelper::InternalSerialize(3, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(4, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     } else {
       for (const auto& entry : map_field) {
-        target = WireHelper::InternalSerialize(3, entry.first, entry.second, target, stream);
+        target = WireHelper::InternalSerialize(4, entry.first, entry.second, target, stream);
         check_utf8(entry);
       }
     }
   }
 
-  // .Blob blob = 4;
+  // .Blob blob = 5;
   if (this->_internal_has_blob()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(4, _Internal::blob(this),
+      InternalWriteMessage(5, _Internal::blob(this),
         _Internal::blob(this).GetCachedSize(), target, stream);
   }
 
-  // bytes bootScriptInput = 5;
+  // bytes bootScriptInput = 6;
   if (!this->_internal_bootscriptinput().empty()) {
     target = stream->WriteBytesMaybeAliased(
-        5, this->_internal_bootscriptinput(), target);
+        6, this->_internal_bootscriptinput(), target);
   }
 
-  // uint32 typeInt = 6;
+  // uint32 typeInt = 7;
   if (this->_internal_typeint() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(6, this->_internal_typeint(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(7, this->_internal_typeint(), target);
   }
 
-  // uint32 mcpuInt = 7;
-  if (this->_internal_mcpuint() != 0) {
+  // bool runAfterBootScript = 8;
+  if (this->_internal_runafterbootscript() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(7, this->_internal_mcpuint(), target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(8, this->_internal_runafterbootscript(), target);
   }
 
-  // uint32 memInt = 8;
-  if (this->_internal_memint() != 0) {
+  // uint64 queueableResourcePoolID = 9;
+  if (this->_internal_queueableresourcepoolid() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(8, this->_internal_memint(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(9, this->_internal_queueableresourcepoolid(), target);
   }
 
-  // .ForkProcProto forkProc = 9;
+  // .ResourceReservationProto resourceRes = 10;
+  if (this->_internal_has_resourceres()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(10, _Internal::resourceres(this),
+        _Internal::resourceres(this).GetCachedSize(), target, stream);
+  }
+
+  // .ResourceReservationProto bootScriptResourceRes = 11;
+  if (this->_internal_has_bootscriptresourceres()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(11, _Internal::bootscriptresourceres(this),
+        _Internal::bootscriptresourceres(this).GetCachedSize(), target, stream);
+  }
+
+  // bool measurePSS = 12;
+  if (this->_internal_measurepss() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(12, this->_internal_measurepss(), target);
+  }
+
+  // uint64 measurePSSDelayMS = 13;
+  if (this->_internal_measurepssdelayms() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(13, this->_internal_measurepssdelayms(), target);
+  }
+
+  // .ForkProcProto forkProc = 14;
   if (this->_internal_has_forkproc()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(9, _Internal::forkproc(this),
+      InternalWriteMessage(14, _Internal::forkproc(this),
         _Internal::forkproc(this).GetCachedSize(), target, stream);
   }
 
@@ -2741,7 +3142,15 @@ size_t ProcProto::ByteSizeLong() const {
       _impl_.args_.Get(i));
   }
 
-  // map<string, string> env = 3;
+  // repeated string addedBins = 3;
+  total_size += 1 *
+      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(_impl_.addedbins_.size());
+  for (int i = 0, n = _impl_.addedbins_.size(); i < n; i++) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+      _impl_.addedbins_.Get(i));
+  }
+
+  // map<string, string> env = 4;
   total_size += 1 *
       ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(this->_internal_env_size());
   for (::PROTOBUF_NAMESPACE_ID::Map< std::string, std::string >::const_iterator
@@ -2750,7 +3159,7 @@ size_t ProcProto::ByteSizeLong() const {
     total_size += ProcProto_EnvEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
-  // bytes bootScriptInput = 5;
+  // bytes bootScriptInput = 6;
   if (!this->_internal_bootscriptinput().empty()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
@@ -2764,33 +3173,57 @@ size_t ProcProto::ByteSizeLong() const {
         *_impl_.procenvproto_);
   }
 
-  // .Blob blob = 4;
+  // .Blob blob = 5;
   if (this->_internal_has_blob()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.blob_);
   }
 
-  // .ForkProcProto forkProc = 9;
+  // .ResourceReservationProto resourceRes = 10;
+  if (this->_internal_has_resourceres()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.resourceres_);
+  }
+
+  // .ResourceReservationProto bootScriptResourceRes = 11;
+  if (this->_internal_has_bootscriptresourceres()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.bootscriptresourceres_);
+  }
+
+  // .ForkProcProto forkProc = 14;
   if (this->_internal_has_forkproc()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.forkproc_);
   }
 
-  // uint32 typeInt = 6;
+  // uint64 queueableResourcePoolID = 9;
+  if (this->_internal_queueableresourcepoolid() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_queueableresourcepoolid());
+  }
+
+  // uint32 typeInt = 7;
   if (this->_internal_typeint() != 0) {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_typeint());
   }
 
-  // uint32 mcpuInt = 7;
-  if (this->_internal_mcpuint() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_mcpuint());
+  // bool runAfterBootScript = 8;
+  if (this->_internal_runafterbootscript() != 0) {
+    total_size += 1 + 1;
   }
 
-  // uint32 memInt = 8;
-  if (this->_internal_memint() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_memint());
+  // bool measurePSS = 12;
+  if (this->_internal_measurepss() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // uint64 measurePSSDelayMS = 13;
+  if (this->_internal_measurepssdelayms() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_measurepssdelayms());
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -2812,6 +3245,7 @@ void ProcProto::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
   (void) cached_has_bits;
 
   _this->_impl_.args_.MergeFrom(from._impl_.args_);
+  _this->_impl_.addedbins_.MergeFrom(from._impl_.addedbins_);
   _this->_impl_.env_.MergeFrom(from._impl_.env_);
   if (!from._internal_bootscriptinput().empty()) {
     _this->_internal_set_bootscriptinput(from._internal_bootscriptinput());
@@ -2824,18 +3258,32 @@ void ProcProto::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
     _this->_internal_mutable_blob()->::Blob::MergeFrom(
         from._internal_blob());
   }
+  if (from._internal_has_resourceres()) {
+    _this->_internal_mutable_resourceres()->::ResourceReservationProto::MergeFrom(
+        from._internal_resourceres());
+  }
+  if (from._internal_has_bootscriptresourceres()) {
+    _this->_internal_mutable_bootscriptresourceres()->::ResourceReservationProto::MergeFrom(
+        from._internal_bootscriptresourceres());
+  }
   if (from._internal_has_forkproc()) {
     _this->_internal_mutable_forkproc()->::ForkProcProto::MergeFrom(
         from._internal_forkproc());
   }
+  if (from._internal_queueableresourcepoolid() != 0) {
+    _this->_internal_set_queueableresourcepoolid(from._internal_queueableresourcepoolid());
+  }
   if (from._internal_typeint() != 0) {
     _this->_internal_set_typeint(from._internal_typeint());
   }
-  if (from._internal_mcpuint() != 0) {
-    _this->_internal_set_mcpuint(from._internal_mcpuint());
+  if (from._internal_runafterbootscript() != 0) {
+    _this->_internal_set_runafterbootscript(from._internal_runafterbootscript());
   }
-  if (from._internal_memint() != 0) {
-    _this->_internal_set_memint(from._internal_memint());
+  if (from._internal_measurepss() != 0) {
+    _this->_internal_set_measurepss(from._internal_measurepss());
+  }
+  if (from._internal_measurepssdelayms() != 0) {
+    _this->_internal_set_measurepssdelayms(from._internal_measurepssdelayms());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -2857,14 +3305,15 @@ void ProcProto::InternalSwap(ProcProto* other) {
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
+  _impl_.addedbins_.InternalSwap(&other->_impl_.addedbins_);
   _impl_.env_.InternalSwap(&other->_impl_.env_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.bootscriptinput_, lhs_arena,
       &other->_impl_.bootscriptinput_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ProcProto, _impl_.memint_)
-      + sizeof(ProcProto::_impl_.memint_)
+      PROTOBUF_FIELD_OFFSET(ProcProto, _impl_.measurepssdelayms_)
+      + sizeof(ProcProto::_impl_.measurepssdelayms_)
       - PROTOBUF_FIELD_OFFSET(ProcProto, _impl_.procenvproto_)>(
           reinterpret_cast<char*>(&_impl_.procenvproto_),
           reinterpret_cast<char*>(&other->_impl_.procenvproto_));
@@ -2873,7 +3322,7 @@ void ProcProto::InternalSwap(ProcProto* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ProcProto::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[6]);
+      file_level_metadata_proc_2fproc_2eproto[7]);
 }
 
 // ===================================================================
@@ -2887,7 +3336,7 @@ void ForkProcProto_ZygoteEnvEntry_DoNotUse::MergeFrom(const ForkProcProto_Zygote
 ::PROTOBUF_NAMESPACE_ID::Metadata ForkProcProto_ZygoteEnvEntry_DoNotUse::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[7]);
+      file_level_metadata_proc_2fproc_2eproto[8]);
 }
 
 // ===================================================================
@@ -2911,9 +3360,9 @@ ForkProcProto::ForkProcProto(const ForkProcProto& from)
   new (&_impl_) Impl_{
       decltype(_impl_.zygoteargs_){from._impl_.zygoteargs_}
     , /*decltype(_impl_.zygoteenv_)*/{}
+    , decltype(_impl_.childargs_){from._impl_.childargs_}
     , decltype(_impl_.zygotekey_){}
     , decltype(_impl_.zygoteprogram_){}
-    , decltype(_impl_.childargs_){}
     , decltype(_impl_.keepalivens_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -2935,14 +3384,6 @@ ForkProcProto::ForkProcProto(const ForkProcProto& from)
     _this->_impl_.zygoteprogram_.Set(from._internal_zygoteprogram(), 
       _this->GetArenaForAllocation());
   }
-  _impl_.childargs_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.childargs_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_childargs().empty()) {
-    _this->_impl_.childargs_.Set(from._internal_childargs(), 
-      _this->GetArenaForAllocation());
-  }
   _this->_impl_.keepalivens_ = from._impl_.keepalivens_;
   // @@protoc_insertion_point(copy_constructor:ForkProcProto)
 }
@@ -2954,9 +3395,9 @@ inline void ForkProcProto::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.zygoteargs_){arena}
     , /*decltype(_impl_.zygoteenv_)*/{::_pbi::ArenaInitialized(), arena}
+    , decltype(_impl_.childargs_){arena}
     , decltype(_impl_.zygotekey_){}
     , decltype(_impl_.zygoteprogram_){}
-    , decltype(_impl_.childargs_){}
     , decltype(_impl_.keepalivens_){uint64_t{0u}}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -2967,10 +3408,6 @@ inline void ForkProcProto::SharedCtor(
   _impl_.zygoteprogram_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.zygoteprogram_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  _impl_.childargs_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.childargs_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
@@ -2989,9 +3426,9 @@ inline void ForkProcProto::SharedDtor() {
   _impl_.zygoteargs_.~RepeatedPtrField();
   _impl_.zygoteenv_.Destruct();
   _impl_.zygoteenv_.~MapField();
+  _impl_.childargs_.~RepeatedPtrField();
   _impl_.zygotekey_.Destroy();
   _impl_.zygoteprogram_.Destroy();
-  _impl_.childargs_.Destroy();
 }
 
 void ForkProcProto::ArenaDtor(void* object) {
@@ -3010,9 +3447,9 @@ void ForkProcProto::Clear() {
 
   _impl_.zygoteargs_.Clear();
   _impl_.zygoteenv_.Clear();
+  _impl_.childargs_.Clear();
   _impl_.zygotekey_.ClearToEmpty();
   _impl_.zygoteprogram_.ClearToEmpty();
-  _impl_.childargs_.ClearToEmpty();
   _impl_.keepalivens_ = uint64_t{0u};
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -3079,12 +3516,18 @@ const char* ForkProcProto::_InternalParse(const char* ptr, ::_pbi::ParseContext*
         } else
           goto handle_unusual;
         continue;
-      // bytes childArgs = 6;
+      // repeated string childArgs = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
-          auto str = _internal_mutable_childargs();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
+          ptr -= 1;
+          do {
+            ptr += 1;
+            auto str = _internal_add_childargs();
+            ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+            CHK_(ptr);
+            CHK_(::_pbi::VerifyUTF8(str, "ForkProcProto.childArgs"));
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<50>(ptr));
         } else
           goto handle_unusual;
         continue;
@@ -3183,10 +3626,14 @@ uint8_t* ForkProcProto::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt64ToArray(5, this->_internal_keepalivens(), target);
   }
 
-  // bytes childArgs = 6;
-  if (!this->_internal_childargs().empty()) {
-    target = stream->WriteBytesMaybeAliased(
-        6, this->_internal_childargs(), target);
+  // repeated string childArgs = 6;
+  for (int i = 0, n = this->_internal_childargs_size(); i < n; i++) {
+    const auto& s = this->_internal_childargs(i);
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      s.data(), static_cast<int>(s.length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "ForkProcProto.childArgs");
+    target = stream->WriteString(6, s, target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -3222,6 +3669,14 @@ size_t ForkProcProto::ByteSizeLong() const {
     total_size += ForkProcProto_ZygoteEnvEntry_DoNotUse::Funcs::ByteSizeLong(it->first, it->second);
   }
 
+  // repeated string childArgs = 6;
+  total_size += 1 *
+      ::PROTOBUF_NAMESPACE_ID::internal::FromIntSize(_impl_.childargs_.size());
+  for (int i = 0, n = _impl_.childargs_.size(); i < n; i++) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+      _impl_.childargs_.Get(i));
+  }
+
   // string zygoteKey = 1;
   if (!this->_internal_zygotekey().empty()) {
     total_size += 1 +
@@ -3234,13 +3689,6 @@ size_t ForkProcProto::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_zygoteprogram());
-  }
-
-  // bytes childArgs = 6;
-  if (!this->_internal_childargs().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
-        this->_internal_childargs());
   }
 
   // uint64 keepAliveNs = 5;
@@ -3268,14 +3716,12 @@ void ForkProcProto::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
 
   _this->_impl_.zygoteargs_.MergeFrom(from._impl_.zygoteargs_);
   _this->_impl_.zygoteenv_.MergeFrom(from._impl_.zygoteenv_);
+  _this->_impl_.childargs_.MergeFrom(from._impl_.childargs_);
   if (!from._internal_zygotekey().empty()) {
     _this->_internal_set_zygotekey(from._internal_zygotekey());
   }
   if (!from._internal_zygoteprogram().empty()) {
     _this->_internal_set_zygoteprogram(from._internal_zygoteprogram());
-  }
-  if (!from._internal_childargs().empty()) {
-    _this->_internal_set_childargs(from._internal_childargs());
   }
   if (from._internal_keepalivens() != 0) {
     _this->_internal_set_keepalivens(from._internal_keepalivens());
@@ -3301,6 +3747,7 @@ void ForkProcProto::InternalSwap(ForkProcProto* other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.zygoteargs_.InternalSwap(&other->_impl_.zygoteargs_);
   _impl_.zygoteenv_.InternalSwap(&other->_impl_.zygoteenv_);
+  _impl_.childargs_.InternalSwap(&other->_impl_.childargs_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.zygotekey_, lhs_arena,
       &other->_impl_.zygotekey_, rhs_arena
@@ -3309,17 +3756,13 @@ void ForkProcProto::InternalSwap(ForkProcProto* other) {
       &_impl_.zygoteprogram_, lhs_arena,
       &other->_impl_.zygoteprogram_, rhs_arena
   );
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &_impl_.childargs_, lhs_arena,
-      &other->_impl_.childargs_, rhs_arena
-  );
   swap(_impl_.keepalivens_, other->_impl_.keepalivens_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata ForkProcProto::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_proc_2fproc_2eproto_getter, &descriptor_table_proc_2fproc_2eproto_once,
-      file_level_metadata_proc_2fproc_2eproto[8]);
+      file_level_metadata_proc_2fproc_2eproto[9]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -3327,6 +3770,10 @@ PROTOBUF_NAMESPACE_OPEN
 template<> PROTOBUF_NOINLINE ::ProcSeqno*
 Arena::CreateMaybeMessage< ::ProcSeqno >(Arena* arena) {
   return Arena::CreateMessageInternal< ::ProcSeqno >(arena);
+}
+template<> PROTOBUF_NOINLINE ::ResourceReservationProto*
+Arena::CreateMaybeMessage< ::ResourceReservationProto >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::ResourceReservationProto >(arena);
 }
 template<> PROTOBUF_NOINLINE ::ProcEnvProto_EtcdEndpointsEntry_DoNotUse*
 Arena::CreateMaybeMessage< ::ProcEnvProto_EtcdEndpointsEntry_DoNotUse >(Arena* arena) {

@@ -164,8 +164,8 @@ if [[ $COMPILE == "--compile" ]]; then
       namesrv/fsetcd \
       namesrv/ndclnt \
       sigmaclnt/procclnt \
-      proxy/ux \
-      proxy/s3 \
+      proxy/ux/srv \
+      proxy/s3/srv \
       proxy/cpp \
       boot/clnt \
       ft/procgroupmgr \
@@ -281,9 +281,9 @@ if [[ $BASIC == "--basic" ]]; then
     for T in \
       util/coordination/semaphore \
       sched/msched/proc/chunk/srv \
-      proxy/ux \
+      proxy/ux/srv \
       boot/clnt \
-      proxy/s3 \
+      proxy/s3/srv \
       proxy/cpp \
       ft/leaderclnt \
       ft/leadertest \
@@ -346,7 +346,7 @@ if [[ $APPS == "--proxynp" ]]; then
 fi
 
     # run_test "sigmapsrv/ux" "./test-in-docker.sh --pkg sigmasrv/memfssrv/sigmapsrv --run ReadPerf --args \"$VERB --path name/ux/~any/ $SPPROXYD $DIALPROXY $REUSEKERNEL\""
-    # run_test "sigmapsrv/s3" "./test-in-docker.sh --pkg sigmasrv/memfssrv/sigmapsrv --run ReadPerf --args \"$VERB --path name/s3/~any/9ps3/ $SPPROXYD $DIALPROXY $REUSEKERNEL\""
+    # run_test "sigmapsrv/s3/srv" "./test-in-docker.sh --pkg sigmasrv/memfssrv/sigmapsrv --run ReadPerf --args \"$VERB --path name/s3/~any/9ps3/ $SPPROXYD $DIALPROXY $REUSEKERNEL\""
     # run_test "sigmapsrv/s3pathclnt" "./test-in-docker.sh --pkg sigmasrv/memfssrv/sigmapsrv --run ReadFilePerfSingle --args \"$VERB --path name/s3/~any/9ps3/ --withs3pathclnt $SPPROXYD $DIALPROXY $REUSEKERNEL\""
 
 #

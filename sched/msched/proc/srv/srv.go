@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -16,10 +17,14 @@ import (
 	"golang.org/x/sys/unix"
 
 	"sigmaos/api/fs"
+	"sigmaos/container"
 	db "sigmaos/debug"
+	"sigmaos/gvisor"
+	"sigmaos/k8s"
 	kernelclnt "sigmaos/kernel/clnt"
 	"sigmaos/proc"
 	spproxysrv "sigmaos/proxy/sigmap/srv"
+	wasmrpc "sigmaos/proxy/wasm/rpc"
 	chunkclnt "sigmaos/sched/msched/proc/chunk/clnt"
 	chunksrv "sigmaos/sched/msched/proc/chunk/srv"
 	"sigmaos/sched/msched/proc/proto"
@@ -34,6 +39,8 @@ import (
 	linuxsched "sigmaos/util/linux/sched"
 	"sigmaos/util/perf"
 	"sigmaos/util/syncmap"
+
+	"k8s.io/client-go/kubernetes"
 )
 
 // Lookup may try to read proc in a proc's procEntry before procsrv
@@ -88,7 +95,13 @@ type ProcSrv struct {
 	spproxydPID     sp.Tpid
 	schedPolicySet  bool
 	procs           *syncmap.SyncMap[int, *procEntry]
+	cachedBins      *syncmap.SyncMap[string, bool]
 	ckclnt          *chunkclnt.ChunkClnt
+	pq              *ProcQueue
+	nRunning        atomic.Int64
+	gvisor          bool
+	k8s             bool
+	k8sClnt         *kubernetes.Clientset
 	forkmgr         *forkMgr
 }
 
@@ -96,7 +109,7 @@ type ProcRPCSrv struct {
 	ps *ProcSrv
 }
 
-func RunProcSrv(kernelId string, dialproxy bool, spproxydPID sp.Tpid) error {
+func RunProcSrv(kernelId string, dialproxy bool, gvisor bool, spproxydPID sp.Tpid) error {
 	pe := proc.GetProcEnv()
 	ps := &ProcSrv{
 		kernelId:        kernelId,
@@ -107,6 +120,19 @@ func RunProcSrv(kernelId string, dialproxy bool, spproxydPID sp.Tpid) error {
 		realm:           sp.NO_REALM,
 		prefetchedStats: make(map[string]bool),
 		procs:           syncmap.NewSyncMap[int, *procEntry](),
+		cachedBins:      syncmap.NewSyncMap[string, bool](),
+		pq:              newProcQueue(),
+		gvisor:          gvisor,
+		k8s:             true, // TODO: set from above
+	}
+
+	if ps.k8s && false {
+		// TODO: get kube config
+		clnt, err := k8s.NewClnt("kube-config-contents-TODO")
+		if err != nil {
+			db.DFatalf("Error new k8s clnt: %v", err)
+		}
+		ps.k8sClnt = clnt
 	}
 	ps.forkmgr = newForkMgr(ps)
 
@@ -351,10 +377,15 @@ func (ps *ProcSrv) prefetchProcFileStat(realm sp.Trealm, upid sp.Tpid, prog stri
 // Run a proc inside of an sigma container
 func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc := proc.NewProcFromProto(req.ProcProto)
-	isForkProc := uproc.GetForkProc() != nil
-	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram()) != nil
+	if uproc.GetProcEnv().GetRunBootScript() {
+		perf.LogSpawnLatency("Paper.Setup.DownloadInitScript", uproc.GetPid(), uproc.GetSpawnTime(), uproc.GetSpawnTime())
+	}
+	perf.LogSpawnLatency("Paper.Setup.GlobalScheduling", uproc.GetPid(), uproc.GetSpawnTime(), uproc.GetSpawnTime())
+	recordPSS := db.WillBePrinted(db.PSS) && uproc.GetMeasurePSS()
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
+	isForkProc := uproc.GetForkProc() != nil
+	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram()) != nil
 	// Spawn, but don't actually run the dummy proc
 	if uproc.GetProgram() == sp.DUMMY_PROG {
 		perf.LogSpawnLatency("ProcSrv.Run dummy proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
@@ -370,8 +401,11 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc.FinalizeEnv(ps.pe.GetInnerContainerIP(), ps.pe.GetOuterContainerIP(), ps.pe.GetPID())
 	// If this proc uses SPProxy, inform spproxy that there is a proc incoming so
 	// that it can pre-create the proc's sigmaclnt
+	var informedWG sync.WaitGroup
 	if uproc.GetProcEnv().UseSPProxy {
+		informedWG.Add(1)
 		go func() {
+			defer informedWG.Done()
 			start := time.Now()
 			if err := ps.spc.InformIncomingProc(uproc); err != nil {
 				db.DFatalf("Err inform spproxyclnt incoming proc: %v", err)
@@ -395,6 +429,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	if err := ps.setSchedPolicy(uproc.GetPid(), uproc.GetType()); err != nil {
 		db.DFatalf("Err set sched policy: %v", err)
 	}
+
 	// Fork procs are created by forking a warm zygote (managed by procd) instead
 	// of starting a new container from scratch.
 	if isForkProc {
@@ -418,23 +453,131 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		}
 		return err
 	}
-
-	perf.LogSpawnLatency("ProcSrv.Run StartSigmaContainer", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
-	cmd, err := scontainer.StartSigmaContainer(uproc, ps.dialproxy, ps.sc)
-	if err != nil {
-		return err
+	// If proc should only run after boot script completes, wait for it
+	if uproc.GetRunAfterBootScript() && uproc.GetProcEnv().UseSPProxy {
+		var pssPre proc.Tmem
+		var err error
+		if recordPSS {
+			pssPre, err = ps.spc.GetPSS()
+			if err != nil {
+				db.DPrintf(db.PSS_ERR, "Err GetPss spproxy: %v", err)
+			}
+		}
+		// Wait to make sure spproxy has heard about the proc we are going to wait
+		// for
+		informedWG.Wait()
+		db.DPrintf(db.PROCD, "[%v] Wait for bootscript completion", uproc.GetPid())
+		start := time.Now()
+		status, msg, err := ps.spc.WaitBootScriptCompletion(uproc.GetPid())
+		if err != nil {
+			db.DFatalf("[%v] Wait for boot script completion err: %v", uproc.GetPid(), err)
+		}
+		db.DPrintf(db.PROCD, "[%v] Done waiting for bootscript completion: %v %v", uproc.GetPid(), status, msg)
+		perf.LogSpawnLatency("ProcSrv.Run WaitBootScriptCompletion", uproc.GetPid(), uproc.GetSpawnTime(), start)
+		if recordPSS {
+			pssPost, err := ps.spc.GetPSS()
+			if err != nil {
+				db.DPrintf(db.PSS_ERR, "Err GetPss spproxy post: %v", err)
+			}
+			db.DPrintf(db.PSS, "[%v] BootScript PSS: %vKB", uproc.GetPid(), pssPost-pssPre)
+		}
+		if status == wasmrpc.EXIT_ABORT_LAUNCH {
+			return fmt.Errorf("Aborted launch: %v", msg)
+		}
 	}
-	pid := cmd.Pid()
+	if uproc.GetIsQueueable() {
+		start := time.Now()
+		// If proc is queueable, queue it until there are enough resources available to run it
+		ps.pq.QueueProc(uproc)
+		perf.LogSpawnLatency("ProcSrv.Run QueueProc", uproc.GetPid(), uproc.GetSpawnTime(), start)
+		// Make srue to release resources after the proc terminates
+		defer ps.pq.ProcDone(uproc)
+	}
+	perf.LogSpawnLatency("ProcSrv.Run StartSigmaContainer", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
+	nRunning := ps.nRunning.Add(1)
+	db.DPrintf(db.PROCD, "[%v] nRunning: %v", uproc.GetProgram(), nRunning)
+	var ctr container.ProcContainer
+	var err error
+	ctrStart := time.Now()
+	if ps.k8s && false {
+		// Pre-download the proc binary
+		if err := ps.downloadFullBinary(uproc.GetVersionedProgram(), uproc.GetPid(), uproc.GetRealm(), uproc.GetSecrets()["s3"], uproc.GetSigmaPath(), uproc.GetNamedEndpoint()); err != nil {
+			db.DPrintf(db.ERROR, "Error download full binary for gVisor container")
+			return err
+		}
+		ctr, err = k8s.StartK8sPod(uproc, ps.k8sClnt)
+		if err != nil {
+			return err
+		}
+	} else {
+		if !ps.gvisor {
+			ctr, err = scontainer.StartSigmaContainer(uproc, ps.dialproxy, ps.sc)
+			if err != nil {
+				return err
+			}
+		} else {
+			start := time.Now()
+			ch := make(chan error)
+			go func() {
+				// Pre-download the proc binary
+				if err := ps.downloadFullBinary(uproc.GetVersionedProgram(), uproc.GetPid(), uproc.GetRealm(), uproc.GetSecrets()["s3"], uproc.GetSigmaPath(), uproc.GetNamedEndpoint()); err != nil {
+					db.DPrintf(db.ERROR, "Error download full binary for gVisor container")
+					ch <- err
+				}
+				ch <- nil
+			}()
+			for _, prog := range uproc.GetAddedBins() {
+				go func(prog string) {
+					db.DPrintf(db.PROCD, "[%v] Downloading added bin %v", uproc.GetPid(), prog)
+					if err := ps.downloadFullBinary(prog, uproc.GetPid(), uproc.GetRealm(), uproc.GetSecrets()["s3"], uproc.GetSigmaPath(), uproc.GetNamedEndpoint()); err != nil {
+						db.DPrintf(db.ERROR, "Error download full binary for gVisor container")
+						ch <- err
+					}
+					ch <- nil
+				}(prog)
+			}
+			for i := 0; i < 1+len(uproc.GetAddedBins()); i++ {
+				err := <-ch
+				if err != nil {
+					db.DPrintf(db.ERROR, "Err download bin: %v", err)
+					return err
+				}
+			}
+			perf.LogSpawnLatency("Setup.BinaryDownload", uproc.GetPid(), uproc.GetSpawnTime(), start)
+			perf.LogSpawnLatency("Paper.Setup.BinaryDownload", uproc.GetPid(), uproc.GetSpawnTime(), start)
+			ctrStart = time.Now()
+			ctr, err = gvisor.StartGVisorContainer(uproc, ps.dialproxy, gvisor.BASE_BUNDLE_PATH, true)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	pid := ctr.Pid()
 	db.DPrintf(db.PROCD, "Pid %v -> %d", uproc.GetPid(), pid)
 	pe, alloc := ps.procs.Alloc(pid, newProcEntry(uproc))
 	if !alloc { // it was already inserted
 		pe.insertSignal(uproc)
 	}
-	err = cmd.Wait()
-	if err != nil {
-		db.DPrintf(db.PROCD, "[%v] Proc Run cmd.Wait err %v", uproc.GetPid(), err)
+	if recordPSS {
+		go func(uproc *proc.Proc, ctr container.ProcContainer) {
+			time.Sleep(time.Duration(uproc.GetMeasurePSSDelayMS()) * time.Millisecond)
+			pss, err := ctr.GetPSS()
+			if err != nil {
+				db.DPrintf(db.PSS_ERR, "Err GetPss: %v", err)
+			}
+			db.DPrintf(db.PSS, "[%v] PSS: %vKB", uproc.GetPid(), pss)
+		}(uproc, ctr)
 	}
-	scontainer.CleanupUProc(cmd)
+	err = ctr.Wait()
+	db.DPrintf(db.SPAWN_LAT, "[%v] Container execution time: %v", uproc.GetPid(), time.Since(ctrStart))
+	if err != nil {
+		db.DPrintf(db.PROCD, "[%v] Proc Run ctr.Wait err %v", uproc.GetPid(), err)
+	}
+	nRunning = ps.nRunning.Add(-1)
+	db.DPrintf(db.PROCD, "[%v] nRunning after: %v", uproc.GetProgram(), nRunning)
+	if !ps.k8s && !ps.gvisor {
+		scontainer.CleanupUProc(ctr.(*scontainer.UProcCmd))
+	}
 	ps.procs.Delete(pid)
 	if uproc.GetProcEnv().UseSPProxy {
 		if err := ps.spc.InformProcDone(uproc); err != nil {
@@ -443,6 +586,23 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	}
 	// ps.sc.CloseFd(pe.fd)
 	return err
+}
+
+func (ps *ProcSrv) downloadFullBinary(versionedProg string, pid sp.Tpid, realm sp.Trealm, s3secret *sp.SecretProto, path []string, ndEP *sp.TendpointProto) error {
+	// If already cached, bail out
+	if cached, ok := ps.cachedBins.Lookup(versionedProg); cached && ok {
+		db.DPrintf(db.PROCD, "Already cached full binary %v", versionedProg)
+		return nil
+	}
+	st, _, err := ps.ckclnt.GetFileStat(ps.kernelId, versionedProg, pid, realm, s3secret, path, ndEP)
+	if err != nil {
+		return err
+	}
+	if _, err := ps.ckclnt.FetchBinary(ps.kernelId, versionedProg, pid, realm, s3secret, st.Tsize(), path, ndEP); err != nil {
+		return err
+	}
+	ps.cachedBins.Insert(versionedProg, true)
+	return nil
 }
 
 func (ps *ProcRPCSrv) WarmProcd(ctx fs.CtxI, req proto.WarmBinReq, res *proto.WarmBinRep) error {
@@ -457,11 +617,7 @@ func (ps *ProcSrv) WarmProcd(ctx fs.CtxI, req proto.WarmBinReq, res *proto.WarmB
 	if err := ps.assignToRealm(r, pid, req.Program, req.SigmaPath, req.GetS3Secret(), req.GetNamedEndpointProto()); err != nil {
 		db.DFatalf("Err assign to realm: %v", err)
 	}
-	st, _, err := ps.ckclnt.GetFileStat(ps.kernelId, req.Program, pid, r, req.GetS3Secret(), req.SigmaPath, req.GetNamedEndpointProto())
-	if err != nil {
-		return err
-	}
-	if _, err := ps.ckclnt.FetchBinary(ps.kernelId, req.Program, pid, r, req.GetS3Secret(), st.Tsize(), req.SigmaPath, req.GetNamedEndpointProto()); err != nil {
+	if err := ps.downloadFullBinary(req.Program, pid, r, req.GetS3Secret(), req.SigmaPath, req.GetNamedEndpointProto()); err != nil {
 		return err
 	}
 	res.OK = true

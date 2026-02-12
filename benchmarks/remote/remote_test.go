@@ -12,7 +12,10 @@ import (
 
 	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
 	cossimsrv "sigmaos/apps/cossim/srv"
+	"sigmaos/apps/etcd"
 	"sigmaos/apps/hotel"
+	"sigmaos/apps/imgresize"
+	"sigmaos/apps/memcached"
 	"sigmaos/benchmarks"
 	db "sigmaos/debug"
 	"sigmaos/proc"
@@ -50,6 +53,7 @@ func TestInitFS(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -59,7 +63,7 @@ func TestInitFS(t *testing.T) {
 		return
 	}
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
-	ts.RunStandardBenchmark(benchName, driverVM, GetInitFSCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunStandardBenchmark(benchName, driverVM, GetInitFSCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Example remote benchmark runner stub
@@ -77,6 +81,7 @@ func TestExample(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -87,7 +92,7 @@ func TestExample(t *testing.T) {
 	}
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	getExampleCmd := GetExampleCmdConstructor(prewarmRealm, exampleFlag)
-	ts.RunStandardBenchmark(benchName, driverVM, getExampleCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunStandardBenchmark(benchName, driverVM, getExampleCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test SigmaOS cold-start.
@@ -103,6 +108,7 @@ func TestColdStart(t *testing.T) {
 		numFullNodes      int  = 1
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	// Benchmark configuration parameters
 	var (
@@ -121,7 +127,7 @@ func TestColdStart(t *testing.T) {
 		return
 	}
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
-	ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(rps, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(rps, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test the single-node proc start bottleneck.
@@ -136,6 +142,7 @@ func TestSingleMachineMaxTpt(t *testing.T) {
 		numProcqOnlyNodes int  = 0
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -158,7 +165,7 @@ func TestSingleMachineMaxTpt(t *testing.T) {
 	for _, nCores := range nCoresPerNode {
 		for _, r := range rps {
 			benchName := filepath.Join(benchNameBase, fmt.Sprintf("%v-cores-rps-%v", nCores, r))
-			ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, nCores, numFullNodes, numProcqOnlyNodes, turboBoost)
+			ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, nCores, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 		}
 	}
 }
@@ -176,6 +183,7 @@ func TestSchedLCSchedMaxTpt(t *testing.T) {
 		numProcqOnlyNodes int  = 0
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -196,7 +204,7 @@ func TestSchedLCSchedMaxTpt(t *testing.T) {
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	for _, r := range rps {
 		benchName := filepath.Join(benchNameBase, fmt.Sprintf("%v-vm-rps-%v", numNodes, r))
-		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 	}
 }
 
@@ -213,6 +221,7 @@ func TestProcqSchedMaxTpt(t *testing.T) {
 		numProcqOnlyNodes int  = 1
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -233,7 +242,7 @@ func TestProcqSchedMaxTpt(t *testing.T) {
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	for _, r := range rps {
 		benchName := filepath.Join(benchNameBase, fmt.Sprintf("%v-vm-rps-%v", numNodes, r))
-		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 	}
 }
 
@@ -250,6 +259,7 @@ func TestSchedProcStartMaxTpt(t *testing.T) {
 		numProcqOnlyNodes int  = 1
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -270,7 +280,7 @@ func TestSchedProcStartMaxTpt(t *testing.T) {
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	for _, r := range rps {
 		benchName := filepath.Join(benchNameBase, fmt.Sprintf("%v-vm-rps-%v", numNodes, r))
-		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+		ts.RunStandardBenchmark(benchName, driverVM, GetStartCmdConstructor(r, dur, dummyProc, lcProc, prewarmRealm, skipStats), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 	}
 }
 
@@ -284,6 +294,7 @@ func TestMR(t *testing.T) {
 		driverVM          int  = 0
 		numProcqOnlyNodes int  = 1
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	type MRExperimentConfig struct {
 		benchName       string
@@ -328,7 +339,7 @@ func TestMR(t *testing.T) {
 					benchName += "-perf"
 				}
 				numFullNodes := mrEP.numNodes - numProcqOnlyNodes
-				ts.RunStandardBenchmark(benchName, driverVM, GetMRCmdConstructor(mrEP.benchName, mrEP.memReq, prewarmRealm, measureTpt, perf), mrEP.numNodes, mrEP.numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+				ts.RunStandardBenchmark(benchName, driverVM, GetMRCmdConstructor(mrEP.benchName, mrEP.memReq, prewarmRealm, measureTpt, perf), mrEP.numNodes, mrEP.numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 			}
 		}
 	}
@@ -346,6 +357,7 @@ func TestCorral(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = true
+		useGVisor         bool = false
 	)
 	// Variable MR benchmark configuration parameters
 	var (
@@ -361,7 +373,7 @@ func TestCorral(t *testing.T) {
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	for _, corralApp := range corralApps {
 		benchName := filepath.Join(benchNameBase, corralApp)
-		ts.RunStandardBenchmark(benchName, driverVM, GetCorralCmdConstructor(), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+		ts.RunStandardBenchmark(benchName, driverVM, GetCorralCmdConstructor(), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 	}
 }
 
@@ -380,6 +392,7 @@ func TestHotelTailLatency(t *testing.T) {
 		numCoresPerNode   uint = 4
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -428,29 +441,37 @@ func TestHotelTailLatency(t *testing.T) {
 			GeoNResults:     geoNResults,
 			UseMatch:        false,
 		},
-		Durs:   dur,
-		MaxRPS: rps,
+		Durs:           dur,
+		MaxRPS:         rps,
+		CachedUserFrac: 100,
 		ScaleGeo: &benchmarks.ManualScalingConfig{
-			Svc:        "hotel-geo",
-			Scale:      manuallyScaleGeo,
-			ScaleDelay: scaleGeoDelay,
-			NToAdd:     numGeoToAdd,
+			Svc:         "hotel-geo",
+			Scale:       manuallyScaleGeo,
+			ScaleDelays: []time.Duration{scaleGeoDelay},
+			ScaleDeltas: []int{numGeoToAdd},
 		},
 		CacheBenchCfg: &benchmarks.CacheBenchConfig{
 			JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+			Shmem:     true,
 			Autoscale: autoscaleCache,
-			Scale: &benchmarks.ManualScalingConfig{
-				Svc:        "cached",
-				Scale:      manuallyScaleCaches,
-				ScaleDelay: scaleCacheDelay,
-				NToAdd:     numCachesToAdd,
+			ManuallyScale: &benchmarks.ManualScalingConfig{
+				Svc:         "cached",
+				Scale:       manuallyScaleCaches,
+				ScaleDelays: []time.Duration{scaleCacheDelay},
+				ScaleDeltas: []int{numCachesToAdd},
+			},
+			Migrate: &benchmarks.MigrationConfig{
+				Svc:              "cached",
+				Migrate:          false,
+				MigrationDelays:  []time.Duration{},
+				MigrationTargets: []int{},
 			},
 		},
 		CosSimBenchCfg: nil,
 	}
 	getLeaderCmd := GetHotelClientCmdConstructor("Search", true, len(driverVMs), sleep, hotelCfg)
 	getFollowerCmd := GetHotelClientCmdConstructor("Search", false, len(driverVMs), sleep, hotelCfg)
-	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test Hotel application's tail latency.
@@ -467,6 +488,7 @@ func TestHotelScaleGeo(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -532,29 +554,31 @@ func TestHotelScaleGeo(t *testing.T) {
 						GeoNResults:     geoNResults,
 						UseMatch:        false,
 					},
-					Durs:   dur,
-					MaxRPS: rps,
+					Durs:           dur,
+					MaxRPS:         rps,
+					CachedUserFrac: 100,
 					ScaleGeo: &benchmarks.ManualScalingConfig{
-						Svc:        "hotel-geo",
-						Scale:      scale,
-						ScaleDelay: scaleGeoDelay,
-						NToAdd:     numGeoToAdd,
+						Svc:         "hotel-geo",
+						Scale:       scale,
+						ScaleDelays: []time.Duration{scaleGeoDelay},
+						ScaleDeltas: []int{numGeoToAdd},
 					},
 					CacheBenchCfg: &benchmarks.CacheBenchConfig{
 						JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+						Shmem:     true,
 						Autoscale: autoscaleCache,
-						Scale: &benchmarks.ManualScalingConfig{
-							Svc:        "cached",
-							Scale:      false,
-							ScaleDelay: 0,
-							NToAdd:     0,
+						ManuallyScale: &benchmarks.ManualScalingConfig{
+							Svc:         "cached",
+							Scale:       false,
+							ScaleDelays: []time.Duration{},
+							ScaleDeltas: []int{},
 						},
 					},
 					CosSimBenchCfg: nil,
 				}
 				getLeaderCmd := GetHotelClientCmdConstructor("Search", true, len(driverVMs), sleep, hotelCfg)
 				getFollowerCmd := GetHotelClientCmdConstructor("Search", false, len(driverVMs), sleep, hotelCfg)
-				ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+				ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 			}
 		}
 	}
@@ -574,6 +598,7 @@ func TestHotelGeoReqScaleGeo(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -642,29 +667,31 @@ func TestHotelGeoReqScaleGeo(t *testing.T) {
 						GeoNResults:     geoNResults,
 						UseMatch:        false,
 					},
-					Durs:   dur,
-					MaxRPS: rps,
+					Durs:           dur,
+					MaxRPS:         rps,
+					CachedUserFrac: 100,
 					ScaleGeo: &benchmarks.ManualScalingConfig{
-						Svc:        "hotel-geo",
-						Scale:      scale,
-						ScaleDelay: scaleGeoDelay,
-						NToAdd:     numGeoToAdd,
+						Svc:         "hotel-geo",
+						Scale:       scale,
+						ScaleDelays: []time.Duration{scaleGeoDelay},
+						ScaleDeltas: []int{numGeoToAdd},
 					},
 					CacheBenchCfg: &benchmarks.CacheBenchConfig{
 						JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+						Shmem:     true,
 						Autoscale: autoscaleCache,
-						Scale: &benchmarks.ManualScalingConfig{
-							Svc:        "cached",
-							Scale:      false,
-							ScaleDelay: 0,
-							NToAdd:     0,
+						ManuallyScale: &benchmarks.ManualScalingConfig{
+							Svc:         "cached",
+							Scale:       false,
+							ScaleDelays: []time.Duration{},
+							ScaleDeltas: []int{},
 						},
 					},
 					CosSimBenchCfg: nil,
 				}
 				getLeaderCmd := GetHotelClientCmdConstructor("Geo", true, len(driverVMs), sleep, hotelCfg)
 				getFollowerCmd := GetHotelClientCmdConstructor("Geo", false, len(driverVMs), sleep, hotelCfg)
-				ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+				ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 				if oneByOne && ran {
 					return
 				}
@@ -686,6 +713,7 @@ func TestHotelScaleCache(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -749,29 +777,31 @@ func TestHotelScaleCache(t *testing.T) {
 						GeoNResults:     geoNResults,
 						UseMatch:        false,
 					},
-					Durs:   dur,
-					MaxRPS: rps,
+					Durs:           dur,
+					MaxRPS:         rps,
+					CachedUserFrac: 100,
 					ScaleGeo: &benchmarks.ManualScalingConfig{
-						Svc:        "hotel-geo",
-						Scale:      manuallyScaleGeo,
-						ScaleDelay: scaleGeoDelay,
-						NToAdd:     numGeoToAdd,
+						Svc:         "hotel-geo",
+						Scale:       manuallyScaleGeo,
+						ScaleDelays: []time.Duration{scaleGeoDelay},
+						ScaleDeltas: []int{numGeoToAdd},
 					},
 					CacheBenchCfg: &benchmarks.CacheBenchConfig{
 						JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+						Shmem:     true,
 						Autoscale: autoscaleCache,
-						Scale: &benchmarks.ManualScalingConfig{
-							Svc:        "cached",
-							Scale:      scale,
-							ScaleDelay: scaleCacheDelay,
-							NToAdd:     numCachesToAdd,
+						ManuallyScale: &benchmarks.ManualScalingConfig{
+							Svc:         "cached",
+							Scale:       scale,
+							ScaleDelays: []time.Duration{scaleCacheDelay},
+							ScaleDeltas: []int{numCachesToAdd},
 						},
 					},
 					CosSimBenchCfg: nil,
 				}
 				getLeaderCmd := GetHotelClientCmdConstructor("Search", true, len(driverVMs), sleep, hotelCfg)
 				getFollowerCmd := GetHotelClientCmdConstructor("Search", false, len(driverVMs), sleep, hotelCfg)
-				ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+				ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 			}
 		}
 	}
@@ -790,6 +820,7 @@ func TestSocialnetTailLatency(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Socialnet benchmark configuration parameters
 	var (
@@ -810,7 +841,7 @@ func TestSocialnetTailLatency(t *testing.T) {
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
 	getLeaderCmd := GetSocialnetClientCmdConstructor(true, len(driverVMs), rps, dur)
 	getFollowerCmd := GetSocialnetClientCmdConstructor(false, len(driverVMs), rps, dur)
-	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sSocialnetApp, stopK8sSocialnetApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sSocialnetApp, stopK8sSocialnetApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test multiplexing Best Effort ImgResize jobs.
@@ -826,6 +857,7 @@ func TestBEImgResizeMultiplexing(t *testing.T) {
 		numProcqOnlyNodes int  = 0
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -835,7 +867,7 @@ func TestBEImgResizeMultiplexing(t *testing.T) {
 		return
 	}
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
-	ts.RunStandardBenchmark(benchName, driverVM, GetBEImgResizeMultiplexingCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunStandardBenchmark(benchName, driverVM, GetBEImgResizeMultiplexingCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test multiplexing Best Effort ImgResize jobs.
@@ -851,6 +883,7 @@ func TestBEImgResizeRPCMultiplexing(t *testing.T) {
 		numProcqOnlyNodes int  = 2
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -860,7 +893,7 @@ func TestBEImgResizeRPCMultiplexing(t *testing.T) {
 		return
 	}
 	db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
-	ts.RunStandardBenchmark(benchName, driverVM, GetBEImgResizeRPCMultiplexingCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunStandardBenchmark(benchName, driverVM, GetBEImgResizeRPCMultiplexingCmd, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 func TestLCBEHotelImgResizeMultiplexing(t *testing.T) {
@@ -875,6 +908,7 @@ func TestLCBEHotelImgResizeMultiplexing(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -918,29 +952,58 @@ func TestLCBEHotelImgResizeMultiplexing(t *testing.T) {
 			GeoNResults:     geoNResults,
 			UseMatch:        false,
 		},
-		Durs:   dur,
-		MaxRPS: rps,
+		Durs:           dur,
+		MaxRPS:         rps,
+		CachedUserFrac: 100,
 		ScaleGeo: &benchmarks.ManualScalingConfig{
-			Svc:        "hotel-geo",
-			Scale:      manuallyScaleGeo,
-			ScaleDelay: scaleGeoDelay,
-			NToAdd:     numGeoToAdd,
+			Svc:         "hotel-geo",
+			Scale:       manuallyScaleGeo,
+			ScaleDelays: []time.Duration{scaleGeoDelay},
+			ScaleDeltas: []int{numGeoToAdd},
 		},
 		CacheBenchCfg: &benchmarks.CacheBenchConfig{
 			JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+			Shmem:     true,
 			Autoscale: autoscaleCache,
-			Scale: &benchmarks.ManualScalingConfig{
-				Svc:        "cached",
-				Scale:      manuallyScaleCaches,
-				ScaleDelay: scaleCacheDelay,
-				NToAdd:     numCachesToAdd,
+			ManuallyScale: &benchmarks.ManualScalingConfig{
+				Svc:         "cached",
+				Scale:       manuallyScaleCaches,
+				ScaleDelays: []time.Duration{scaleCacheDelay},
+				ScaleDeltas: []int{numCachesToAdd},
+			},
+			Migrate: &benchmarks.MigrationConfig{
+				Svc:              "cached",
+				Migrate:          false,
+				MigrationDelays:  []time.Duration{},
+				MigrationTargets: []int{},
 			},
 		},
 		CosSimBenchCfg: nil,
 	}
-	getLeaderCmd := GetLCBEHotelImgResizeMultiplexingCmdConstructor(len(driverVMs), rps, dur, cacheType, autoscaleCache, sleep)
+	imgCfg := &benchmarks.ImgBenchConfig{
+		JobCfg: &imgresize.ImgdJobConfig{
+			Job:                  "img-job",
+			WorkerMcpu:           proc.Tmcpu(0),
+			WorkerMem:            proc.Tmem(1500),
+			Persist:              false,
+			NRounds:              500,
+			ImgdMcpu:             proc.Tmcpu(1000),
+			UseSPProxy:           false,
+			UseBootScript:        false,
+			UseS3Clnt:            false,
+			WorkerBootScriptMcpu: proc.Tmcpu(0),
+			WorkerBootScriptMem:  proc.Tmem(0),
+			FTTaskSrvMcpu:        proc.Tmcpu(1000),
+		},
+		InputPath:      "name/ux/~local/8.jpg",
+		NTasks:         350,
+		NInputsPerTask: 1,
+		Durs:           nil,
+		MaxRPS:         nil,
+	}
+	getLeaderCmd := GetLCBEHotelImgResizeMultiplexingCmdConstructor(len(driverVMs), rps, dur, cacheType, autoscaleCache, sleep, imgCfg)
 	getFollowerCmd := GetHotelClientCmdConstructor("Search", false, len(driverVMs), sleep, hotelCfg)
-	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, nil, nil, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, nil, nil, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 func TestLCBEHotelImgResizeRPCMultiplexing(t *testing.T) {
@@ -955,6 +1018,7 @@ func TestLCBEHotelImgResizeRPCMultiplexing(t *testing.T) {
 		numProcqOnlyNodes int  = 0
 		numFullNodes      int  = numNodes - numProcqOnlyNodes
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
@@ -998,29 +1062,58 @@ func TestLCBEHotelImgResizeRPCMultiplexing(t *testing.T) {
 			GeoNResults:     geoNResults,
 			UseMatch:        false,
 		},
-		Durs:   dur,
-		MaxRPS: rps,
+		Durs:           dur,
+		MaxRPS:         rps,
+		CachedUserFrac: 100,
 		ScaleGeo: &benchmarks.ManualScalingConfig{
-			Svc:        "hotel-geo",
-			Scale:      manuallyScaleGeo,
-			ScaleDelay: scaleGeoDelay,
-			NToAdd:     numGeoToAdd,
+			Svc:         "hotel-geo",
+			Scale:       manuallyScaleGeo,
+			ScaleDelays: []time.Duration{scaleGeoDelay},
+			ScaleDeltas: []int{numGeoToAdd},
 		},
 		CacheBenchCfg: &benchmarks.CacheBenchConfig{
 			JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(2000), GC: true},
+			Shmem:     true,
 			Autoscale: autoscaleCache,
-			Scale: &benchmarks.ManualScalingConfig{
-				Svc:        "cached",
-				Scale:      manuallyScaleCaches,
-				ScaleDelay: scaleCacheDelay,
-				NToAdd:     numCachesToAdd,
+			ManuallyScale: &benchmarks.ManualScalingConfig{
+				Svc:         "cached",
+				Scale:       manuallyScaleCaches,
+				ScaleDelays: []time.Duration{scaleCacheDelay},
+				ScaleDeltas: []int{numCachesToAdd},
+			},
+			Migrate: &benchmarks.MigrationConfig{
+				Svc:              "cached",
+				Migrate:          false,
+				MigrationDelays:  []time.Duration{},
+				MigrationTargets: []int{},
 			},
 		},
 		CosSimBenchCfg: nil,
 	}
-	getLeaderCmd := GetLCBEHotelImgResizeRPCMultiplexingCmdConstructor(len(driverVMs), rps, dur, cacheType, autoscaleCache, sleep)
+	imgCfg := &benchmarks.ImgBenchConfig{
+		JobCfg: &imgresize.ImgdJobConfig{
+			Job:                  "img-job",
+			WorkerMcpu:           proc.Tmcpu(0),
+			WorkerMem:            proc.Tmem(2500),
+			Persist:              false,
+			NRounds:              43,
+			ImgdMcpu:             proc.Tmcpu(1000),
+			UseSPProxy:           false,
+			UseBootScript:        false,
+			UseS3Clnt:            false,
+			WorkerBootScriptMcpu: proc.Tmcpu(0),
+			WorkerBootScriptMem:  proc.Tmem(0),
+			FTTaskSrvMcpu:        proc.Tmcpu(1000),
+		},
+		InputPath:      "name/ux/~local/8.jpg",
+		NTasks:         0,
+		NInputsPerTask: 0,
+		Durs:           []time.Duration{50 * time.Second},
+		MaxRPS:         []int{150},
+	}
+	getLeaderCmd := GetLCBEHotelImgResizeRPCMultiplexingCmdConstructor(len(driverVMs), rps, dur, cacheType, autoscaleCache, sleep, imgCfg)
 	getFollowerCmd := GetHotelClientCmdConstructor("Search", false, len(driverVMs), sleep, hotelCfg)
-	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, nil, nil, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, nil, nil, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 }
 
 // Test CosSim's application tail latency.
@@ -1036,6 +1129,7 @@ func TestScaleCosSim(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// CosSim benchmark configuration parameters
 	var (
@@ -1092,17 +1186,18 @@ func TestScaleCosSim(t *testing.T) {
 						}
 						cacheCfg := cachegrpmgr.NewCacheJobConfig(numCaches, 2000, true)
 						jobCfg := cossimsrv.NewCosSimJobConfig("cossim", numCosSim, 10000, 100, true, 4000, cacheCfg, delegate)
-						scaleCosSim := benchmarks.NewManualScalingConfig("cossim", scale, scaleCosSimDelay, numCosSimToAdd)
+						scaleCosSim := benchmarks.NewManualScalingConfig("cossim", scale, []time.Duration{scaleCosSimDelay}, []int{numCosSimToAdd})
 						cfg := &benchmarks.CosSimBenchConfig{
-							JobCfg:      jobCfg,
-							NVecToQuery: 5000,
-							Durs:        []time.Duration{5 * time.Second, 30 * time.Second, 30 * time.Second},
-							MaxRPS:      []int{300, 500, 1000},
-							Scale:       scaleCosSim,
+							JobCfg:        jobCfg,
+							NVecToQuery:   5000,
+							Durs:          []time.Duration{5 * time.Second, 30 * time.Second, 30 * time.Second},
+							MaxRPS:        []int{300, 500, 1000},
+							ManuallyScale: scaleCosSim,
+							Autoscale:     &benchmarks.AutoscalingConfig{Scale: false},
 						}
 						getLeaderCmd := GetCosSimClientCmdConstructor("CosSim", true, len(driverVMs), sleep, cfg)
 						getFollowerCmd := GetCosSimClientCmdConstructor("CosSim", false, len(driverVMs), sleep, cfg)
-						ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+						ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 						if oneByOne && ran {
 							return
 						}
@@ -1126,6 +1221,7 @@ func TestScaleCachedScaler(t *testing.T) {
 		numFullNodes      int  = numNodes
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Cached benchmark configuration parameters
 	var (
@@ -1165,11 +1261,12 @@ func TestScaleCachedScaler(t *testing.T) {
 					}
 					// Create CacheBenchConfig
 					cacheCfg := cachegrpmgr.NewCacheJobConfig(1, cacheMcpu, true)
-					scaleCached := benchmarks.NewManualScalingConfig("cached", scale, scaleDelay, 1)
+					scaleCached := benchmarks.NewManualScalingConfig("cached", scale, []time.Duration{scaleDelay}, []int{1})
 					cacheBenchCfg := &benchmarks.CacheBenchConfig{
 						JobCfg:        cacheCfg,
 						CPP:           cpp,
 						RunSleeper:    true,
+						Shmem:         true,
 						CosSimBackend: cossimBackend,
 						UseEPCache:    useEPCache,
 						DelegateInit:  delegate,
@@ -1180,7 +1277,13 @@ func TestScaleCachedScaler(t *testing.T) {
 						MaxRPS:        []int{2000},
 						PutDurs:       []time.Duration{0 * time.Second},
 						PutMaxRPS:     []int{0},
-						Scale:         scaleCached,
+						ManuallyScale: scaleCached,
+						Migrate: &benchmarks.MigrationConfig{
+							Svc:              "cached",
+							Migrate:          false,
+							MigrationDelays:  []time.Duration{},
+							MigrationTargets: []int{},
+						},
 					}
 					// Create CosSimBenchConfig
 					var cosSimBenchCfg *benchmarks.CosSimBenchConfig
@@ -1188,16 +1291,17 @@ func TestScaleCachedScaler(t *testing.T) {
 						cossimCacheCfg := cachegrpmgr.NewCacheJobConfig(1, cacheMcpu, true)
 						cossimJobCfg := cossimsrv.NewCosSimJobConfig("cossim", 1, 10000, 100, true, cossimMcpu, cossimCacheCfg, false)
 						cosSimBenchCfg = &benchmarks.CosSimBenchConfig{
-							JobCfg:      cossimJobCfg,
-							NVecToQuery: 5000,
-							Durs:        []time.Duration{30 * time.Second},
-							MaxRPS:      []int{2000},
-							Scale:       benchmarks.NewManualScalingConfig("cossim", false, 0, 0),
+							JobCfg:        cossimJobCfg,
+							NVecToQuery:   5000,
+							Durs:          []time.Duration{30 * time.Second},
+							MaxRPS:        []int{2000},
+							ManuallyScale: benchmarks.NewManualScalingConfig("cossim", false, []time.Duration{}, []int{}),
+							Autoscale:     &benchmarks.AutoscalingConfig{Scale: false},
 						}
 					}
 					getLeaderCmd := GetCachedScalerClientCmdConstructor(true, len(driverVMs), prewarm, sleep, cacheBenchCfg, cosSimBenchCfg)
 					getFollowerCmd := GetCachedScalerClientCmdConstructor(false, len(driverVMs), prewarm, sleep, cacheBenchCfg, cosSimBenchCfg)
-					ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+					ran := ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 					if oneByOne && ran {
 						return
 					}
@@ -1222,33 +1326,108 @@ func TestHotelMatchTailLatency(t *testing.T) {
 		numCoresPerNode   uint = 4
 		numProcqOnlyNodes int  = 0
 		turboBoost        bool = false
+		useGVisor         bool = false
 	)
 	// Hotel benchmark configuration parameters
 	var (
-		rps []int = []int{
-			500,
-			1000,
+		rpsBase     int   = 500 // 95% capacity for a single cossim server
+		maxMultiple int   = 2   // max multiple of rpsBase
+		rpsMigrate  []int = []int{
+			rpsBase * 15,
 		}
-		dur []time.Duration = []time.Duration{
+		durMigrate []time.Duration = []time.Duration{
+			5 * time.Second,
+		}
+		rpsSlow []int = []int{
+			rpsBase,
+			rpsBase * 2,
+		}
+		durSlow []time.Duration = []time.Duration{
 			10 * time.Second,
 			10 * time.Second,
 		}
-		numCaches           int           = 1
-		cacheType           string        = "cached"
-		autoscaleCache      bool          = false
-		clientDelay         time.Duration = 0 * time.Second
-		sleep               time.Duration = 0 * time.Second
-		manuallyScaleCaches bool          = false
-		scaleCacheDelay     time.Duration = 0 * time.Second
-		numCachesToAdd      int           = 0
-		numGeo              int           = 1
-		numGeoIdx           int           = 1000
-		geoSearchRadius     int           = 10
-		geoNResults         int           = 5
-		manuallyScaleGeo    bool          = false
-		scaleGeoDelay       time.Duration = 0 * time.Second
-		numGeoToAdd         int           = 0
-		cosSimDelegatedInit []bool        = []bool{true, false}
+		rpsFast []int = []int{
+			// Block 1
+			rpsBase,
+			rpsBase * maxMultiple,
+			rpsBase,
+			rpsBase * maxMultiple,
+			// Block 2
+			rpsBase,
+			rpsBase * maxMultiple,
+			rpsBase,
+			rpsBase * maxMultiple,
+			// Block 3
+			rpsBase,
+			rpsBase * maxMultiple,
+			rpsBase,
+			rpsBase * maxMultiple,
+			// Block 4
+			rpsBase,
+			rpsBase * maxMultiple,
+			rpsBase,
+			rpsBase * maxMultiple,
+			// Block 5
+			rpsBase,
+			rpsBase * maxMultiple,
+			rpsBase,
+			rpsBase * maxMultiple,
+			// Finish
+			rpsBase,
+		}
+		durFast []time.Duration = []time.Duration{
+			// Block 1
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			// Block 2
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			// Block 3
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			// Block 4
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			// Block 5
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			100 * time.Millisecond,
+			// Finish
+			100 * time.Millisecond,
+		}
+		numCaches                        int           = 1
+		cacheType                        string        = "cached"
+		autoscaleCache                   bool          = false
+		clientDelay                      time.Duration = 0 * time.Second
+		sleep                            time.Duration = 0 * time.Second
+		manuallyScaleCaches              bool          = false
+		scaleCacheDelay                  time.Duration = 0 * time.Second
+		numCachesToAdd                   int           = 0
+		numGeo                           int           = 1
+		numGeoIdx                        int           = 1000
+		geoSearchRadius                  int           = 10
+		geoNResults                      int           = 5
+		manuallyScaleGeo                 bool          = false
+		scaleGeoDelay                    time.Duration = 0 * time.Second
+		numGeoToAdd                      int           = 0
+		delegatedInit                    []bool        = []bool{true, false}
+		autoscaleCosSim                  bool          = false
+		fastLoadChange                   []bool        = []bool{false, true}
+		proactiveScaling                 bool          = true
+		cosSimNoDelegatedInitScalingTime time.Duration = 85 * time.Millisecond
+		cosSimDelegatedInitScalingTime   time.Duration = 50 * time.Millisecond
+		useMatchCaching                  bool          = true
+		migrate                          bool          = true
+		cachedUserFrac                   int64         = 70
 	)
 	ts, err := NewTstate(t)
 	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
@@ -1257,53 +1436,375 @@ func TestHotelMatchTailLatency(t *testing.T) {
 	if ts.BCfg.Overlays {
 		benchNameBase += "_overlays"
 	}
-	for _, csDelInit := range cosSimDelegatedInit {
-		benchName := benchNameBase
-		if csDelInit {
-			benchName += "_csdi"
-		}
-		db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
-		hotelCfg := &benchmarks.HotelBenchConfig{
-			JobCfg: &hotel.HotelJobConfig{
-				Job:             "hotel-job",
-				Srvs:            hotel.NewHotelSvc(),
-				NHotel:          80,
-				Cache:           cacheType,
-				CacheCfg:        nil,
-				ImgSizeMB:       0,
-				NGeo:            numGeo,
-				NGeoIdx:         numGeoIdx,
-				GeoSearchRadius: geoSearchRadius,
-				GeoNResults:     geoNResults,
-				UseMatch:        true,
-			},
-			MatchUseCaching: false,
-			Durs:            dur,
-			MaxRPS:          rps,
-			ScaleGeo: &benchmarks.ManualScalingConfig{
-				Svc:        "hotel-geo",
-				Scale:      manuallyScaleGeo,
-				ScaleDelay: scaleGeoDelay,
-				NToAdd:     numGeoToAdd,
-			},
-			CacheBenchCfg: &benchmarks.CacheBenchConfig{
-				JobCfg:    &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(4000), GC: true},
-				Autoscale: autoscaleCache,
-				Scale: &benchmarks.ManualScalingConfig{
-					Svc:        "cached",
-					Scale:      manuallyScaleCaches,
-					ScaleDelay: scaleCacheDelay,
-					NToAdd:     numCachesToAdd,
+	for _, fast := range fastLoadChange {
+		for _, delInit := range delegatedInit {
+			scalingTime := cosSimNoDelegatedInitScalingTime
+			benchName := benchNameBase
+			rps := rpsSlow
+			dur := durSlow
+			if fast {
+				benchName += "_fast"
+				rps = rpsFast
+				dur = durFast
+			}
+			nVecToQuery := 5000
+			if migrate {
+				if fast {
+					continue
+				}
+				benchName += "_migrate"
+				rps = rpsMigrate
+				dur = durMigrate
+				nVecToQuery = 10
+			}
+			if delInit {
+				benchName += "_csdi"
+				scalingTime = cosSimDelegatedInitScalingTime
+			}
+			csScaleDurs := make([]time.Duration, len(dur))
+			csScaleDeltas := make([]int, len(dur))
+			csNSrv := make([]int, len(dur))
+			// Calculate the deltas
+			for i := range dur {
+				if i == 0 {
+					csNSrv[i] = 1
+				}
+				if i < len(dur)-1 {
+					if i > 0 {
+						csNSrv[i] = csScaleDeltas[i-1] + csNSrv[i-1]
+					}
+					csScaleDeltas[i] = rps[i+1]/rpsBase - csNSrv[i]
+				}
+			}
+			// Scale up a bit in advance if scaling proactively
+			if proactiveScaling {
+				for i := range dur {
+					// Going to scale up during this period
+					if csScaleDeltas[i] > 0 {
+						// Scale a bit in advance, and add back the scaling time to the next
+						// period to stay in-sync with load shifts
+						csScaleDurs[i] = dur[i] - scalingTime
+					} else {
+						csScaleDurs[i] = 0
+					}
+				}
+			}
+			db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
+			hotelCfg := &benchmarks.HotelBenchConfig{
+				JobCfg: &hotel.HotelJobConfig{
+					Job:             "hotel-job",
+					Srvs:            hotel.NewHotelSvc(),
+					NHotel:          80,
+					Cache:           cacheType,
+					CacheCfg:        nil,
+					ImgSizeMB:       0,
+					NGeo:            numGeo,
+					NGeoIdx:         numGeoIdx,
+					GeoSearchRadius: geoSearchRadius,
+					GeoNResults:     geoNResults,
+					UseMatch:        true,
 				},
-			},
-			CosSimBenchCfg: &benchmarks.CosSimBenchConfig{
-				JobCfg:      cossimsrv.NewCosSimJobConfig("hotel-job", 1, 10000, 100, true, 4000, nil, csDelInit),
-				NVecToQuery: 5000,
-				Scale:       benchmarks.NewManualScalingConfig("cossim", true, 10*time.Second, 1),
-			},
+				MatchUseCaching: useMatchCaching,
+				CachedUserFrac:  cachedUserFrac,
+				Durs:            dur,
+				MaxRPS:          rps,
+				ScaleGeo: &benchmarks.ManualScalingConfig{
+					Svc:         "hotel-geo",
+					Scale:       manuallyScaleGeo,
+					ScaleDelays: []time.Duration{scaleGeoDelay},
+					ScaleDeltas: []int{numGeoToAdd},
+				},
+				CacheBenchCfg: &benchmarks.CacheBenchConfig{
+					JobCfg:       &cachegrpmgr.CacheJobConfig{NSrv: numCaches, MCPU: proc.Tmcpu(4000), GC: true},
+					Shmem:        true,
+					Autoscale:    autoscaleCache,
+					DelegateInit: delInit,
+					UseEPCache:   true,
+					ManuallyScale: &benchmarks.ManualScalingConfig{
+						Svc:         "cached",
+						Scale:       manuallyScaleCaches,
+						ScaleDelays: []time.Duration{scaleCacheDelay},
+						ScaleDeltas: []int{numCachesToAdd},
+					},
+					Migrate: &benchmarks.MigrationConfig{
+						Svc:              "cached",
+						Migrate:          migrate,
+						MigrationDelays:  []time.Duration{2 * time.Second},
+						MigrationTargets: []int{0},
+					},
+				},
+				CosSimBenchCfg: &benchmarks.CosSimBenchConfig{
+					//					JobCfg:      cossimsrv.NewCosSimJobConfig("hotel-job", 1, 10000, 100, true, 4000, nil, csDelInit),
+					JobCfg:      cossimsrv.NewCosSimJobConfig("hotel-job", 1, 4000, 100, true, 4000, nil, delInit),
+					NVecToQuery: nVecToQuery,
+					ManuallyScale: benchmarks.NewManualScalingConfig("cossim", !autoscaleCosSim,
+						csScaleDurs,
+						csScaleDeltas,
+					),
+					Autoscale: &benchmarks.AutoscalingConfig{Svc: "cossim", InitialNReplicas: 1, Scale: autoscaleCosSim, MaxReplicas: 4, TargetRIF: 3, Tolerance: 0.5, Frequency: 10 * time.Millisecond},
+				},
+			}
+			getLeaderCmd := GetHotelClientCmdConstructor("Match", true, len(driverVMs), sleep, hotelCfg)
+			getFollowerCmd := GetHotelClientCmdConstructor("Match", false, len(driverVMs), sleep, hotelCfg)
+			ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
 		}
-		getLeaderCmd := GetHotelClientCmdConstructor("Match", true, len(driverVMs), sleep, hotelCfg)
-		getFollowerCmd := GetHotelClientCmdConstructor("Match", false, len(driverVMs), sleep, hotelCfg)
-		ts.RunParallelClientBenchmark(benchName, driverVMs, getLeaderCmd, getFollowerCmd, startK8sHotelApp, stopK8sHotelApp, clientDelay, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost)
+	}
+}
+
+// Test ImgProcess.
+func TestImgProcess(t *testing.T) {
+	var (
+		benchNameBase string = "img_process"
+		driverVM      int    = 8
+	)
+	// Cluster configuration parameters
+	var (
+		//		numNodes     int = 12
+		numNodes     int = 2
+		numFullNodes int = numNodes
+	)
+	const (
+		numCoresPerNode   uint = 4
+		numProcqOnlyNodes int  = 0
+		turboBoost        bool = false
+	)
+	// Hotel benchmark configuration parameters
+	var (
+		nrounds        int    = 1
+		ntasks         int    = 50
+		ninputsPerTask int    = 1
+		withGVisor     []bool = []bool{
+			false,
+			true,
+		}
+		initscriptSequential []bool = []bool{
+			false,
+			true,
+		}
+		withInitScript []bool = []bool{
+			false,
+			true,
+		}
+		measurePSS []bool = []bool{
+			false,
+			true,
+		}
+		initScriptWriteOutResult []bool = []bool{
+			false,
+			true,
+		}
+	)
+	ts, err := NewTstate(t)
+	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
+		return
+	}
+	if ts.BCfg.Overlays {
+		benchNameBase += "_overlays"
+	}
+	for _, useGVisor := range withGVisor {
+		for _, sequential := range initscriptSequential {
+			for _, initscript := range withInitScript {
+				for _, pss := range measurePSS {
+					for _, initscriptWriteout := range initScriptWriteOutResult {
+						inputPath := "9ps3/img-save/7.jpg"
+						//						inputPath := "9ps3/img-save/6.jpg"
+						//			inputPath := "9ps3/img-save/1.jpg" // for more I/O-bound version
+						benchName := benchNameBase
+						if sequential {
+							benchName += "_sequential"
+						}
+						if useGVisor {
+							benchName += "_gvisor"
+						}
+						if initscript {
+							benchName += "_initscript"
+						}
+						if pss {
+							benchName += "_pss"
+							// If measuring PSS, only do so when using gVisor, initscripts, and
+							// sequential execution
+							if !useGVisor || !sequential || !initscript {
+								continue
+							}
+						}
+						if initscriptWriteout {
+							// Only measure initscript writing results if not measuring PSS,
+							// not running sequentially (running sequentially causes a hang),
+							// and if running with initscripts
+							if sequential || !initscript || pss {
+								continue
+							}
+							benchName += "_writeout"
+						}
+						bsMcpu := proc.Tmcpu(0)
+						workerMcpu := proc.Tmcpu(3100)
+						imgdMcpu := proc.Tmcpu(1000)
+						if sequential {
+							bsMcpu = proc.Tmcpu(10)
+							workerMcpu = proc.Tmcpu(900)
+							imgdMcpu = proc.Tmcpu(50)
+						}
+						if pss {
+							workerMcpu = proc.Tmcpu(3100)
+						}
+						db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
+						imgCfg := &benchmarks.ImgBenchConfig{
+							JobCfg: &imgresize.ImgdJobConfig{
+								Job:                   "img-job",
+								WorkerMcpu:            workerMcpu,
+								WorkerMem:             proc.Tmem(0),
+								Persist:               false,
+								NRounds:               nrounds,
+								ImgDim:                160,
+								ImgdMcpu:              imgdMcpu,
+								UseSPProxy:            true,
+								UseBootScript:         initscript,
+								WriteOutViaBootScript: initscriptWriteout,
+								UseS3Clnt:             true,
+								WorkerBootScriptMcpu:  bsMcpu,
+								WorkerBootScriptMem:   proc.Tmem(0),
+								FTTaskSrvMcpu:         proc.Tmcpu(50),
+								PremountS3:            true,
+								MeasurePSS:            pss,
+							},
+							InputPath:      inputPath,
+							NTasks:         ntasks,
+							NInputsPerTask: ninputsPerTask,
+						}
+						ts.RunStandardBenchmark(benchName, driverVM, GetImgProcessCmd(imgCfg, useGVisor), numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestStartLatency(t *testing.T) {
+	var (
+		benchNameBase string = "start_latency"
+		driverVM      int    = 8
+	)
+	// Cluster configuration parameters
+	var (
+		numNodes     int = 6
+		numFullNodes int = numNodes
+	)
+	const (
+		numCoresPerNode   uint = 4
+		numProcqOnlyNodes int  = 0
+		turboBoost        bool = false
+	)
+	// Benchmark configuration parameters
+	var (
+		withShmem []bool = []bool{
+			false,
+			true,
+		}
+		withInitScript []bool = []bool{
+			false,
+			true,
+		}
+		// If true, run with gvisor
+		apps map[string]bool = map[string]bool{
+			"cached":    false,
+			"cossim":    false,
+			"etcd":      true,
+			"memcached": true,
+		}
+	)
+	ts, err := NewTstate(t)
+	if !assert.Nil(ts.t, err, "Creating test state: %v", err) {
+		return
+	}
+	if ts.BCfg.Overlays {
+		benchNameBase += "_overlays"
+	}
+	for app, useGVisor := range apps {
+		for _, initscript := range withInitScript {
+			for _, shmem := range withShmem {
+				benchName := benchNameBase + "_" + app
+				if initscript {
+					benchName += "_initscript"
+				}
+				if !shmem {
+					benchName += "_noshmem"
+					// Only test cached without shmem
+					if app != "cached" {
+						continue
+					}
+				}
+				db.DPrintf(db.ALWAYS, "Benchmark configuration:\n%v", ts)
+				startLatencyCfg := &benchmarks.StartLatencyBenchConfig{
+					App: app,
+				}
+				// Create default configs for each app
+				cacheBenchCfg := &benchmarks.CacheBenchConfig{
+					JobCfg: &cachegrpmgr.CacheJobConfig{
+						NSrv: 1,
+						MCPU: proc.Tmcpu(4000),
+						GC:   true,
+					},
+					CPP:          true,
+					Shmem:        shmem,
+					UseEPCache:   true,
+					DelegateInit: initscript,
+					Autoscale:    false,
+					NKeys:        3000,
+					ValSize:      5000,
+					TopNShards:   0,
+					ManuallyScale: &benchmarks.ManualScalingConfig{
+						Svc:         "cached",
+						Scale:       true,
+						ScaleDelays: []time.Duration{5 * time.Second},
+						ScaleDeltas: []int{1},
+					},
+					Migrate: &benchmarks.MigrationConfig{
+						Svc:              "cached",
+						Migrate:          false,
+						MigrationDelays:  []time.Duration{},
+						MigrationTargets: []int{},
+					},
+				}
+				cossimCfg := &benchmarks.CosSimBenchConfig{
+					JobCfg: &cossimsrv.CosSimJobConfig{
+						Job:       "cossim-job",
+						InitNSrv:  1,
+						NVec:      9000,
+						VecDim:    128,
+						EagerInit: true,
+						SrvMcpu:   proc.Tmcpu(4000),
+						CacheCfg: &cachegrpmgr.CacheJobConfig{
+							NSrv: 1,
+							MCPU: proc.Tmcpu(1000),
+							GC:   true,
+						},
+						DelegateInitRPCs: initscript,
+					},
+				}
+				etcdCfg := &benchmarks.EtcdBenchConfig{
+					JobCfg: &etcd.EtcdJobConfig{
+						Job:           "etcd-job",
+						SnapshotPath:  "9ps3/snapshot-14MB.db",
+						Name:          "etcd-proc",
+						PeerPort:      6380,
+						ClientPort:    6379,
+						UseInitScript: initscript,
+						Mcpu:          proc.Tmcpu(4000),
+					},
+				}
+				memcachedCfg := &benchmarks.MemcachedBenchConfig{
+					JobCfg: &memcached.MemcachedJobConfig{
+						Job:           "memcached-job",
+						SnapshotPath:  "9ps3/memcached-snapshot-40M",
+						Port:          11211,
+						UseInitScript: initscript,
+						Mcpu:          proc.Tmcpu(4000),
+					},
+					Cache: false,
+				}
+				cmdFn := GetStartLatencyCmdConstructor(startLatencyCfg, cacheBenchCfg, cossimCfg, etcdCfg, memcachedCfg, initscript, useGVisor)
+				ts.RunStandardBenchmark(benchName, driverVM, cmdFn, numNodes, numCoresPerNode, numFullNodes, numProcqOnlyNodes, turboBoost, useGVisor)
+			}
+		}
 	}
 }

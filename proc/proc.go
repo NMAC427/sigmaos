@@ -18,8 +18,6 @@ import (
 )
 
 type Ttype uint32 // If this type changes, make sure to change the typecasts below.
-type Tmcpu uint32 // If this type changes, make sure to change the typecasts below.
-type Tmem uint32  // If this type changes, make sure to change the typecasts below.
 
 const (
 	T_BE Ttype = 0
@@ -108,11 +106,13 @@ func NewPrivProcPid(pid sp.Tpid, program string, args []string, priv bool) *Proc
 	).GetProto()
 	p.Args = args
 	p.TypeInt = uint32(T_BE)
-	p.McpuInt = uint32(0)
+	p.ResourceRes = NewResourceReservationProto(0, 0)
+	p.BootScriptResourceRes = NewResourceReservationProto(0, 0)
 	if p.ProcEnvProto.Privileged {
 		p.TypeInt = uint32(T_LC)
 	}
 	p.Env = make(map[string]string)
+	p.AddedBins = nil
 	p.setBaseEnv()
 	return p
 }
@@ -146,6 +146,14 @@ func (p *Proc) GetSecrets() map[string]*sp.SecretProto {
 
 func (p *Proc) GetVersion() string {
 	return p.ProcEnvProto.GetVersion()
+}
+
+func (p *Proc) GetAddedBins() []string {
+	return p.AddedBins
+}
+
+func (p *Proc) AddBin(versionedProgram string) {
+	p.AddedBins = append(p.AddedBins, versionedProgram)
 }
 
 func (p *Proc) InheritParentProcEnv(parentPE *ProcEnv) {
@@ -263,8 +271,9 @@ func (p *Proc) String() string {
 		"OuterIP:%v "+
 		"Args:%v "+
 		"Type:%v "+
-		"Mcpu:%v "+
-		"Mem:%v "+
+		"ResourceRerervation:%v "+
+		"BootScriptResourceRerervation:%v "+
+		"Queueable:%v "+
 		"Kernels:%v "+
 		"}",
 		p.ProcEnvProto.Program,
@@ -282,8 +291,9 @@ func (p *Proc) String() string {
 		p.ProcEnvProto.GetOuterContainerIP(),
 		p.Args,
 		p.GetType(),
-		p.GetMcpu(),
-		p.GetMem(),
+		p.GetResourceReservation(),
+		p.GetBootScriptResourceReservation(),
+		p.GetIsQueueable(),
 		p.ProcEnvProto.Kernels,
 	)
 }
@@ -353,15 +363,29 @@ func (p *Proc) GetType() Ttype {
 }
 
 func (p *Proc) GetMcpu() Tmcpu {
-	mcpu := p.ProcProto.McpuInt
+	mcpu := p.ProcProto.ResourceRes.GetMcpu()
+	// Sanity check
 	if mcpu > 0 && mcpu%10 != 0 {
 		log.Fatalf("%v FATAL: Error! Suspected missed MCPU conversion in GetMcpu: %v", GetSigmaDebugPid(), mcpu)
 	}
-	return Tmcpu(p.ProcProto.McpuInt)
+	return mcpu
+}
+
+func (p *Proc) GetBootScriptMcpu() Tmcpu {
+	mcpu := p.ProcProto.BootScriptResourceRes.GetMcpu()
+	// Sanity check
+	if mcpu > 0 && mcpu%10 != 0 {
+		log.Fatalf("%v FATAL: Error! Suspected missed MCPU conversion in GetBootScriptMcpu: %v", GetSigmaDebugPid(), mcpu)
+	}
+	return mcpu
 }
 
 func (p *Proc) GetMem() Tmem {
-	return Tmem(p.ProcProto.MemInt)
+	return p.ProcProto.ResourceRes.GetMem()
+}
+
+func (p *Proc) GetBootScriptMem() Tmem {
+	return p.ProcProto.BootScriptResourceRes.GetMem()
 }
 
 func (p *Proc) GetRealm() sp.Trealm {
@@ -394,6 +418,26 @@ func (p *Proc) SetHow(n Thow) {
 
 func (p *Proc) GetHow() Thow {
 	return p.ProcEnvProto.GetHow()
+}
+
+func (p *Proc) GetIsQueueable() bool {
+	return p.GetRunAfterBootScript()
+}
+
+func (p *Proc) GetQueueableResourcePoolID() uint64 {
+	return p.QueueableResourcePoolID
+}
+
+func (p *Proc) SetQueueableResourcePoolID(id uint64) {
+	p.QueueableResourcePoolID = id
+}
+
+func (p *Proc) GetRunAfterBootScript() bool {
+	return p.RunAfterBootScript
+}
+
+func (p *Proc) SetRunAfterBootScript(runAfter bool) {
+	p.RunAfterBootScript = runAfter
 }
 
 func (p *Proc) SetMSchedEndpoint(ep *sp.Tendpoint) {
@@ -443,12 +487,29 @@ func (p *Proc) GetRunBootScript() bool {
 	return p.ProcEnvProto.GetRunBootScript()
 }
 
-func (p *Proc) SetUseShmem(use bool) {
-	p.ProcEnvProto.SetUseShmem(use)
-}
-
 func (p *Proc) GetUseShmem() bool {
 	return p.ProcEnvProto.GetUseShmem()
+}
+
+func (p *Proc) SetShmemMB(mb Tmem) {
+	p.ProcEnvProto.SetShmemMB(mb)
+}
+
+func (p *Proc) GetShmemMB() Tmem {
+	return p.ProcEnvProto.GetShmemMB()
+}
+
+func (p *Proc) SetMeasurePSS(measure bool, delayMS int) {
+	p.MeasurePSS = measure
+	p.MeasurePSSDelayMS = uint64(delayMS)
+}
+
+func (p *Proc) GetResourceReservation() *ResourceReservation {
+	return &ResourceReservation{p.ResourceRes}
+}
+
+func (p *Proc) GetBootScriptResourceReservation() *ResourceReservation {
+	return &ResourceReservation{p.BootScriptResourceRes}
 }
 
 // Return Env map as a []string
@@ -477,13 +538,21 @@ func (p *Proc) SetMcpu(mcpu Tmcpu) {
 			log.Fatalf("%v FATAL: Error! Suspected missed MCPU conversion in GetMcpu: %v", GetSigmaDebugPid(), mcpu)
 		}
 		p.TypeInt = uint32(T_LC)
-		p.McpuInt = uint32(mcpu)
+		p.ResourceRes.SetMcpu(mcpu)
 	}
+}
+
+func (p *Proc) SetBootScriptMcpu(mcpu Tmcpu) {
+	p.BootScriptResourceRes.SetMcpu(mcpu)
 }
 
 // Set the aendpoint of memory (in MB) required to run this proc.
 func (p *Proc) SetMem(mb Tmem) {
-	p.MemInt = uint32(mb)
+	p.ResourceRes.SetMem(mb)
+}
+
+func (p *Proc) SetBootScriptMem(mb Tmem) {
+	p.BootScriptResourceRes.SetMem(mb)
 }
 
 func (p *Proc) Marshal() []byte {

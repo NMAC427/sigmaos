@@ -50,6 +50,18 @@ func (capi *CtrlAPI) InformIncomingProc(ctx fs.CtxI, req scproto.SigmaInformProc
 	return nil
 }
 
+func (capi *CtrlAPI) WaitBootScriptCompletion(ctx fs.CtxI, req scproto.SigmaWaitBootScriptReq, rep *scproto.SigmaWaitBootScriptRep) error {
+	status, msg, err := capi.cc.spps.WaitBootScriptCompletion(sp.Tpid(req.PIDStr))
+	if err != nil {
+		rep.Err = sp.NewRerrorErr(err)
+	} else {
+		rep.Err = sp.NewRerror()
+	}
+	rep.Status = uint64(status)
+	rep.Msg = msg
+	return nil
+}
+
 func (capi *CtrlAPI) InformProcDone(ctx fs.CtxI, req scproto.SigmaInformProcReq, rep *scproto.SigmaErrRep) error {
 	p := proc.NewProcFromProto(req.ProcProto)
 	capi.cc.spps.ProcDone(p)

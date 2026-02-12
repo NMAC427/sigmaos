@@ -11,6 +11,7 @@ import (
 	dialproxyclnt "sigmaos/dialproxy/clnt"
 	"sigmaos/malloc"
 	"sigmaos/proc"
+	wasmrpc "sigmaos/proxy/wasm/rpc"
 	wasmrt "sigmaos/proxy/wasm/rpc/wasmer"
 	rpcchan "sigmaos/rpc/clnt/channel"
 	sessp "sigmaos/session/proto"
@@ -20,10 +21,6 @@ import (
 	"sigmaos/sigmaclnt/procclnt"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/perf"
-)
-
-const (
-	SHMEM_SIZE = 40 * sp.MBYTE
 )
 
 // Manages sigmaclnts on behalf of procs
@@ -70,11 +67,32 @@ func (psm *ProcStateMgr) DelProcState(p *proc.Proc) {
 
 	ps, ok := psm.ps[p.GetPid()]
 	if ok {
-		if err := ps.Destroy(); err != nil {
-			db.DFatalf("Err destroy proc state: %v", err)
-		}
+		go func(ps *procState) {
+			ps.WaitBootScriptCompletion()
+
+			// Wait for the boot script to complete, then destroy the proc state if
+			// it hasn't been destroyed already (need to re-check because we released
+			// the lock.
+			psm.mu.Lock()
+			defer psm.mu.Unlock()
+
+			if _, ok := psm.ps[p.GetPid()]; ok {
+				if err := ps.Destroy(); err != nil {
+					db.DFatalf("Err destroy proc state: %v", err)
+				}
+				delete(psm.ps, p.GetPid())
+			}
+		}(ps)
 	}
-	delete(psm.ps, p.GetPid())
+}
+
+func (psm *ProcStateMgr) WaitBootScriptCompletion(pid sp.Tpid) (wasmrpc.Tstatus, string, error) {
+	ps, ok := psm.getProcState(pid)
+	if !ok {
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to wait for bootscript completion for unknown proc: %v", pid)
+		return 0, sp.NOT_SET, fmt.Errorf("Try to wait for bootscript completion for unknown proc: %v", pid)
+	}
+	return ps.WaitBootScriptCompletion()
 }
 
 func (psm *ProcStateMgr) getProcState(pid sp.Tpid) (*procState, bool) {
@@ -83,6 +101,27 @@ func (psm *ProcStateMgr) getProcState(pid sp.Tpid) (*procState, bool) {
 
 	ps, ok := psm.ps[pid]
 	return ps, ok
+}
+
+// Expects ps to be allocated already
+func (psm *ProcStateMgr) GetRegisteredEPs(pid sp.Tpid) ([]*registeredEP, error) {
+	ps, ok := psm.getProcState(pid)
+	if !ok {
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to get registered EPs for unknown proc: %v", pid)
+		return nil, fmt.Errorf("Try to get registered EPs for unknown proc: %v", pid)
+	}
+	return ps.GetRegisteredEPs(), nil
+}
+
+// Expects ps to be allocated already
+func (psm *ProcStateMgr) AddRegisteredEP(pid sp.Tpid, svcName string, instanceID string, ep *sp.Tendpoint) error {
+	ps, ok := psm.getProcState(pid)
+	if !ok {
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to add registered EP for unknown proc: %v", pid)
+		return fmt.Errorf("Try to add registered EP for unknown proc: %v", pid)
+	}
+	ps.AddRegisteredEP(svcName, instanceID, ep)
+	return nil
 }
 
 // Expects ps to be allocated already
@@ -104,14 +143,16 @@ func (psm *ProcStateMgr) GetShmemAllocator(pid sp.Tpid) (malloc.Allocator, error
 	return ps.GetShmemAllocator(), nil
 }
 
-func (psm *ProcStateMgr) InsertReply(p *proc.Proc, rpcIdx uint64, iov *sessp.IoVec, err error, start time.Time) {
-	db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.InsertReply(%v) lat=%v", p.GetPid(), rpcIdx, time.Since(start))
-	perf.LogSpawnLatency("DelegatedRPC(%v)", p.GetPid(), p.GetSpawnTime(), start, rpcIdx)
-	ps, ok := psm.getProcState(p.GetPid())
+func (psm *ProcStateMgr) InsertReply(pe *proc.ProcEnv, rpcIdx uint64, iov *sessp.IoVec, err error, start time.Time) {
+	db.DPrintf(db.SPPROXYSRV, "[%v] DelegatedRPC.InsertReply(%v) lat=%v", pe.GetPID(), rpcIdx, time.Since(start))
+	perf.LogSpawnLatency("DelegatedRPC(%v)", pe.GetPID(), pe.GetSpawnTime(), start, rpcIdx)
+	ps, ok := psm.getProcState(pe.GetPID())
 	if !ok {
-		db.DPrintf(db.SPPROXYSRV_ERR, "Try to insert delegated RPC reply for unknown proc: %v", p.GetPid())
+		db.DPrintf(db.SPPROXYSRV_ERR, "Try to insert delegated RPC reply for unknown proc: %v", pe.GetPID())
 		return
 	}
+	loadStateStart := ps.getDelRPCStart(start)
+	perf.LogSpawnLatency("Paper.Initialization.DownloadState", pe.GetPID(), pe.GetSpawnTime(), loadStateStart)
 	ps.rpcReps.InsertReply(rpcIdx, iov, err)
 }
 
@@ -145,39 +186,70 @@ func (psm *ProcStateMgr) GetRPCChannel(sc *sigmaclnt.SigmaClnt, pid sp.Tpid, rpc
 		db.DPrintf(db.SPPROXYSRV_ERR, "Try to get delegated RPC reply for unknown proc: %v", pid)
 		return nil, fmt.Errorf("Can't find proc stae: %v", pid)
 	}
+	ps.logWasmScriptBooted()
 	return ps.rpcReps.GetRPCChannel(sc, rpcIdx, pn)
+}
+
+type registeredEP struct {
+	svcName      string
+	instanceName string
+	ep           *sp.Tendpoint
+}
+
+func newRegisteredEP(svcName string, instanceName string, ep *sp.Tendpoint) *registeredEP {
+	return &registeredEP{
+		svcName:      svcName,
+		instanceName: instanceName,
+		ep:           ep,
+	}
+}
+
+func (rep *registeredEP) String() string {
+	return fmt.Sprintf("&{ svcName:%v instanceName:%v ep:%v }", rep.svcName, rep.instanceName, rep.ep)
 }
 
 type procState struct {
 	mu                       sync.Mutex
 	cond                     *sync.Cond
+	bsCond                   *sync.Cond
 	spps                     *SPProxySrv
 	sigmaClntCreationStarted bool
 	done                     bool // done creating the proc state?
+	bootScriptCompleted      bool
 	pe                       *proc.ProcEnv
 	p                        *proc.Proc
 	rpcReps                  *RPCState
+	eps                      []*registeredEP
 	wrt                      *wasmrt.WasmerRuntime
 	sc                       *sigmaclnt.SigmaClnt
 	epcc                     *epcacheclnt.EndpointCacheClnt
 	shm                      *shmem.Segment
+	delRPCStart              time.Time
+	wasmScriptStart          time.Time
+	wasmScriptBooted         bool
+	delRPCStartSet           bool
 	shmAlloc                 malloc.Allocator
-	err                      error // Creation result
+	err                      error           // Creation result
+	bsStatus                 wasmrpc.Tstatus // BootScript exit status
+	bsMsg                    string          // BootScript exit message
+	bsErr                    error           // BootScript result
 }
 
 func newProcState(spps *SPProxySrv, pe *proc.ProcEnv, p *proc.Proc) *procState {
 	ps := &procState{
 		pe:      pe,
 		p:       p,
+		eps:     make([]*registeredEP, 0, 1),
 		rpcReps: NewRPCState(),
 		done:    false,
 		spps:    spps,
 	}
 	ps.cond = sync.NewCond(&ps.mu)
+	ps.bsCond = sync.NewCond(&ps.mu)
 	if pe.GetUseShmem() {
 		var err error
 		start := time.Now()
-		ps.shm, err = shmem.NewSegment(pe.GetPID().String(), SHMEM_SIZE)
+		ps.shm, err = shmem.NewSegment(pe.GetPID().String(), p.GetShmemMB()*proc.Tmem(sp.MBYTE), true)
 		if err != nil {
 			db.DFatalf("Err shmem NewSegment: %v", err)
 		}
@@ -187,12 +259,32 @@ func newProcState(spps *SPProxySrv, pe *proc.ProcEnv, p *proc.Proc) *procState {
 	if ps.p.GetRunBootScript() {
 		ps.sigmaClntCreationStarted = true
 		go ps.createSigmaClnt(spps)
+	} else {
+		ps.bootScriptCompleted = true
 	}
 	return ps
 }
 
-func (psm *procState) GetShmemAllocator() malloc.Allocator {
-	return psm.shmAlloc
+func (ps *procState) AddRegisteredEP(svcName string, instanceName string, ep *sp.Tendpoint) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	ps.eps = append(ps.eps, newRegisteredEP(svcName, instanceName, ep))
+}
+
+func (ps *procState) GetRegisteredEPs() []*registeredEP {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	eps := make([]*registeredEP, len(ps.eps))
+	for i := range ps.eps {
+		eps[i] = ps.eps[i]
+	}
+	return eps
+}
+
+func (ps *procState) GetShmemAllocator() malloc.Allocator {
+	return ps.shmAlloc
 }
 
 func (ps *procState) GetSigmaClnt() (*sigmaclnt.SigmaClnt, *epcacheclnt.EndpointCacheClnt, error) {
@@ -224,11 +316,55 @@ func (ps *procState) setSigmaClnt(sc *sigmaclnt.SigmaClnt, epcc *epcacheclnt.End
 	ps.cond.Broadcast()
 }
 
+func (ps *procState) WaitBootScriptCompletion() (wasmrpc.Tstatus, string, error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	for !ps.bootScriptCompleted {
+		ps.bsCond.Wait()
+	}
+	return ps.bsStatus, ps.bsMsg, ps.bsErr
+}
+
+func (ps *procState) bootScriptDone(status wasmrpc.Tstatus, msg string, err error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	ps.bootScriptCompleted = true
+	ps.bsStatus = status
+	ps.bsMsg = msg
+	ps.bsErr = err
+	ps.bsCond.Broadcast()
+}
+
 func (ps *procState) Destroy() error {
 	if ps.shm != nil {
 		return ps.shm.Destroy()
 	}
 	return nil
+}
+
+// Return the time point at which loading state via delRPC started
+func (ps *procState) getDelRPCStart(s time.Time) time.Time {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	if !ps.delRPCStartSet {
+		ps.delRPCStart = s
+		ps.delRPCStartSet = true
+	}
+	return ps.delRPCStart
+}
+
+// Return the time point at which loading state via delRPC started
+func (ps *procState) logWasmScriptBooted() {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	if !ps.wasmScriptBooted {
+		ps.wasmScriptBooted = true
+		perf.LogSpawnLatency("Paper.Initialization.CoSandboxStart", ps.pe.GetPID(), ps.pe.GetSpawnTime(), ps.wasmScriptStart)
+	}
 }
 
 func (ps *procState) createSigmaClnt(spps *SPProxySrv) {
@@ -246,7 +382,13 @@ func (ps *procState) createSigmaClnt(spps *SPProxySrv) {
 		rpcAPI := NewWASMRPCProxy(spps, sc, ps.p)
 		ps.wrt = wasmrt.NewWasmerRuntime(rpcAPI)
 		perf.LogSpawnLatency("Create wasmRT", ps.pe.GetPID(), ps.pe.GetSpawnTime(), start)
-		go ps.wrt.RunModule(ps.p.GetPid(), ps.p.GetSpawnTime(), ps.p.GetBootScript(), ps.p.GetBootScriptInput())
+		ps.wasmScriptStart = time.Now()
+		go func() {
+			// Run the module
+			status, msg, err := ps.wrt.RunModule(ps.p.GetPid(), ps.p.GetSpawnTime(), ps.p.GetBootScript(), ps.p.GetBootScriptInput())
+			// Mark the script as done
+			ps.bootScriptDone(status, msg, err)
+		}()
 	}
 	var epcc *epcacheclnt.EndpointCacheClnt
 	// Initialize a procclnt too

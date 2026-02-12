@@ -24,6 +24,8 @@ import (
 	sp "sigmaos/sigmap"
 )
 
+const SHMEM_MB proc.Tmem = 40
+
 type CosSimJobConfig struct {
 	Job              string                      `json:"job"`
 	InitNSrv         int                         `json:"init_n_srv"`
@@ -223,6 +225,13 @@ func newCosSimJob(conf *CosSimJobConfig, sc *sigmaclnt.SigmaClnt, epcj *epsrv.EP
 	}, nil
 }
 
+func (j *CosSimJob) GetNSrv() int {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	return len(j.srvs)
+}
+
 func (j *CosSimJob) GetClnt(srvID string) (*clnt.CosSimClnt, error) {
 	return j.Clnt.GetClnt(srvID)
 }
@@ -234,6 +243,32 @@ func (j *CosSimJob) AddSrvWithSigmaPath(pn string) (*proc.Proc, time.Duration, e
 // Add a new cossim server
 func (j *CosSimJob) AddSrv() (*proc.Proc, time.Duration, error) {
 	return j.addSrv(sp.NOT_SET)
+}
+
+func (j *CosSimJob) RemoveSrv() error {
+	return j.removeSrv()
+}
+
+func (j *CosSimJob) removeSrv() error {
+	var p *proc.Proc
+	// Select the proc to remove
+	j.mu.Lock()
+	p, j.srvs = j.srvs[len(j.srvs)-1], j.srvs[:len(j.srvs)-1]
+	j.mu.Unlock()
+	if err := j.Evict(p.GetPid()); err != nil {
+		return err
+	}
+	status, err := j.WaitExit(p.GetPid())
+	if err != nil {
+		db.DPrintf(db.ERROR, "Err WaitExit: %v", err)
+		return err
+	}
+	db.DPrintf(db.TEST, "CPP proc exited, status: %v", status)
+	if !status.IsStatusEvicted() {
+		db.DPrintf(db.ERROR, "Proc wrong exit status: %v", status)
+		return err
+	}
+	return nil
 }
 
 func (j *CosSimJob) addSrv(sigmaPath string) (*proc.Proc, time.Duration, error) {
@@ -252,7 +287,7 @@ func (j *CosSimJob) addSrv(sigmaPath string) (*proc.Proc, time.Duration, error) 
 	p.SetBootScript(j.bootScript, j.bootScriptInput)
 	p.SetRunBootScript(j.conf.DelegateInitRPCs)
 	if j.conf.DelegateInitRPCs {
-		p.SetUseShmem(true)
+		p.SetShmemMB(SHMEM_MB)
 	}
 	start := time.Now()
 	if err := j.Spawn(p); err != nil {

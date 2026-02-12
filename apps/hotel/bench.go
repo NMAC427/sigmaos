@@ -8,16 +8,48 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	cachegrpclnt "sigmaos/apps/cache/cachegrp/clnt"
 	cossimproto "sigmaos/apps/cossim/proto"
 	"sigmaos/apps/hotel/proto"
 	rpcclnt "sigmaos/rpc/clnt"
 )
 
-func RandMatchReq(wc *WebClnt, r *rand.Rand, vecRangeStart uint64, vecRangeEnd uint64, cache bool) error {
-	// TODO: set randomly
-	userID := uint64(12345)
+var cachedUserSet []uint64 = []uint64{12345}
+
+func SetCachedUserSet(nuser int) {
+	for i := 0; i < nuser-1; i++ {
+		cachedUserSet = append(cachedUserSet, uint64(rand.Uint64()))
+	}
+}
+
+func WarmCachedUserSet(cc *cachegrpclnt.CachedSvcClnt) error {
+	for _, uid := range cachedUserSet {
+		cacheKey := fmt.Sprintf("user-preference-%v", uid)
+		err := cc.Put(cacheKey, &cossimproto.CosSimRep{
+			ID:  uid,
+			Val: 99.0,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func RandMatchReq(wc *WebClnt, r *rand.Rand, cachedUserFrac int64, vecRangeStart uint64, vecRangeEnd uint64, cache bool) error {
+	// Select a random user ID
+	userID := rand.Uint64()
+	// With odds cachedUserFrac, set the user ID to a cached value
+	if uint64(userID)%100 < uint64(cachedUserFrac) {
+		idx := int(userID) % len(cachedUserSet)
+		if idx < 0 {
+			idx *= -1
+		}
+		// Pick a user from the cached set
+		userID = cachedUserSet[idx]
+	}
 	userVecID := uint64(2)
-	return wc.Match(userID, userVecID, cache, &cossimproto.VecRange{
+	return wc.Match(uint64(userID), userVecID, cache, &cossimproto.VecRange{
 		StartID: vecRangeStart,
 		EndID:   vecRangeEnd,
 	})

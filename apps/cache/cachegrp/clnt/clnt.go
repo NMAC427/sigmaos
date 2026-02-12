@@ -95,21 +95,54 @@ func (csc *CachedSvcClnt) monitorServers() {
 		for i := csc.nsrv; i < len(instances); i++ {
 			istr := strconv.Itoa(i)
 			for _, is := range instances {
-				if is.ID == istr && sp.TTendpoint(is.EndpointProto.Type) == sp.CPP_EP {
+				if is.ID == istr {
 					ep := sp.NewEndpointFromProto(is.EndpointProto)
-					rpcc, err := rpcncclnt.NewTCPRPCClnt(is.ID, ep)
-					if err != nil {
-						db.DPrintf(db.ERROR, "Err NewRPCClnt cacheclnt: %v", err)
-					} else {
-						db.DPrintf(db.CACHEDSVCCLNT, "Create new cacheclnt for cache %v", is.ID)
-						csc.cc.ClntCache.Put(csc.Server(i), rpcc)
+					// Append the new endpoint
+					csc.eps = append(csc.eps, ep)
+					if sp.TTendpoint(is.EndpointProto.Type) == sp.CPP_EP {
+						rpcc, err := rpcncclnt.NewTCPRPCClnt(is.ID, ep, 0)
+						if err != nil {
+							db.DPrintf(db.ERROR, "Err NewRPCClnt cacheclnt: %v", err)
+						} else {
+							db.DPrintf(db.CACHEDSVCCLNT, "Create new cacheclnt for cache %v: %p", is.ID, rpcc)
+							csc.cc.ClntCache.Put(csc.Server(i), rpcc)
+						}
 					}
 				}
 			}
-
 		}
 		csc.nsrv = len(instances)
-		db.DPrintf(db.CACHEDSVCCLNT, "GetEndpoints new nsrv: %v", csc.nsrv)
+		// If the endpoint for a server changed, create a new client for it.
+		for _, is := range instances {
+			id, err := strconv.Atoi(is.ID)
+			if err != nil {
+				db.DPrintf(db.ERROR, "Err NewRPCClnt cacheclnt cache ID: %v", err)
+			}
+			// EP has been removed, so remove its cache clnt
+			if len(csc.eps[id].Addr) == 0 {
+				db.DPrintf(db.CACHEDSVCCLNT, "EP removed for cache %v", is.ID)
+				csc.cc.ClntCache.Delete(csc.Server(id))
+				continue
+			}
+			// EP has changed, so create a new cache clnt
+			if csc.eps[id].Addr[0].IPStr != is.EndpointProto.Addr[0].IPStr ||
+				csc.eps[id].Addr[0].PortInt != is.EndpointProto.Addr[0].PortInt ||
+				csc.eps[id].Type != is.EndpointProto.Type {
+				db.DPrintf(db.CACHEDSVCCLNT, "EP has changed for cache %v", is.ID)
+				ep := sp.NewEndpointFromProto(is.EndpointProto)
+				csc.eps[id] = ep
+				if sp.TTendpoint(is.EndpointProto.Type) == sp.CPP_EP {
+					rpcc, err := rpcncclnt.NewTCPRPCClnt(is.ID, ep, 0)
+					if err != nil {
+						db.DPrintf(db.ERROR, "Err NewRPCClnt cacheclnt: %v", err)
+					} else {
+						db.DPrintf(db.CACHEDSVCCLNT, "Create new cacheclnt overwrite for cache %v: %p", is.ID, rpcc)
+						csc.cc.ClntCache.Put(csc.Server(id), rpcc)
+					}
+				}
+			}
+		}
+		db.DPrintf(db.CACHEDSVCCLNT, "GetEndpoints nsrv: %v", csc.nsrv)
 		// Update last endpoint version
 		csc.lastEPV = v
 	}
@@ -202,9 +235,7 @@ func NewMultiGetReqs(keys []string, nserver int, nshard uint32) map[int]*cachepr
 		server := Key2server(key, nserver)
 		req, ok := reqs[server]
 		if !ok {
-			req = &cacheproto.CacheMultiGetReq{
-				Fence: sp.NullFence().FenceProto(),
-			}
+			req = &cacheproto.CacheMultiGetReq{}
 			reqs[server] = req
 		}
 		req.Gets = append(req.Gets, &cacheproto.CacheGetDescriptor{
@@ -325,6 +356,10 @@ func (csc *CachedSvcClnt) StatsClnt() []map[string]*rpc.MethodStat {
 func (csc *CachedSvcClnt) Dump(g int) (map[string]string, error) {
 	srv := csc.Server(g)
 	return csc.cc.DumpSrv(srv)
+}
+
+func (csc *CachedSvcClnt) GetCacheClnt() *cacheclnt.CacheClnt {
+	return csc.cc
 }
 
 func (csc *CachedSvcClnt) Close() {

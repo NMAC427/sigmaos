@@ -2,6 +2,8 @@
 
 #include <apps/cache/cache.h>
 #include <apps/cache/proto/cache.pb.h>
+#include <apps/cache/proto/dump.pb.h>
+#include <apps/cache/proto/get.pb.h>
 #include <apps/cache/shard.h>
 #include <google/protobuf/message.h>
 #include <io/demux/clnt.h>
@@ -36,6 +38,7 @@ class Clnt {
         _clnts() {}
   ~Clnt() {}
   std::expected<int, sigmaos::serr::Error> InitClnts(uint32_t last_srv_id);
+  std::expected<int, sigmaos::serr::Error> InitClnt(uint32_t srv_id);
   std::expected<int, sigmaos::serr::Error> Get(
       std::string key, std::shared_ptr<std::string> val);
   std::expected<std::shared_ptr<
@@ -61,10 +64,12 @@ class Clnt {
       sigmaos::serr::Error>
   MultiDumpShard(uint32_t srv, std::vector<uint32_t> &shards);
   std::expected<
-      std::shared_ptr<std::map<
-          uint32_t,
+      std::pair<
           std::shared_ptr<std::map<
-              std::string, std::shared_ptr<sigmaos::apps::cache::Value>>>>>,
+              uint32_t,
+              std::shared_ptr<std::map<
+                  std::string, std::shared_ptr<sigmaos::apps::cache::Value>>>>>,
+          google::protobuf::Timestamp>,
       sigmaos::serr::Error>
   DelegatedMultiDumpShard(uint64_t rpc_idx, std::vector<uint32_t> &shards);
   std::expected<

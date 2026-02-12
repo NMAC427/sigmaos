@@ -7,20 +7,24 @@ import (
 
 	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
 	cossimsrv "sigmaos/apps/cossim/srv"
+	"sigmaos/apps/etcd"
 	"sigmaos/apps/hotel"
+	"sigmaos/apps/imgresize"
+	"sigmaos/apps/memcached"
 )
 
 type CosSimBenchConfig struct {
-	JobCfg      *cossimsrv.CosSimJobConfig `json:"job_cfg"`
-	NVecToQuery int                        `json:"n_vec_to_query"`
-	Durs        []time.Duration            `json:"durs"`
-	MaxRPS      []int                      `json:"max_rps"`
-	Scale       *ManualScalingConfig       `json:"scale"`
+	JobCfg        *cossimsrv.CosSimJobConfig `json:"job_cfg"`
+	NVecToQuery   int                        `json:"n_vec_to_query"`
+	Durs          []time.Duration            `json:"durs"`
+	MaxRPS        []int                      `json:"max_rps"`
+	ManuallyScale *ManualScalingConfig       `json:"manually_scale"`
+	Autoscale     *AutoscalingConfig         `json:"autoscale"`
 }
 
 func (cfg *CosSimBenchConfig) String() string {
-	return fmt.Sprintf("&{ JobCfg:%v NVecToQuery:%v Durs:%v MaxRPS:%v Scale:%v }",
-		cfg.JobCfg, cfg.NVecToQuery, cfg.Durs, cfg.MaxRPS, cfg.Scale)
+	return fmt.Sprintf("&{ JobCfg:%v NVecToQuery:%v Durs:%v MaxRPS:%v ManuallyScale:%v Autoscale:%v }",
+		cfg.JobCfg, cfg.NVecToQuery, cfg.Durs, cfg.MaxRPS, cfg.ManuallyScale, cfg.Autoscale)
 }
 
 func (cfg *CosSimBenchConfig) GetJobConfig() *cossimsrv.CosSimJobConfig {
@@ -43,18 +47,21 @@ type CacheBenchConfig struct {
 	UseEPCache    bool                        `json:"use_epcache"`
 	DelegateInit  bool                        `json:"delegate_init"`
 	Autoscale     bool                        `json:"autoscale"`
+	Shmem         bool                        `json:"shmem"`
 	NKeys         int                         `json:"n_keys"`
+	ValSize       int                         `json:"val_size"`
 	TopNShards    int                         `json:"top_n_shards"`
 	Durs          []time.Duration             `json:"durs"`
 	MaxRPS        []int                       `json:"max_rps"`
 	PutDurs       []time.Duration             `json:"put_durs"`
 	PutMaxRPS     []int                       `json:"put_max_rps"`
-	Scale         *ManualScalingConfig        `json:"scale"`
+	ManuallyScale *ManualScalingConfig        `json:"manually_scale"`
+	Migrate       *MigrationConfig            `json:"migrate"`
 }
 
 func (cfg *CacheBenchConfig) String() string {
-	return fmt.Sprintf("&{ JobCfg:%v CPP:%v RunSleeper:%v CosSimBackend:%v UseEPCache:%v DelegateInit:%v Autoscale:%v NKeys:%v TopNShards:%v Durs:%v MaxRPS:%v PutDurs:%v PutMaxRPS:%v Scale:%v }",
-		cfg.JobCfg, cfg.CPP, cfg.RunSleeper, cfg.CosSimBackend, cfg.UseEPCache, cfg.DelegateInit, cfg.Autoscale, cfg.NKeys, cfg.TopNShards, cfg.Durs, cfg.MaxRPS, cfg.PutDurs, cfg.PutMaxRPS, cfg.Scale)
+	return fmt.Sprintf("&{ JobCfg:%v CPP:%v RunSleeper:%v CosSimBackend:%v UseEPCache:%v DelegateInit:%v Autoscale:%v Shmem:%v NKeys:%v ValSize:%v TopNShards:%v Durs:%v MaxRPS:%v PutDurs:%v PutMaxRPS:%v ManuallyScale:%v Migrate:%v }",
+		cfg.JobCfg, cfg.CPP, cfg.RunSleeper, cfg.CosSimBackend, cfg.UseEPCache, cfg.DelegateInit, cfg.Autoscale, cfg.Shmem, cfg.NKeys, cfg.ValSize, cfg.TopNShards, cfg.Durs, cfg.MaxRPS, cfg.PutDurs, cfg.PutMaxRPS, cfg.ManuallyScale, cfg.Migrate)
 }
 
 func (cfg *CacheBenchConfig) Marshal() (string, error) {
@@ -71,13 +78,14 @@ type HotelBenchConfig struct {
 	MaxRPS          []int                 `json:"max_rps"`
 	ScaleGeo        *ManualScalingConfig  `json:"scale_geo"`
 	MatchUseCaching bool                  `json:"match_use_caching"`
+	CachedUserFrac  int64                 `json:"cached_user_frac"`
 	CacheBenchCfg   *CacheBenchConfig     `json:"cache_bench_cfg"`
 	CosSimBenchCfg  *CosSimBenchConfig    `json:"cossim_bench_cfg"`
 }
 
 func (cfg *HotelBenchConfig) String() string {
-	return fmt.Sprintf("&{ JobCfg:%v Durs:%v MaxRPS:%v ScaleGeo:%v MatchUseCaching:%v CacheBenchCfg:%v CosSimBenchCfg:%v }",
-		cfg.JobCfg, cfg.Durs, cfg.MaxRPS, cfg.ScaleGeo, cfg.MatchUseCaching, cfg.CacheBenchCfg, cfg.CosSimBenchCfg)
+	return fmt.Sprintf("&{ JobCfg:%v Durs:%v MaxRPS:%v ScaleGeo:%v MatchUseCaching:%v CachedUserFrac:%v CacheBenchCfg:%v CosSimBenchCfg:%v }",
+		cfg.JobCfg, cfg.Durs, cfg.MaxRPS, cfg.ScaleGeo, cfg.MatchUseCaching, cfg.CachedUserFrac, cfg.CacheBenchCfg, cfg.CosSimBenchCfg)
 }
 
 func (cfg *HotelBenchConfig) GetJobConfig() *hotel.HotelJobConfig {
@@ -85,6 +93,89 @@ func (cfg *HotelBenchConfig) GetJobConfig() *hotel.HotelJobConfig {
 }
 
 func (cfg *HotelBenchConfig) Marshal() (string, error) {
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+type ImgBenchConfig struct {
+	JobCfg         *imgresize.ImgdJobConfig `json:"job_cfg"`
+	InputPath      string                   `json:"input_path"`
+	NTasks         int                      `json:"n_tasks"`
+	NInputsPerTask int                      `json:"n_inputs_per_task"`
+	Durs           []time.Duration          `json:"durs"`
+	MaxRPS         []int                    `json:"max_rps"`
+}
+
+func (cfg *ImgBenchConfig) String() string {
+	return fmt.Sprintf("&{ JobCfg:%v InputPath:%v NTasks:%v NInputsPerTask:%v Durs:%v MaxRPS:%v }",
+		cfg.JobCfg, cfg.InputPath, cfg.NTasks, cfg.NInputsPerTask, cfg.Durs, cfg.MaxRPS)
+}
+
+func (cfg *ImgBenchConfig) GetJobConfig() *imgresize.ImgdJobConfig {
+	return cfg.JobCfg
+}
+
+func (cfg *ImgBenchConfig) Marshal() (string, error) {
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+type EtcdBenchConfig struct {
+	JobCfg *etcd.EtcdJobConfig `json:"job_cfg"`
+}
+
+func (cfg *EtcdBenchConfig) String() string {
+	return fmt.Sprintf("&{ JobCfg:%v }", cfg.JobCfg)
+}
+
+func (cfg *EtcdBenchConfig) GetJobConfig() *etcd.EtcdJobConfig {
+	return cfg.JobCfg
+}
+
+func (cfg *EtcdBenchConfig) Marshal() (string, error) {
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+type MemcachedBenchConfig struct {
+	JobCfg *memcached.MemcachedJobConfig `json:"job_cfg"`
+	Cache  bool                          `json:"cache"`
+}
+
+func (cfg *MemcachedBenchConfig) String() string {
+	return fmt.Sprintf("&{ JobCfg:%v Cache:%v }", cfg.JobCfg, cfg.Cache)
+}
+
+func (cfg *MemcachedBenchConfig) GetJobConfig() *memcached.MemcachedJobConfig {
+	return cfg.JobCfg
+}
+
+func (cfg *MemcachedBenchConfig) Marshal() (string, error) {
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+type StartLatencyBenchConfig struct {
+	App string `json:"app"`
+}
+
+func (cfg *StartLatencyBenchConfig) String() string {
+	return fmt.Sprintf("&{ App:%v }", cfg.App)
+}
+
+func (cfg *StartLatencyBenchConfig) Marshal() (string, error) {
 	b, err := json.Marshal(cfg)
 	if err != nil {
 		return "", err

@@ -14,12 +14,14 @@ const (
 	PPROF_BLOCK           = "_PPROF_BLOCK"
 	CPU                   = "_CPU"
 	TPT                   = "_TPT"
+	VAL                   = "_VAL"
 )
 
 // Tests & benchmarking
 const (
 	TEST  Tselector = "TEST"
 	BENCH           = "BENCH"
+	COST            = "COST"
 )
 
 // kernel procs

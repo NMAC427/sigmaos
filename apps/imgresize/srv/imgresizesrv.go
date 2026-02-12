@@ -26,21 +26,33 @@ type AStat struct {
 }
 
 type ImgSrv struct {
-	sc         *sigmaclnt.SigmaClnt
-	ftclnt     fttask_clnt.FtTaskClnt[imgresize.Ttask, any]
-	nrounds    int
-	workerMcpu proc.Tmcpu
-	workerMem  proc.Tmem
-	leaderclnt *leaderclnt.LeaderClnt
-	imgSvcId   string
-	taskSvcId  task.FtTaskSvcId
-	ch         chan error
+	sc                    *sigmaclnt.SigmaClnt
+	ftclnt                fttask_clnt.FtTaskClnt[imgresize.Ttask, any]
+	nrounds               int
+	imgDim                int
+	workerMcpu            proc.Tmcpu
+	workerMem             proc.Tmem
+	workerBootScriptMcpu  proc.Tmcpu
+	workerBootScriptMem   proc.Tmem
+	leaderclnt            *leaderclnt.LeaderClnt
+	imgSvcId              string
+	taskSvcId             task.FtTaskSvcId
+	ch                    chan error
+	bootScript            []byte
+	bootScriptWriteOut    []byte
+	useSPProxy            bool
+	useBootScript         bool
+	writeOutViaBootScript bool
+	premountS3            bool
+	measurePSS            bool
+	bailOut               bool
+	s3EP                  *sp.Tendpoint
 	AStat
 }
 
 func NewImgSrv(args []string) (*ImgSrv, error) {
-	if len(args) != 5 {
-		return nil, fmt.Errorf("NewImgSrv: wrong number of arguments: %v", args)
+	if len(args) != 14 {
+		db.DFatalf("NewImgSrv: wrong number of arguments: %v", args)
 	}
 	imgd := &ImgSrv{}
 	sc, err := sigmaclnt.NewSigmaClnt(proc.GetProcEnv())
@@ -66,6 +78,75 @@ func NewImgSrv(args []string) (*ImgSrv, error) {
 	imgd.nrounds, err = strconv.Atoi(args[3])
 	if err != nil {
 		db.DFatalf("Error parse nrounds: %v", err)
+	}
+	useSPProxy, err := strconv.ParseBool(args[5])
+	if err != nil {
+		db.DFatalf("Error parse useSPProxy: %v", err)
+	}
+	imgd.useSPProxy = useSPProxy
+	useBootScript, err := strconv.ParseBool(args[6])
+	if err != nil {
+		db.DFatalf("Error parse useBootScript: %v", err)
+	}
+	imgd.useBootScript = useBootScript
+	bootScript, err := imgresize.GetBootScript(imgd.sc)
+	if err != nil {
+		db.DFatalf("Error GetBootScript: %v", err)
+	}
+	imgd.bootScript = bootScript
+	bootScriptWriteOut, err := imgresize.GetBootScriptWriteOut(imgd.sc)
+	if err != nil {
+		db.DFatalf("Error GetBootScriptWriteOut: %v", err)
+	}
+	imgd.bootScriptWriteOut = bootScriptWriteOut
+	bsMcpu, err := strconv.Atoi(args[7])
+	if err != nil {
+		return nil, fmt.Errorf("NewImgSrv: Error parse MCPU %v", err)
+	}
+	imgd.workerBootScriptMcpu = proc.Tmcpu(bsMcpu)
+	bsMem, err := strconv.Atoi(args[8])
+	if err != nil {
+		return nil, fmt.Errorf("NewImgSrv: Error parse Mem %v", err)
+	}
+	imgd.workerBootScriptMem = proc.Tmem(bsMem)
+	writeOutViaBootScript, err := strconv.ParseBool(args[9])
+	if err != nil {
+		db.DFatalf("Error parse writeOutViaBootScript: %v", err)
+	}
+	imgd.writeOutViaBootScript = writeOutViaBootScript
+	imgd.imgDim, err = strconv.Atoi(args[10])
+	if err != nil {
+		db.DFatalf("Error parse imgDim: %v", err)
+	}
+	premountS3, err := strconv.ParseBool(args[11])
+	if err != nil {
+		db.DFatalf("Error parse useBootScript: %v", err)
+	}
+	imgd.premountS3 = premountS3
+	measurePSS, err := strconv.ParseBool(args[12])
+	if err != nil {
+		db.DFatalf("Error parse useBootScript: %v", err)
+	}
+	imgd.measurePSS = measurePSS
+	bailOut, err := strconv.ParseBool(args[13])
+	if err != nil {
+		db.DFatalf("Error parse useSPProxy: %v", err)
+	}
+	imgd.bailOut = bailOut
+
+	if imgd.premountS3 {
+		// Read the endpoint of the endpoint cache server
+		s3EPB, err := imgd.sc.GetFile(filepath.Join(sp.S3, sp.LOCAL))
+		if err != nil {
+			db.DFatalf("Error get s3 ep: %v", err)
+			return nil, err
+		}
+		s3EP, err := sp.NewEndpointFromBytes(s3EPB)
+		if err != nil {
+			db.DFatalf("Error parse s3 ep: %v", err)
+			return nil, err
+		}
+		imgd.s3EP = s3EP
 	}
 
 	imgd.sc.Started()
@@ -128,7 +209,7 @@ func (imgd *ImgSrv) Work() {
 
 	go imgd.processResults(ch)
 
-	ftc.ExecuteTasks(imgresize.GetMkProcFn(imgd.ftclnt.ServiceId(), imgd.nrounds, imgd.workerMcpu, imgd.workerMem))
+	ftc.ExecuteTasks(imgresize.GetMkProcFn(imgd.ftclnt.ServiceId(), imgd.nrounds, imgd.imgDim, imgd.workerMcpu, imgd.workerMem, imgd.workerBootScriptMcpu, imgd.workerBootScriptMem, imgd.bootScript, imgd.bootScriptWriteOut, imgd.useSPProxy, imgd.premountS3, imgd.s3EP, imgd.measurePSS, imgd.bailOut))
 	close(ch)
 
 	st := spstats.NewTcounterSnapshot()

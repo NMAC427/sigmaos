@@ -1,12 +1,17 @@
 package benchmarks
 
 import (
+	"path/filepath"
 	"time"
 
 	cachegrpmgr "sigmaos/apps/cache/cachegrp/mgr"
 	cossimsrv "sigmaos/apps/cossim/srv"
+	"sigmaos/apps/etcd"
 	"sigmaos/apps/hotel"
+	"sigmaos/apps/imgresize"
+	"sigmaos/apps/memcached"
 	"sigmaos/proc"
+	sp "sigmaos/sigmap"
 )
 
 var DefaultCosSimBenchConfig = &CosSimBenchConfig{
@@ -27,11 +32,20 @@ var DefaultCosSimBenchConfig = &CosSimBenchConfig{
 	NVecToQuery: 100,
 	Durs:        []time.Duration{10 * time.Second},
 	MaxRPS:      []int{100},
-	Scale: &ManualScalingConfig{
-		Svc:        "cossim-srv",
-		Scale:      false,
-		ScaleDelay: 0 * time.Second,
-		NToAdd:     0,
+	ManuallyScale: &ManualScalingConfig{
+		Svc:         "cossim-srv",
+		Scale:       false,
+		ScaleDelays: []time.Duration{},
+		ScaleDeltas: []int{},
+	},
+	Autoscale: &AutoscalingConfig{
+		Svc:              "cossim-srv",
+		Scale:            false,
+		InitialNReplicas: 1,
+		MaxReplicas:      0,
+		TargetRIF:        10.0,
+		Frequency:        1 * time.Second,
+		Tolerance:        0.1,
 	},
 }
 
@@ -47,17 +61,25 @@ var DefaultCacheBenchConfig = &CacheBenchConfig{
 	UseEPCache:    false,
 	DelegateInit:  false,
 	Autoscale:     false,
+	Shmem:         false,
 	NKeys:         1000,
+	ValSize:       100,
 	TopNShards:    1,
 	Durs:          []time.Duration{10 * time.Second},
 	MaxRPS:        []int{100},
 	PutDurs:       []time.Duration{5 * time.Second},
 	PutMaxRPS:     []int{50},
-	Scale: &ManualScalingConfig{
-		Svc:        "cached",
-		Scale:      false,
-		ScaleDelay: 0 * time.Second,
-		NToAdd:     0,
+	ManuallyScale: &ManualScalingConfig{
+		Svc:         "cached",
+		Scale:       false,
+		ScaleDelays: []time.Duration{},
+		ScaleDeltas: []int{},
+	},
+	Migrate: &MigrationConfig{
+		Svc:              "cached",
+		Migrate:          false,
+		MigrationDelays:  []time.Duration{},
+		MigrationTargets: []int{},
 	},
 }
 
@@ -80,14 +102,69 @@ var DefaultHotelBenchConfig = &HotelBenchConfig{
 		UseMatch:        false,
 	},
 	MatchUseCaching: false,
+	CachedUserFrac:  100,
 	Durs:            []time.Duration{10 * time.Second},
 	MaxRPS:          []int{100},
 	ScaleGeo: &ManualScalingConfig{
-		Svc:        "hotel-geo",
-		Scale:      false,
-		ScaleDelay: 0 * time.Second,
-		NToAdd:     0,
+		Svc:         "hotel-geo",
+		Scale:       false,
+		ScaleDelays: []time.Duration{},
+		ScaleDeltas: []int{},
 	},
 	CacheBenchCfg:  nil,
 	CosSimBenchCfg: nil,
+}
+
+var DefaultImgBenchConfig = &ImgBenchConfig{
+	JobCfg: &imgresize.ImgdJobConfig{
+		Job:                   "img-job",
+		WorkerMcpu:            proc.Tmcpu(0),
+		WorkerMem:             proc.Tmem(0),
+		Persist:               false,
+		NRounds:               1,
+		ImgdMcpu:              proc.Tmcpu(1000),
+		UseSPProxy:            false,
+		UseBootScript:         false,
+		WriteOutViaBootScript: false,
+		UseS3Clnt:             false,
+		WorkerBootScriptMcpu:  proc.Tmcpu(0),
+		WorkerBootScriptMem:   proc.Tmem(0),
+		FTTaskSrvMcpu:         proc.Tmcpu(1000),
+		ImgDim:                160,
+		PremountS3:            false,
+		MeasurePSS:            false,
+		BailOut:               false,
+	},
+	InputPath:      filepath.Join(sp.S3, sp.LOCAL, "9ps3/img/8.jpg"),
+	NTasks:         10,
+	NInputsPerTask: 1,
+	Durs:           []time.Duration{10 * time.Second},
+	MaxRPS:         []int{100},
+}
+
+var DefaultEtcdBenchConfig = &EtcdBenchConfig{
+	JobCfg: &etcd.EtcdJobConfig{
+		Job:           "etcd-job",
+		SnapshotPath:  "9ps3/snapshot.db",
+		Name:          "etcd-proc",
+		PeerPort:      6380,
+		ClientPort:    6379,
+		UseInitScript: true,
+		Mcpu:          proc.Tmcpu(1000),
+	},
+}
+
+var DefaultMemcachedBenchConfig = &MemcachedBenchConfig{
+	JobCfg: &memcached.MemcachedJobConfig{
+		Job:           "memcached-job",
+		SnapshotPath:  "9ps3/memcached-snapshot-40M",
+		Port:          11211,
+		UseInitScript: false,
+		Mcpu:          proc.Tmcpu(1000),
+	},
+	Cache: false,
+}
+
+var DefaultStartLatencyBenchConfig = &StartLatencyBenchConfig{
+	App: "etcd",
 }

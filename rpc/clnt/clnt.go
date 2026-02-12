@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	db "sigmaos/debug"
 	spproxyproto "sigmaos/proxy/sigmap/proto"
@@ -20,6 +21,7 @@ import (
 	rpcproto "sigmaos/rpc/proto"
 	"sigmaos/serr"
 	sessp "sigmaos/session/proto"
+	"sigmaos/shmem"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/perf"
 )
@@ -34,6 +36,8 @@ type RPCClnt struct {
 	ch             channel.RPCChannel
 	delegatedRPCCh channel.RPCChannel
 	rc             *delegation.ReplyCache
+	useShmem       bool
+	shmemSegment   *shmem.Segment
 }
 
 // XXX TODO Shouldn't take pn here
@@ -61,6 +65,8 @@ func NewRPCClnt(pn string, opts ...*rpcclntopts.RPCClntOption) (*RPCClnt, error)
 		ch:             ch,
 		delegatedRPCCh: delCh,
 		rc:             delegation.NewReplyCache(),
+		useShmem:       rpcOpts.UseShmem,
+		shmemSegment:   rpcOpts.ShmemSegment,
 	}, nil
 }
 
@@ -160,22 +166,56 @@ func (rpcc *RPCClnt) rpc(delegate bool, method string, arg proto.Message, res pr
 	return nil
 }
 
+// OutgoingDelegatedRPC sends an RPC to the boot script via the SPProxySrv
+func (rpcc *RPCClnt) OutgoingDelegatedRPC(rpcIdx uint64, method string, arg proto.Message) error {
+	iniov, err := WrapRPCRequest(method, arg)
+	if err != nil {
+		return err
+	}
+	blob := &rpcproto.Blob{}
+	blob.SetIoVec(iniov)
+	req := &spproxyproto.SigmaOutgoingDelegatedRPCReq{
+		RPCIdx:          rpcIdx,
+		Blob:            blob,
+		TransferStartPB: timestamppb.New(time.Now()),
+	}
+	rep := &spproxyproto.SigmaErrRep{}
+	if err := rpcc.rpc(true, "SPProxySrvAPI.OutgoingDelegatedRPC", req, rep); err != nil {
+		db.DPrintf(db.ERROR, "Err OutgoingDelegatedRPC(%v): %v", err)
+		return err
+	}
+	if rep.Err.ErrCode != 0 {
+		return sp.NewErr(rep.Err)
+	}
+	return nil
+}
+
 // DelegatedRPC handles a delegated RPC (requesting the response from
 // SPProxySrv via the delegated RPC channel), retreiving a res that contains a
 // Blob specially: it removes the blob from the message and pass it down in an
 // IoVec to avoid marshaling overhead of large blobs.
-func (rpcc *RPCClnt) DelegatedRPC(rpcIdx uint64, res proto.Message) error {
-	// Prepend 2 empty slots to the out iovec: one for the rpcproto.Rep
-	// wrapper, and one for the marshaled res proto.Message
-	outiov := sessp.NewUnallocatedIoVec(2, nil)
+func (rpcc *RPCClnt) DelegatedRPC(rpcIdx uint64, res proto.Message) (time.Duration, error) {
+	var nIOVec int
+	if !rpcc.useShmem {
+		// Prepend 2 empty slots to the out iovec: one for the rpcproto.Rep
+		// wrapper, and one for the marshaled res proto.Message
+		nIOVec = 2
+	} else {
+		// Prepend nothing to out IOV. Everything will be passed in shared memory
+	}
+	outiov := sessp.NewUnallocatedIoVec(nIOVec, nil)
 	outblob := rpc.GetBlob(res)
-	if outblob != nil { // handle blob
-		// Get the reply's blob, if it has one, so that data can be read directly
-		// into buffers in its IoVec
-		outiov.AppendFrames(outblob.GetIoVec().GetFrames())
+	if !rpcc.useShmem {
+		// If not using shared memory, append blob IOVecs to the out IOVec
+		if outblob != nil { // handle blob
+			// Get the reply's blob, if it has one, so that data can be read directly
+			// into buffers in its IoVec
+			outiov.AppendFrames(outblob.GetIoVec().GetFrames())
+		}
 	}
 	req := &spproxyproto.SigmaDelegatedRPCReq{
-		RPCIdx: rpcIdx,
+		RPCIdx:   rpcIdx,
+		UseShmem: rpcc.useShmem,
 	}
 	rep := &spproxyproto.SigmaDelegatedRPCRep{
 		Blob: &rpcproto.Blob{
@@ -196,17 +236,38 @@ func (rpcc *RPCClnt) DelegatedRPC(rpcIdx uint64, res proto.Message) error {
 		db.DPrintf(db.RPCCLNT, "Get DelegatedRPC(%v) cached", rpcIdx)
 	}
 	if err != nil {
-		return err
+		return 0, err
 	}
+	if rpcc.useShmem {
+		// Set IOVec from shared memory region
+		if rep.UseShmem {
+			// Sanity check
+			if len(outblob.Iov) != len(rep.ShmOffs)-2 {
+				db.DFatalf("Wrong number of buffers supplied for shared-memory delegated RPC: %v != %v", len(outblob.Iov), len(rep.ShmOffs)-2)
+			}
+			frames := make([]*sessp.Tframe, len(rep.ShmOffs))
+			b := rpcc.shmemSegment.GetBuf()
+			for i := range rep.ShmOffs {
+				start := rep.ShmOffs[i]
+				end := start + rep.ShmLens[i]
+				frames[i] = sessp.NewFrame(b[start:end], nil)
+			}
+			outiov.AppendFrames(frames)
+			rep.Blob.SetIoVec(outiov)
+		} else {
+			db.DFatalf("Err: rpcclnt using shared memory but reply isn't using shared memory")
+		}
+	}
+	transferDur := time.Since(rep.TransferStartPB.AsTime())
 	perf.LogSpawnLatency("DelegatedRPC.RunRPC %d", sp.NOT_SET, perf.TIME_NOT_SET, start, rpcIdx)
 	if rep.Err.ErrCode != 0 {
-		return sp.NewErr(rep.Err)
+		return 0, sp.NewErr(rep.Err)
 	}
 	start = time.Now()
 	defer func(start time.Time) {
 		perf.LogSpawnLatency("DelegatedRPC.Unmarshal %d", sp.NOT_SET, perf.TIME_NOT_SET, start, rpcIdx)
 	}(start)
-	return processWrappedRPCRep(rep.Blob.GetIoVec(), res, outblob)
+	return transferDur, processWrappedRPCRep(rep.Blob.GetIoVec(), res, outblob)
 }
 
 // Fetch a batch of delegated RPC results
