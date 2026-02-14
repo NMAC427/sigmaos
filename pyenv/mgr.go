@@ -27,10 +27,10 @@ type installResult struct {
 // - Cache persists across instance restarts
 type PyMgr struct {
 	mu               sync.RWMutex
-	installedWheels  map[string]*installResult // keyed by sha256 + version
-	downloadedWheels map[string]string         // keyed by URL, stores path
-	pendingDownloads map[string]*sync.Cond     // keyed by URL
-	pendingInstalls  map[string]*sync.Cond     // keyed by sha256 + version
+	installedWheels  []map[string]*installResult // keyed by sha256, indexed by pyVersion.index
+	downloadedWheels map[string]string           // keyed by URL, stores path
+	pendingDownloads map[string]*sync.Cond       // keyed by URL
+	pendingInstalls  []map[string]*sync.Cond     // keyed by sha256, indexed by pyVersion.index
 
 	installSem  chan struct{}
 	downloadSem chan struct{}
@@ -39,11 +39,23 @@ type PyMgr struct {
 func NewPyMgr() *PyMgr {
 	numCPU := runtime.NumCPU()
 
+	// Initialize Python versions first to get the count
+	initPythonVersions()
+	numVersions := len(pyVersions)
+
+	// Create two-tiered lookup structures - one map per Python version
+	installedWheels := make([]map[string]*installResult, numVersions)
+	pendingInstalls := make([]map[string]*sync.Cond, numVersions)
+	for i := 0; i < numVersions; i++ {
+		installedWheels[i] = make(map[string]*installResult)
+		pendingInstalls[i] = make(map[string]*sync.Cond)
+	}
+
 	return &PyMgr{
-		installedWheels:  make(map[string]*installResult),
+		installedWheels:  installedWheels,
 		downloadedWheels: make(map[string]string),
 		pendingDownloads: make(map[string]*sync.Cond),
-		pendingInstalls:  make(map[string]*sync.Cond),
+		pendingInstalls:  pendingInstalls,
 
 		installSem:  make(chan struct{}, numCPU),
 		downloadSem: make(chan struct{}, min(32, numCPU+4)),
@@ -55,7 +67,7 @@ func (pm *PyMgr) InstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion) (st
 	if !found || sha256 == "" {
 		return "", fmt.Errorf("cannot install wheel without sha256 hash: %v", wheel.Name)
 	}
-	key := fmt.Sprintf("%s_%s", wheel.Hashes["sha256"], pyVersion.Version)
+	pyIdx := pyVersion.Index()
 
 	// Check if already installed
 	//   Not found -> Need to check file system
@@ -64,7 +76,7 @@ func (pm *PyMgr) InstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion) (st
 
 	// Fast path - Already installed
 	pm.mu.RLock()
-	if result, found := pm.installedWheels[key]; found && result != nil {
+	if result := pm.installedWheels[pyIdx][sha256]; result != nil {
 		pm.mu.RUnlock()
 		return result.path, result.err
 	}
@@ -72,21 +84,21 @@ func (pm *PyMgr) InstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion) (st
 
 	// Slow path
 	pm.mu.Lock()
-	result, found := pm.installedWheels[key]
-	if found && result != nil {
+	result := pm.installedWheels[pyIdx][sha256]
+	if result != nil {
 		pm.mu.Unlock()
 		return result.path, result.err
 	}
 
 	// Check file system - this case happens when we start up with a non-empty cache
-	if !found {
+	if result == nil {
 		result = checkIfInstalled(wheel, pyVersion)
 		if result != nil {
-			pm.installedWheels[key] = result
+			pm.installedWheels[pyIdx][sha256] = result
 			pm.mu.Unlock()
 			return result.path, result.err
 		}
-		pm.installedWheels[key] = nil
+		pm.installedWheels[pyIdx][sha256] = nil
 	}
 	pm.mu.Unlock()
 
@@ -102,7 +114,7 @@ func (pm *PyMgr) InstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion) (st
 	}
 
 	// Install (deduplicated by sha256 + version)
-	return pm.installWheel(wheel, pyVersion, wheelPath, key)
+	return pm.installWheel(wheel, pyVersion, wheelPath, sha256)
 }
 
 func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
@@ -152,28 +164,30 @@ func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
 	return path, err
 }
 
-func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, wheelPath string, key string) (string, error) {
+func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, wheelPath string, sha256 string) (string, error) {
+	pyIdx := pyVersion.Index()
+
 	pm.mu.Lock()
 	// Check if installed while downloading
-	if result, found := pm.installedWheels[key]; found && result != nil {
+	if result := pm.installedWheels[pyIdx][sha256]; result != nil {
 		pm.mu.Unlock()
 		return result.path, result.err
 	}
 
 	// Wait for pending install
-	if cond, pending := pm.pendingInstalls[key]; pending {
+	if cond := pm.pendingInstalls[pyIdx][sha256]; cond != nil {
 		pm.mu.Unlock()
 		cond.L.Lock()
 		cond.Wait()
 		cond.L.Unlock()
 
 		pm.mu.RLock()
-		result := pm.installedWheels[key]
+		result := pm.installedWheels[pyIdx][sha256]
 		pm.mu.RUnlock()
 		return result.path, result.err
 	}
 	cond := sync.NewCond(&sync.Mutex{})
-	pm.pendingInstalls[key] = cond
+	pm.pendingInstalls[pyIdx][sha256] = cond
 	pm.mu.Unlock()
 
 	// Perform installation
@@ -216,8 +230,8 @@ exitLocked:
 	if err != nil {
 		installPath = ""
 	}
-	pm.installedWheels[key] = &installResult{path: installPath, err: err}
-	delete(pm.pendingInstalls, key)
+	pm.installedWheels[pyIdx][sha256] = &installResult{path: installPath, err: err}
+	delete(pm.pendingInstalls[pyIdx], sha256)
 	pm.mu.Unlock()
 
 	cond.L.Lock()

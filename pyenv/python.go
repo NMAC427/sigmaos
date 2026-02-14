@@ -27,6 +27,7 @@ const (
 type PythonVersion struct {
 	version        string
 	pythonPath     string
+	index          int
 	sysTags        []string
 	envMarkers     map[string]string
 	dcontainerPath string
@@ -63,15 +64,20 @@ func (p *PythonVersion) DcontainerPath() string {
 	return p.dcontainerPath
 }
 
+// Index returns the index of this Python version in the pyVersions slice.
+// Used for two-tiered lookup in PyMgr.
+func (p *PythonVersion) Index() int {
+	return p.index
+}
+
 var (
-	pyOnce     sync.Once
-	pyVersions map[string]*PythonVersion
+	pyOnce       sync.Once
+	pyVersions   []*PythonVersion
+	pyVersionMap map[string]*PythonVersion
 )
 
 func initPythonVersions() {
 	pyOnce.Do(func() {
-		pyVersions = make(map[string]*PythonVersion)
-
 		// Python 3.11 configuration
 		py311 := &PythonVersion{
 			version:        "cpython3.11",
@@ -80,14 +86,20 @@ func initPythonVersions() {
 			envMarkers:     loadEnvMarkers("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/env_markers.json"),
 			dcontainerPath: "/home/sigmaos/bin/kernel/cpython3.11",
 		}
-		pyVersions[py311.Version()] = py311
+
+		pyVersions = []*PythonVersion{py311}
+		pyVersionMap = make(map[string]*PythonVersion)
+		for i, py := range pyVersions {
+			py.index = i
+			pyVersionMap[py.version] = py
+		}
 	})
 }
 
-// GetPythonVersion returns the PythonVersion for a given version string (e.g., "python3.11")
+// GetPythonVersion returns the PythonVersion for a given version string (e.g., "cpython3.11")
 func GetPythonVersion(version string) *PythonVersion {
 	initPythonVersions()
-	return pyVersions[version]
+	return pyVersionMap[version]
 }
 
 // IsSupportedPythonVersion checks if the given version string is supported.
