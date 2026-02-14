@@ -1,11 +1,7 @@
 package python
 
 import (
-	"bufio"
-	"crypto/sha256"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,117 +10,11 @@ import (
 	"syscall"
 
 	db "sigmaos/debug"
+	"sigmaos/pyenv"
 	"sigmaos/pyenv/clnt"
+	"sigmaos/pyenv/pylock"
 	"sigmaos/sigmaclnt"
-	"sigmaos/scontainer/python/pylock"
-
-	"github.com/google/uuid"
 )
-
-const (
-	PYTHON_BASE_PATH         = "/tmp/python"
-	PYTHON_PACKAGE_CACHE_DIR = PYTHON_BASE_PATH + "/package-cache" // Shared
-	PYTHON_TMP_DIR           = PYTHON_BASE_PATH + "/tmp"           // Not shared
-)
-
-type PythonVersion struct {
-	version        string
-	pythonPath     string
-	index          int
-	sysTags        []string
-	envMarkers     map[string]string
-	dcontainerPath string
-}
-
-func (p *PythonVersion) Version() string {
-	return p.version
-}
-
-func (p *PythonVersion) PythonPath() string {
-	return p.pythonPath
-}
-
-func (p *PythonVersion) SysTags() []string {
-	return p.sysTags
-}
-
-func (p *PythonVersion) EnvMarkers() map[string]string {
-	return p.envMarkers
-}
-
-func (p *PythonVersion) DcontainerPath() string {
-	return p.dcontainerPath
-}
-
-func loadSysTags(path string) []string {
-	file, err := os.Open(path)
-	if err != nil {
-		db.DFatalf("Failed to get python system compatibility tags: %v", err)
-		return []string{}
-	}
-	defer file.Close()
-
-	var tags []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
-			tags = append(tags, line)
-		}
-	}
-	return tags
-}
-
-func loadEnvMarkers(path string) map[string]string {
-	markers, err := pylock.LoadPythonEnvironmentMarkers(path)
-	if err != nil {
-		db.DFatalf("Failed to get python environment markers: %v", err)
-		return map[string]string{}
-	}
-	return markers
-}
-
-var (
-	pyOnce sync.Once
-
-	pyVersions []*PythonVersion
-	py311      *PythonVersion
-)
-
-func initPython() {
-	pyOnce.Do(func() {
-		os.MkdirAll(PYTHON_PACKAGE_CACHE_DIR, 0777)
-		os.MkdirAll(PYTHON_TMP_DIR, 0777)
-
-		py311 = &PythonVersion{
-			version:        "cpython3.11",
-			pythonPath:     "/tmp/python/python/build/lib.linux-x86_64-3.11:/tmp/python/python/Lib:/tmp/python/python/sigmaos/user/site-packages",
-			sysTags:        loadSysTags("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/sys_tags"),
-			envMarkers:     loadEnvMarkers("/home/sigmaos/bin/kernel/cpython3.11/sigmaos/env_markers.json"),
-			dcontainerPath: "/home/sigmaos/bin/kernel/cpython3.11",
-		}
-
-		pyVersions = []*PythonVersion{py311}
-		for i, py := range pyVersions {
-			py.index = i
-		}
-	})
-}
-
-func IsSupportedPythonVersion(version string) *PythonVersion {
-	if !strings.HasPrefix(version, "python") {
-		return nil
-	}
-
-	initPython()
-
-	switch version {
-	case "python3.11":
-		return py311
-	default:
-		return nil
-	}
-}
 
 // Returns the wheel that best matches the compatibility tags supported by sigmaos.
 // Compatibility tags (e.g. cp311-cp311-manylinux_2_39_x86_64) are ordered from
@@ -175,10 +65,13 @@ func getBestWheel(pkg pylock.Package, compatibilityTags []string) (*pylock.Wheel
 	return best, nil
 }
 
-func getRequiredWheels(lock *pylock.Pylock, pyVersion *PythonVersion) ([]pylock.Wheel, error) {
+func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]pylock.Wheel, error) {
 	var wheels []pylock.Wheel
+	envMarkers := pyVersion.EnvMarkers()
+	sysTags := pyVersion.SysTags()
+
 	for _, pkg := range lock.Packages {
-		is_required, err := pylock.EvaluateMarker(pkg.Marker, pyVersion.envMarkers)
+		is_required, err := pylock.EvaluateMarker(pkg.Marker, envMarkers)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +81,7 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *PythonVersion) ([]pylock.
 			continue
 		}
 
-		wheel, err := getBestWheel(pkg, pyVersion.sysTags)
+		wheel, err := getBestWheel(pkg, sysTags)
 		if err != nil {
 			return nil, err
 		}
@@ -199,117 +92,10 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *PythonVersion) ([]pylock.
 	return wheels, nil
 }
 
-func downloadWheel(wheel pylock.Wheel) (string, error) {
-	db.DPrintf(db.CONTAINER, "downloading python wheel: %v", wheel.Name)
-
-	outPath := filepath.Join(PYTHON_TMP_DIR, uuid.NewString()+"-"+wheel.Name)
-	if _, err := os.Stat(outPath); err == nil {
-		// File already exists, skip download
-		return outPath, nil
-	}
-
-	err := os.MkdirAll(filepath.Dir(outPath), 0777)
-	if err != nil {
-		return "", err
-	}
-	out, err := os.Create(outPath)
-	if err != nil {
-		return "", err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(wheel.URL)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	hashMatch, err := verifyWheelHash(outPath, &wheel)
-	if err != nil {
-		return "", err
-	}
-	if !hashMatch {
-		_ = os.Remove(outPath)
-		return "", fmt.Errorf("downloaded wheel %q has invalid hash", wheel.Name)
-	}
-	return outPath, nil
-}
-
-func computeSHA256(path string) (string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
-}
-
-func verifyWheelHash(path string, wheel *pylock.Wheel) (bool, error) {
-	expectedSha256, found := wheel.Hashes["sha256"]
-	if !found {
-		return false, fmt.Errorf("Wheel %q has no sha256 hash", wheel.Name)
-	}
-
-	actualSha256, err := computeSHA256(path)
-	if err != nil {
-		return false, err
-	}
-
-	if actualSha256 != expectedSha256 {
-		return false, fmt.Errorf("Wheel %q hash mismatch: expected %s, got %s", wheel.Name, expectedSha256, actualSha256)
-	}
-
-	return true, nil
-}
-
-func getWheelInstallPath(wheel *pylock.Wheel, pyVersion *PythonVersion) (string, error) {
-	sha256, found := wheel.Hashes["sha256"]
-	if !found || sha256 == "" {
-		return "", fmt.Errorf("wheel %q has no sha256 hash", wheel.Name)
-	}
-	h0h1 := sha256[:2]
-	h2h3 := sha256[2:4]
-
-	// This path MUST match the pattern specified in the sigmaos-uproc AppArmor profile.
-	// Otherwise, we would leak the entire cache directory to all procs.
-	return filepath.Join(PYTHON_PACKAGE_CACHE_DIR, pyVersion.version, h0h1, h2h3, sha256), nil
-}
-
-func installWheel(wheelPath string, pyVersion *PythonVersion) (string, error) {
-	db.DPrintf(db.CONTAINER, "installing python wheel: %v", filepath.Base(wheelPath))
-
-	// Install into temporary directory first, and then move to final location
-	// to avoid partially installed wheels if installation fails.
-	tmpInstallDir := filepath.Join(PYTHON_TMP_DIR, uuid.NewString())
-	if err := os.MkdirAll(tmpInstallDir, 0777); err != nil {
-		return "", err
-	}
-
-	cmd := exec.Command(filepath.Join(pyVersion.dcontainerPath, "python"), filepath.Join(pyVersion.dcontainerPath, "sigmaos/kernel/install_wheel.py"), wheelPath, tmpInstallDir)
-	cmd.Env = append(cmd.Env, "PYTHONPATH="+filepath.Join(pyVersion.dcontainerPath, "sigmaos/kernel/site-packages"))
-	err := cmd.Run()
-	if err != nil {
-		os.RemoveAll(tmpInstallDir)
-		return "", fmt.Errorf("failed to install wheel %q: %w", wheelPath, err)
-	}
-
-	return tmpInstallDir, nil
-}
-
 // TODO: Must keep track of which wheels are currently being used
 // by running containers. For automatic eviction of unused wheels,
 // we need to only evict wheels not currently in use.
-func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath string, sc *sigmaclnt.SigmaClnt) (string, error) {
+func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, sc *sigmaclnt.SigmaClnt) (string, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
 		return "", err
@@ -345,15 +131,7 @@ func SetupSitePackages(workingDir string, pyVersion *PythonVersion, pylockPath s
 		wg.Add(1)
 		go func(idx int, wheel pylock.Wheel) {
 			defer wg.Done()
-			// Convert to PyVersion for the client
-			pyVer := clnt.NewPyVersionFromScontainer(
-				pyVersion.Version(),
-				pyVersion.PythonPath(),
-				pyVersion.DcontainerPath(),
-				pyVersion.SysTags(),
-				pyVersion.EnvMarkers(),
-			)
-			path, err := pyenvClnt.InstallWheel(&wheel, pyVer)
+			path, err := pyenvClnt.InstallWheel(&wheel, pyVersion)
 			results[idx] = result{path: path, err: err}
 		}(i, wheel)
 	}

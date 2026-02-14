@@ -22,7 +22,6 @@ import (
 	db "sigmaos/debug"
 	"sigmaos/proc"
 	"sigmaos/scontainer"
-	"sigmaos/scontainer/python"
 	sp "sigmaos/sigmap"
 )
 
@@ -286,7 +285,7 @@ func (fm *forkMgr) ensureZygote(uproc *proc.Proc) (*zygoteEntry, error) {
 	zyg.AppendEnv(forkZygoteEnv, key)
 
 	// Assign to realm
-	isPythonProc := python.IsSupportedPythonVersion(zyg.GetProgram()) != nil
+	_, isPythonProc := zyg.LookupEnv("SIGMA_PYTHON_VERSION")
 	var stringProg string
 	if isPythonProc {
 		stringProg = zyg.GetProgram()

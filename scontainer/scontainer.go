@@ -14,6 +14,7 @@ import (
 
 	db "sigmaos/debug"
 	"sigmaos/proc"
+	"sigmaos/pyenv"
 	"sigmaos/sched/msched/proc/srv/binsrv"
 	"sigmaos/scontainer/python"
 	"sigmaos/sigmaclnt"
@@ -59,7 +60,16 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
 
 	pn := binsrv.BinPath(uproc.GetVersionedProgram())
-	pythonVersion := python.IsSupportedPythonVersion(uproc.GetProgram())
+
+	var pythonVersion *pyenv.PythonVersion
+	if version, ok := uproc.LookupEnv("SIGMA_PYTHON_VERSION"); ok {
+		pythonVersion = pyenv.GetPythonVersion(version)
+		if pythonVersion == nil {
+			err := fmt.Errorf("unsupported Python version: %s", version)
+			db.DPrintf(db.CONTAINER, "%v", err)
+			return nil, err
+		}
+	}
 	isPythonProc := pythonVersion != nil
 	if isPythonProc {
 		pythonPath := pythonVersion.PythonPath()
@@ -98,7 +108,6 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 		uproc.AppendEnv("PYTHONPATH", pythonPath)
-		uproc.AppendEnv("SIGMA_PYTHON_VERSION", pythonVersion.Version())
 	}
 
 	// Optionally strace the proc

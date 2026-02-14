@@ -9,7 +9,7 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"sigmaos/scontainer/python/pylock"
+	"sigmaos/pyenv/pylock"
 	"sync"
 )
 
@@ -134,7 +134,7 @@ func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
 
 	// Perform download (verifies hash internally)
 	pm.downloadSem <- struct{}{}
-	path, err := downloadWheel(*wheel)
+	path, err := DownloadWheel(*wheel)
 	<-pm.downloadSem
 
 	// Update state and notify waiters
@@ -181,13 +181,13 @@ func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, whe
 	var tmpInstallPath string
 	var err error
 
-	installPath, err = getWheelInstallPath(wheel, pyVersion)
+	installPath, err = GetWheelInstallPath(wheel, pyVersion)
 	if err != nil {
 		goto exitUnlocked
 	}
 
 	pm.installSem <- struct{}{}
-	tmpInstallPath, err = installWheelImpl(wheelPath, pyVersion)
+	tmpInstallPath, err = InstallWheel(wheelPath, pyVersion)
 	<-pm.installSem
 
 	if err != nil {
@@ -228,7 +228,7 @@ exitLocked:
 
 // Checks if a wheel installation is already present on disk.
 func checkIfInstalled(wheel *pylock.Wheel, pyVersion *PythonVersion) *installResult {
-	installPath, err := getWheelInstallPath(wheel, pyVersion)
+	installPath, err := GetWheelInstallPath(wheel, pyVersion)
 	if err != nil {
 		return &installResult{path: "", err: err}
 	}

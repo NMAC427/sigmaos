@@ -67,7 +67,7 @@ func NewProc(program string, args []string) *Proc {
 type PythonVersionName string
 
 const (
-	Python311 PythonVersionName = "python3.11"
+	Python311 PythonVersionName = "cpython3.11"
 )
 
 func NewPythonProc(version PythonVersionName, args []string) *Proc {
@@ -76,6 +76,7 @@ func NewPythonProc(version PythonVersionName, args []string) *Proc {
 	p := NewProcPid(pid, program, args)
 	p.GetProcEnv().UseSPProxy = true
 	p.GetProcEnv().UseSPProxyProcClnt = true
+	p.AppendEnv("SIGMA_PYTHON_VERSION", string(version))
 	// TODO: Reenable writing .pyc files once we have some kind of persistence story
 	// for pyproc files in realms.
 	p.AppendEnv("PYTHONDONTWRITEBYTECODE", "1")

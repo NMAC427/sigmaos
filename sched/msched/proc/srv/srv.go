@@ -30,7 +30,6 @@ import (
 	"sigmaos/sched/msched/proc/proto"
 	"sigmaos/sched/msched/proc/srv/binsrv"
 	"sigmaos/scontainer"
-	"sigmaos/scontainer/python"
 	"sigmaos/sigmaclnt"
 	sp "sigmaos/sigmap"
 	"sigmaos/sigmasrv"
@@ -385,7 +384,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
 	isForkProc := uproc.GetForkProc() != nil
-	isPythonProc := python.IsSupportedPythonVersion(uproc.GetProgram()) != nil
+	_, isPythonProc := uproc.LookupEnv("SIGMA_PYTHON_VERSION")
 	// Spawn, but don't actually run the dummy proc
 	if uproc.GetProgram() == sp.DUMMY_PROG {
 		perf.LogSpawnLatency("ProcSrv.Run dummy proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)

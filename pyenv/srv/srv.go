@@ -9,7 +9,7 @@ import (
 	"sigmaos/proc"
 	"sigmaos/pyenv"
 	proto "sigmaos/pyenv/proto"
-	"sigmaos/scontainer/python/pylock"
+	"sigmaos/pyenv/pylock"
 	"sigmaos/sigmaclnt"
 	sp "sigmaos/sigmap"
 	"sigmaos/sigmasrv"
@@ -45,18 +45,17 @@ func (ps *PyEnvSrv) InstallWheel(ctx fs.CtxI, req proto.InstallWheelReq, res *pr
 		Hashes: wheel.Hashes,
 	}
 
-	// Convert proto PythonVersion to internal format
-	pvProto := req.GetPyVersion()
-	if pvProto == nil {
-		return fmt.Errorf("InstallWheel: nil py_version in request")
+	// Look up PythonVersion locally from version string
+	pythonVersion := req.GetPythonVersion()
+	if pythonVersion == "" {
+		return fmt.Errorf("InstallWheel: empty python_version in request")
 	}
 
-	pyVersion := &pyenv.PythonVersion{
-		Version:        pvProto.Version,
-		PythonPath:     pvProto.PythonPath,
-		SysTags:        pvProto.SysTags,
-		EnvMarkers:     pvProto.EnvMarkers,
-		DcontainerPath: pvProto.DcontainerPath,
+	pyVersion := pyenv.GetPythonVersion(pythonVersion)
+	if pyVersion == nil {
+		res.InstallPath = ""
+		res.Error = fmt.Sprintf("unsupported Python version: %s", pythonVersion)
+		return nil
 	}
 
 	path, err := ps.pm.InstallWheel(pyLockWheel, pyVersion)
@@ -68,15 +67,6 @@ func (ps *PyEnvSrv) InstallWheel(ctx fs.CtxI, req proto.InstallWheelReq, res *pr
 
 	res.InstallPath = path
 	res.Error = ""
-	return nil
-}
-
-// GetPyVersion returns information about a Python version
-func (ps *PyEnvSrv) GetPyVersion(ctx fs.CtxI, req proto.GetPyVersionReq, res *proto.GetPyVersionRep) error {
-	// For now, just return an error - this would be implemented to support
-	// multiple Python versions in the future
-	res.PyVersion = nil
-	res.Error = fmt.Sprintf("Python version %q not supported", req.Version)
 	return nil
 }
 
