@@ -145,9 +145,11 @@ func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
 	pm.mu.Unlock()
 
 	// Perform download (verifies hash internally)
-	pm.downloadSem <- struct{}{}
-	path, err := DownloadWheel(*wheel)
-	<-pm.downloadSem
+	path, err := func() (string, error) {
+		pm.downloadSem <- struct{}{}
+		defer func() { <-pm.downloadSem }()
+		return DownloadWheel(*wheel)
+	}()
 
 	// Update state and notify waiters
 	pm.mu.Lock()
@@ -200,9 +202,11 @@ func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, whe
 		goto exitUnlocked
 	}
 
-	pm.installSem <- struct{}{}
-	tmpInstallPath, err = InstallWheel(wheelPath, pyVersion)
-	<-pm.installSem
+	tmpInstallPath, err = func() (string, error) {
+		pm.installSem <- struct{}{}
+		defer func() { <-pm.installSem }()
+		return InstallWheel(wheelPath, pyVersion)
+	}()
 
 	if err != nil {
 		goto exitUnlocked
@@ -210,7 +214,7 @@ func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, whe
 
 	err = os.MkdirAll(path.Dir(installPath), 0777)
 	if err != nil {
-		goto exitLocked
+		goto exitUnlocked
 	}
 
 	pm.mu.Lock()
