@@ -25,6 +25,7 @@ import (
 	"sigmaos/proc"
 	spproxysrv "sigmaos/proxy/sigmap/srv"
 	wasmrpc "sigmaos/proxy/wasm/rpc"
+	pyenvclnt "sigmaos/pyenv/clnt"
 	chunkclnt "sigmaos/sched/msched/proc/chunk/clnt"
 	chunksrv "sigmaos/sched/msched/proc/chunk/srv"
 	"sigmaos/sched/msched/proc/proto"
@@ -102,6 +103,7 @@ type ProcSrv struct {
 	k8s             bool
 	k8sClnt         *kubernetes.Clientset
 	forkmgr         *forkMgr
+	pyenvClnt       *pyenvclnt.PyEnvClnt
 }
 
 type ProcRPCSrv struct {
@@ -149,6 +151,13 @@ func RunProcSrv(kernelId string, dialproxy bool, gvisor bool, spproxydPID sp.Tpi
 		db.DFatalf("Error NewSigmaClnt: %v", err)
 	}
 	ps.sc = sc
+
+	// Create and cache PyEnvClnt for Python wheel installation
+	ps.pyenvClnt, err = pyenvclnt.NewPyEnvClnt(sc.FsLib, kernelId)
+	if err != nil {
+		db.DFatalf("Error NewPyEnvClnt: %v", err)
+	}
+
 	var ssrv *sigmasrv.SigmaSrv
 	pn := filepath.Join(sp.MSCHED, kernelId, sp.PROCDREL, pe.GetPID().String())
 	ssrv, err = sigmasrv.NewSigmaSrvClnt(pn, sc, &ProcRPCSrv{ps})
@@ -510,7 +519,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		}
 	} else {
 		if !ps.gvisor {
-			ctr, err = scontainer.StartSigmaContainer(uproc, ps.dialproxy, ps.sc)
+			ctr, err = scontainer.StartSigmaContainer(uproc, ps.dialproxy, ps.sc, ps.pyenvClnt)
 			if err != nil {
 				return err
 			}

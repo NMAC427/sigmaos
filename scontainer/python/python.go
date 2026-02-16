@@ -13,7 +13,6 @@ import (
 	"sigmaos/pyenv"
 	"sigmaos/pyenv/clnt"
 	"sigmaos/pyenv/pylock"
-	"sigmaos/sigmaclnt"
 )
 
 // Returns the wheel that best matches the compatibility tags supported by sigmaos.
@@ -95,7 +94,7 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]p
 // TODO: Must keep track of which wheels are currently being used
 // by running containers. For automatic eviction of unused wheels,
 // we need to only evict wheels not currently in use.
-func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, sc *sigmaclnt.SigmaClnt) (string, error) {
+func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, pyenvClnt *clnt.PyEnvClnt) (string, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
 		return "", err
@@ -119,12 +118,9 @@ func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylock
 		err  error
 	}
 
-	// Create PyEnvClnt to communicate with pysrvd
-	pyenvClnt, err := clnt.NewPyEnvClnt(sc.FsLib, sc.ProcEnv().GetKernelID())
-	if err != nil {
-		return "", fmt.Errorf("failed to create pyenv client: %w", err)
-	}
-
+	// TODO: We should be able to send a single `InstallWheels` request that installs all wheels at once.
+	//       Either all succeed, or all fail.
+	//       This would make reference counting and eviction a lot simpler.
 	results := make([]result, len(wheels))
 	wg := sync.WaitGroup{}
 	for i, wheel := range wheels {
