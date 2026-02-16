@@ -74,12 +74,15 @@ func (sess *Session) AddClnt(cid sp.TclntId) {
 	sess.clnts[cid] = true
 }
 
-// Delete client from session
-func (sess *Session) DelClnt(cid sp.TclntId) {
+// Delete client from session.
+// Returns the remaining client count and whether cid was present.
+func (sess *Session) DelClnt(cid sp.TclntId) (int, bool) {
 	sess.Lock()
 	defer sess.Unlock()
+	_, existed := sess.clnts[cid]
 	delete(sess.clnts, cid)
 	db.DPrintf(db.SESSSRV, "Del cid %v sess %v %d\n", cid, sess.Sid, len(sess.clnts))
+	return len(sess.clnts), existed
 }
 
 // Server may call Close() several times because client may reconnect

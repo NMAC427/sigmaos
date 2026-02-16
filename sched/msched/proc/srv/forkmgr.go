@@ -495,7 +495,7 @@ func (fm *forkMgr) monitorZygote(ze *zygoteEntry) {
 
 	// Wait for all goroutines to finish, and all children to exit
 	ze.wg.Wait()
-	scontainer.CleanupUProc(ze.zygCmd)
+	scontainer.CleanupUProc(ze.zygCmd, fm.ps.pyenvClnt)
 
 	fm.mu.Lock()
 	fm.zygotes.remove(ze)

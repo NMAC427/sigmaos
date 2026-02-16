@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 
 	db "sigmaos/debug"
@@ -91,18 +90,24 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]p
 	return wheels, nil
 }
 
-// TODO: Must keep track of which wheels are currently being used
-// by running containers. For automatic eviction of unused wheels,
-// we need to only evict wheels not currently in use.
-func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, pyenvClnt *clnt.PyEnvClnt) (string, error) {
+// SetupSitePackages sets up the site-packages directory by installing all required wheels
+// and mounting an overlayFS. It atomically acquires locks on all wheels.
+// Returns the path to the site-packages directory and a lock handle.
+// The lock handle must be released when the process is done with the packages.
+func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, pyenvClnt *clnt.PyEnvClnt) (string, clnt.LockHandle, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	wheels, err := getRequiredWheels(lock, pyVersion)
 	if err != nil {
-		return "", err
+		return "", 0, err
+	}
+
+	if len(wheels) == 0 {
+		// No wheels needed - return empty site-packages path and empty lock handle
+		return "", 0, nil
 	}
 
 	totalSize := int64(0)
@@ -113,42 +118,29 @@ func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylock
 	}
 	db.DPrintf(db.CONTAINER, "Total size of required python wheels: %d bytes", totalSize)
 
-	type result struct {
-		path string
-		err  error
+	// Convert wheels to pointers for the client API
+	wheelPtrs := make([]*pylock.Wheel, len(wheels))
+	for i := range wheels {
+		wheelPtrs[i] = &wheels[i]
 	}
 
-	// TODO: We should be able to send a single `InstallWheels` request that installs all wheels at once.
-	//       Either all succeed, or all fail.
-	//       This would make reference counting and eviction a lot simpler.
-	results := make([]result, len(wheels))
-	wg := sync.WaitGroup{}
-	for i, wheel := range wheels {
-		wg.Add(1)
-		go func(idx int, wheel pylock.Wheel) {
-			defer wg.Done()
-			path, err := pyenvClnt.InstallWheel(&wheel, pyVersion)
-			results[idx] = result{path: path, err: err}
-		}(i, wheel)
-	}
-	wg.Wait()
-
-	wheelInstallPaths := make([]string, len(wheels))
-	for i, res := range results {
-		if res.err != nil {
-			return "", res.err
-		}
-		wheelInstallPaths[i] = res.path
+	// Install all wheels atomically and acquire locks
+	// This ensures all-or-nothing semantics
+	installPaths, handle, err := pyenvClnt.InstallWheels(wheelPtrs, pyVersion)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to install wheels: %w", err)
 	}
 
 	// Create overlayFS with all the wheels
 	// TODO: Switch to symlinks & benchmark which is better
-	overlayDir, err := mountOverlayFS(workingDir, wheelInstallPaths)
+	overlayDir, err := mountOverlayFS(workingDir, installPaths)
 	if err != nil {
-		return "", err
+		// Release locks on failure
+		pyenvClnt.ReleaseLocks(handle)
+		return "", 0, err
 	}
 
-	return filepath.Join(overlayDir, "site-packages"), nil
+	return filepath.Join(overlayDir, "site-packages"), handle, nil
 }
 
 func mountOverlayFS(workingDir string, lowerdirs []string) (string, error) {
@@ -238,6 +230,9 @@ func symlinkMerge(outDir string, inputDirs []string) error {
 	return nil
 }
 
+// CleanSitePackages unmounts the site-packages overlayFS.
+// Note: Lock release is handled separately by the caller using the lock handle
+// returned from SetupSitePackages.
 func CleanSitePackages(workingDir string) error {
 	target := filepath.Join(workingDir, "overlay")
 	if err := syscall.Unmount(target, 0); err != nil {

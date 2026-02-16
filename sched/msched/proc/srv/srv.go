@@ -584,7 +584,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	nRunning = ps.nRunning.Add(-1)
 	db.DPrintf(db.PROCD, "[%v] nRunning after: %v", uproc.GetProgram(), nRunning)
 	if !ps.k8s && !ps.gvisor {
-		scontainer.CleanupUProc(ctr.(*scontainer.UProcCmd))
+		scontainer.CleanupUProc(ctr.(*scontainer.UProcCmd), ps.pyenvClnt)
 	}
 	ps.procs.Delete(pid)
 	if uproc.GetProcEnv().UseSPProxy {

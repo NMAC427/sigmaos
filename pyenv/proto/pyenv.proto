@@ -20,14 +20,28 @@ message PythonVersion {
   string dcontainer_path = 5;
 }
 
-// InstallWheelReq requests installation of a wheel
-message InstallWheelReq {
-  Wheel wheel = 1;
+// InstallWheelsReq requests installation of multiple wheels and acquires locks on all of them.
+// This is an atomic operation - either all locks are acquired (and missing wheels installed),
+// or none are.
+message InstallWheelsReq {
+  repeated Wheel wheels = 1;
   string python_version = 2;  // e.g., "cpython3.11"
 }
 
-// InstallWheelRep returns the installation result
-message InstallWheelRep {
-  string install_path = 1;
-  string error = 2;
+// InstallWheelsRep returns the installation result and lock handle.
+// The lock_handle must be passed to ReleaseLocks to release the references.
+message InstallWheelsRep {
+  repeated string install_paths = 1;  // Parallel to wheels in request
+  uint64 lock_handle = 2;             // Opaque handle for ReleaseLocks (0 = no handle)
+  string error = 3;                   // Empty on success
+}
+
+// ReleaseLocksReq releases all locks associated with a lock handle.
+message ReleaseLocksReq {
+  uint64 lock_handle = 1;  // Handle returned by InstallWheels (must be > 0)
+}
+
+// ReleaseLocksRep returns the result of releasing locks.
+message ReleaseLocksRep {
+  string error = 1;  // Empty on success
 }

@@ -118,6 +118,12 @@ const (
 	IMGD_ERR           = IMGD + ERR
 )
 
+// PyEnv
+const (
+	PYENV     Tselector = "PYENV"
+	PYENV_ERR           = PYENV + ERR
+)
+
 // MR
 const (
 	MR       Tselector = "MR"

@@ -82,6 +82,11 @@ func (sssrv *SessSrv) RegisterDetachSess(f sps.DetachSessF, sid sessp.Tsession) 
 	return nil
 }
 
+// RegisterDetachSessAll installs a detach callback for existing and future sessions.
+func (sssrv *SessSrv) RegisterDetachSessAll(f sps.DetachSessF) {
+	sssrv.st.RegisterDetachSessAll(f)
+}
+
 func (ssrv *SessSrv) GetEndpoint() *sp.Tendpoint {
 	return ssrv.srv.GetEndpoint()
 }
@@ -151,8 +156,13 @@ func (ssrv *SessSrv) serve(sess *Session, fc *sessp.FcallMsg) *sessp.FcallMsg {
 
 	switch op {
 	case sps.TSESS_DEL:
-		sess.DelClnt(clntid)
+		nclnts, existed := sess.DelClnt(clntid)
 		ssrv.st.DelLastClnt(clntid)
+		if existed && nclnts == 0 {
+			if detachSess := sess.GetDetachSess(); detachSess != nil {
+				detachSess(sess.Sid)
+			}
+		}
 	case sps.TSESS_ADD:
 		sess.AddClnt(clntid)
 		ssrv.st.AddLastClnt(clntid, sess)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"sigmaos/api/fs"
+	sps "sigmaos/api/spprotsrv"
 	"sigmaos/ctx"
 	db "sigmaos/debug"
 	"sigmaos/proc"
@@ -202,6 +203,11 @@ func (ssrv *SigmaSrv) newLeaseSrv() {
 
 func (ssrv *SigmaSrv) QueueLen() int64 {
 	return ssrv.MemFs.QueueLen()
+}
+
+// RegisterDetachSess registers a callback that runs when a session fully detaches.
+func (ssrv *SigmaSrv) RegisterDetachSess(f sps.DetachSessF) {
+	ssrv.MemFs.RegisterDetachSessAll(f)
 }
 
 func (ssrv *SigmaSrv) MonitorCPU(ufn cpumon.UtilFn) {

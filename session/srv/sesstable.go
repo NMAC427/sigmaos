@@ -5,6 +5,7 @@ import (
 
 	//	"github.com/sasha-s/go-deadlock"
 
+	sps "sigmaos/api/spprotsrv"
 	// db "sigmaos/debug"
 	sessp "sigmaos/session/proto"
 	sp "sigmaos/sigmap"
@@ -16,9 +17,10 @@ type sessionTable struct {
 	newSess NewSessionI
 	mu      sync.RWMutex
 	//	deadlock.Mutex
-	sessions  map[sessp.Tsession]*Session
-	lasts     map[sessp.Tsession]*Session // for testing
-	lastClnts map[sp.TclntId]*Session     // for testing
+	sessions   map[sessp.Tsession]*Session
+	detachSess sps.DetachSessF
+	lasts      map[sessp.Tsession]*Session // for testing
+	lastClnts  map[sp.TclntId]*Session     // for testing
 }
 
 func newSessionTable(newSess NewSessionI) *sessionTable {
@@ -55,11 +57,25 @@ func (st *sessionTable) Alloc(p *sp.Tprincipal, sid sessp.Tsession, nc *netConn)
 		return sess
 	}
 	sess := newSession(st.newSess.NewSession(p, sid), sid, nc)
+	if st.detachSess != nil {
+		sess.RegisterDetachSess(st.detachSess)
+	}
 	st.sessions[sid] = sess
 	if len(st.lasts) < NLAST {
 		st.lasts[sid] = sess
 	}
 	return sess
+}
+
+// RegisterDetachSessAll stores the callback and applies it to all current sessions.
+func (st *sessionTable) RegisterDetachSessAll(f sps.DetachSessF) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+
+	st.detachSess = f
+	for _, sess := range st.sessions {
+		sess.RegisterDetachSess(f)
+	}
 }
 
 // Return a last session

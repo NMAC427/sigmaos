@@ -7,11 +7,10 @@
 package proto
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -181,18 +180,20 @@ func (x *PythonVersion) GetDcontainerPath() string {
 	return ""
 }
 
-// InstallWheelReq requests installation of a wheel
-type InstallWheelReq struct {
+// InstallWheelsReq requests installation of multiple wheels and acquires locks on all of them.
+// This is an atomic operation - either all locks are acquired (and missing wheels installed),
+// or none are.
+type InstallWheelsReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Wheel         *Wheel `protobuf:"bytes,1,opt,name=wheel,proto3" json:"wheel,omitempty"`
-	PythonVersion string `protobuf:"bytes,2,opt,name=python_version,json=pythonVersion,proto3" json:"python_version,omitempty"` // e.g., "cpython3.11"
+	Wheels        []*Wheel `protobuf:"bytes,1,rep,name=wheels,proto3" json:"wheels,omitempty"`
+	PythonVersion string   `protobuf:"bytes,2,opt,name=python_version,json=pythonVersion,proto3" json:"python_version,omitempty"` // e.g., "cpython3.11"
 }
 
-func (x *InstallWheelReq) Reset() {
-	*x = InstallWheelReq{}
+func (x *InstallWheelsReq) Reset() {
+	*x = InstallWheelsReq{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_pyenv_proto_pyenv_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -200,13 +201,13 @@ func (x *InstallWheelReq) Reset() {
 	}
 }
 
-func (x *InstallWheelReq) String() string {
+func (x *InstallWheelsReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InstallWheelReq) ProtoMessage() {}
+func (*InstallWheelsReq) ProtoMessage() {}
 
-func (x *InstallWheelReq) ProtoReflect() protoreflect.Message {
+func (x *InstallWheelsReq) ProtoReflect() protoreflect.Message {
 	mi := &file_pyenv_proto_pyenv_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -218,37 +219,39 @@ func (x *InstallWheelReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InstallWheelReq.ProtoReflect.Descriptor instead.
-func (*InstallWheelReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use InstallWheelsReq.ProtoReflect.Descriptor instead.
+func (*InstallWheelsReq) Descriptor() ([]byte, []int) {
 	return file_pyenv_proto_pyenv_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *InstallWheelReq) GetWheel() *Wheel {
+func (x *InstallWheelsReq) GetWheels() []*Wheel {
 	if x != nil {
-		return x.Wheel
+		return x.Wheels
 	}
 	return nil
 }
 
-func (x *InstallWheelReq) GetPythonVersion() string {
+func (x *InstallWheelsReq) GetPythonVersion() string {
 	if x != nil {
 		return x.PythonVersion
 	}
 	return ""
 }
 
-// InstallWheelRep returns the installation result
-type InstallWheelRep struct {
+// InstallWheelsRep returns the installation result and lock handle.
+// The lock_handle must be passed to ReleaseLocks to release the references.
+type InstallWheelsRep struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	InstallPath string `protobuf:"bytes,1,opt,name=install_path,json=installPath,proto3" json:"install_path,omitempty"`
-	Error       string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	InstallPaths []string `protobuf:"bytes,1,rep,name=install_paths,json=installPaths,proto3" json:"install_paths,omitempty"` // Parallel to wheels in request
+	LockHandle   uint64   `protobuf:"varint,2,opt,name=lock_handle,json=lockHandle,proto3" json:"lock_handle,omitempty"`      // Opaque handle for ReleaseLocks (0 = no handle)
+	Error        string   `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`                                   // Empty on success
 }
 
-func (x *InstallWheelRep) Reset() {
-	*x = InstallWheelRep{}
+func (x *InstallWheelsRep) Reset() {
+	*x = InstallWheelsRep{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_pyenv_proto_pyenv_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -256,13 +259,13 @@ func (x *InstallWheelRep) Reset() {
 	}
 }
 
-func (x *InstallWheelRep) String() string {
+func (x *InstallWheelsRep) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InstallWheelRep) ProtoMessage() {}
+func (*InstallWheelsRep) ProtoMessage() {}
 
-func (x *InstallWheelRep) ProtoReflect() protoreflect.Message {
+func (x *InstallWheelsRep) ProtoReflect() protoreflect.Message {
 	mi := &file_pyenv_proto_pyenv_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -274,36 +277,43 @@ func (x *InstallWheelRep) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InstallWheelRep.ProtoReflect.Descriptor instead.
-func (*InstallWheelRep) Descriptor() ([]byte, []int) {
+// Deprecated: Use InstallWheelsRep.ProtoReflect.Descriptor instead.
+func (*InstallWheelsRep) Descriptor() ([]byte, []int) {
 	return file_pyenv_proto_pyenv_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *InstallWheelRep) GetInstallPath() string {
+func (x *InstallWheelsRep) GetInstallPaths() []string {
 	if x != nil {
-		return x.InstallPath
+		return x.InstallPaths
 	}
-	return ""
+	return nil
 }
 
-func (x *InstallWheelRep) GetError() string {
+func (x *InstallWheelsRep) GetLockHandle() uint64 {
+	if x != nil {
+		return x.LockHandle
+	}
+	return 0
+}
+
+func (x *InstallWheelsRep) GetError() string {
 	if x != nil {
 		return x.Error
 	}
 	return ""
 }
 
-// GetPyVersionReq requests Python version information
-type GetPyVersionReq struct {
+// ReleaseLocksReq releases all locks associated with a lock handle.
+type ReleaseLocksReq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Version string `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"` // e.g., "cpython3.11"
+	LockHandle uint64 `protobuf:"varint,1,opt,name=lock_handle,json=lockHandle,proto3" json:"lock_handle,omitempty"` // Handle returned by InstallWheels (must be > 0)
 }
 
-func (x *GetPyVersionReq) Reset() {
-	*x = GetPyVersionReq{}
+func (x *ReleaseLocksReq) Reset() {
+	*x = ReleaseLocksReq{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_pyenv_proto_pyenv_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -311,13 +321,13 @@ func (x *GetPyVersionReq) Reset() {
 	}
 }
 
-func (x *GetPyVersionReq) String() string {
+func (x *ReleaseLocksReq) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetPyVersionReq) ProtoMessage() {}
+func (*ReleaseLocksReq) ProtoMessage() {}
 
-func (x *GetPyVersionReq) ProtoReflect() protoreflect.Message {
+func (x *ReleaseLocksReq) ProtoReflect() protoreflect.Message {
 	mi := &file_pyenv_proto_pyenv_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -329,30 +339,29 @@ func (x *GetPyVersionReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetPyVersionReq.ProtoReflect.Descriptor instead.
-func (*GetPyVersionReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReleaseLocksReq.ProtoReflect.Descriptor instead.
+func (*ReleaseLocksReq) Descriptor() ([]byte, []int) {
 	return file_pyenv_proto_pyenv_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetPyVersionReq) GetVersion() string {
+func (x *ReleaseLocksReq) GetLockHandle() uint64 {
 	if x != nil {
-		return x.Version
+		return x.LockHandle
 	}
-	return ""
+	return 0
 }
 
-// GetPyVersionRep returns Python version information
-type GetPyVersionRep struct {
+// ReleaseLocksRep returns the result of releasing locks.
+type ReleaseLocksRep struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	PyVersion *PythonVersion `protobuf:"bytes,1,opt,name=py_version,json=pyVersion,proto3" json:"py_version,omitempty"`
-	Error     string         `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"` // Empty on success
 }
 
-func (x *GetPyVersionRep) Reset() {
-	*x = GetPyVersionRep{}
+func (x *ReleaseLocksRep) Reset() {
+	*x = ReleaseLocksRep{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_pyenv_proto_pyenv_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -360,13 +369,13 @@ func (x *GetPyVersionRep) Reset() {
 	}
 }
 
-func (x *GetPyVersionRep) String() string {
+func (x *ReleaseLocksRep) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetPyVersionRep) ProtoMessage() {}
+func (*ReleaseLocksRep) ProtoMessage() {}
 
-func (x *GetPyVersionRep) ProtoReflect() protoreflect.Message {
+func (x *ReleaseLocksRep) ProtoReflect() protoreflect.Message {
 	mi := &file_pyenv_proto_pyenv_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -378,19 +387,12 @@ func (x *GetPyVersionRep) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetPyVersionRep.ProtoReflect.Descriptor instead.
-func (*GetPyVersionRep) Descriptor() ([]byte, []int) {
+// Deprecated: Use ReleaseLocksRep.ProtoReflect.Descriptor instead.
+func (*ReleaseLocksRep) Descriptor() ([]byte, []int) {
 	return file_pyenv_proto_pyenv_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetPyVersionRep) GetPyVersion() *PythonVersion {
-	if x != nil {
-		return x.PyVersion
-	}
-	return nil
-}
-
-func (x *GetPyVersionRep) GetError() string {
+func (x *ReleaseLocksRep) GetError() string {
 	if x != nil {
 		return x.Error
 	}
@@ -430,28 +432,27 @@ var file_pyenv_proto_pyenv_proto_rawDesc = []byte{
 	0x76, 0x4d, 0x61, 0x72, 0x6b, 0x65, 0x72, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a,
 	0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12,
 	0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05,
-	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x56, 0x0a, 0x0f, 0x49, 0x6e, 0x73,
-	0x74, 0x61, 0x6c, 0x6c, 0x57, 0x68, 0x65, 0x65, 0x6c, 0x52, 0x65, 0x71, 0x12, 0x1c, 0x0a, 0x05,
-	0x77, 0x68, 0x65, 0x65, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x06, 0x2e, 0x57, 0x68,
-	0x65, 0x65, 0x6c, 0x52, 0x05, 0x77, 0x68, 0x65, 0x65, 0x6c, 0x12, 0x25, 0x0a, 0x0e, 0x70, 0x79,
-	0x74, 0x68, 0x6f, 0x6e, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x0d, 0x70, 0x79, 0x74, 0x68, 0x6f, 0x6e, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f,
-	0x6e, 0x22, 0x4a, 0x0a, 0x0f, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x57, 0x68, 0x65, 0x65,
-	0x6c, 0x52, 0x65, 0x70, 0x12, 0x21, 0x0a, 0x0c, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x5f,
-	0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x69, 0x6e, 0x73, 0x74,
-	0x61, 0x6c, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x22, 0x2b, 0x0a,
-	0x0f, 0x47, 0x65, 0x74, 0x50, 0x79, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71,
-	0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x56, 0x0a, 0x0f, 0x47, 0x65,
-	0x74, 0x50, 0x79, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x70, 0x12, 0x2d, 0x0a,
-	0x0a, 0x70, 0x79, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x0e, 0x2e, 0x50, 0x79, 0x74, 0x68, 0x6f, 0x6e, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f,
-	0x6e, 0x52, 0x09, 0x70, 0x79, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x14, 0x0a, 0x05,
-	0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72,
-	0x6f, 0x72, 0x42, 0x15, 0x5a, 0x13, 0x73, 0x69, 0x67, 0x6d, 0x61, 0x6f, 0x73, 0x2f, 0x70, 0x79,
-	0x65, 0x6e, 0x76, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x59, 0x0a, 0x10, 0x49, 0x6e, 0x73,
+	0x74, 0x61, 0x6c, 0x6c, 0x57, 0x68, 0x65, 0x65, 0x6c, 0x73, 0x52, 0x65, 0x71, 0x12, 0x1e, 0x0a,
+	0x06, 0x77, 0x68, 0x65, 0x65, 0x6c, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x06, 0x2e,
+	0x57, 0x68, 0x65, 0x65, 0x6c, 0x52, 0x06, 0x77, 0x68, 0x65, 0x65, 0x6c, 0x73, 0x12, 0x25, 0x0a,
+	0x0e, 0x70, 0x79, 0x74, 0x68, 0x6f, 0x6e, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0d, 0x70, 0x79, 0x74, 0x68, 0x6f, 0x6e, 0x56, 0x65, 0x72,
+	0x73, 0x69, 0x6f, 0x6e, 0x22, 0x6e, 0x0a, 0x10, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x57,
+	0x68, 0x65, 0x65, 0x6c, 0x73, 0x52, 0x65, 0x70, 0x12, 0x23, 0x0a, 0x0d, 0x69, 0x6e, 0x73, 0x74,
+	0x61, 0x6c, 0x6c, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52,
+	0x0c, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x73, 0x12, 0x1f, 0x0a,
+	0x0b, 0x6c, 0x6f, 0x63, 0x6b, 0x5f, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x0a, 0x6c, 0x6f, 0x63, 0x6b, 0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x14,
+	0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65,
+	0x72, 0x72, 0x6f, 0x72, 0x22, 0x32, 0x0a, 0x0f, 0x52, 0x65, 0x6c, 0x65, 0x61, 0x73, 0x65, 0x4c,
+	0x6f, 0x63, 0x6b, 0x73, 0x52, 0x65, 0x71, 0x12, 0x1f, 0x0a, 0x0b, 0x6c, 0x6f, 0x63, 0x6b, 0x5f,
+	0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0a, 0x6c, 0x6f,
+	0x63, 0x6b, 0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x22, 0x27, 0x0a, 0x0f, 0x52, 0x65, 0x6c, 0x65,
+	0x61, 0x73, 0x65, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x52, 0x65, 0x70, 0x12, 0x14, 0x0a, 0x05, 0x65,
+	0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f,
+	0x72, 0x42, 0x15, 0x5a, 0x13, 0x73, 0x69, 0x67, 0x6d, 0x61, 0x6f, 0x73, 0x2f, 0x70, 0x79, 0x65,
+	0x6e, 0x76, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -468,25 +469,24 @@ func file_pyenv_proto_pyenv_proto_rawDescGZIP() []byte {
 
 var file_pyenv_proto_pyenv_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_pyenv_proto_pyenv_proto_goTypes = []interface{}{
-	(*Wheel)(nil),           // 0: Wheel
-	(*PythonVersion)(nil),   // 1: PythonVersion
-	(*InstallWheelReq)(nil), // 2: InstallWheelReq
-	(*InstallWheelRep)(nil), // 3: InstallWheelRep
-	(*GetPyVersionReq)(nil), // 4: GetPyVersionReq
-	(*GetPyVersionRep)(nil), // 5: GetPyVersionRep
-	nil,                     // 6: Wheel.HashesEntry
-	nil,                     // 7: PythonVersion.EnvMarkersEntry
+	(*Wheel)(nil),            // 0: Wheel
+	(*PythonVersion)(nil),    // 1: PythonVersion
+	(*InstallWheelsReq)(nil), // 2: InstallWheelsReq
+	(*InstallWheelsRep)(nil), // 3: InstallWheelsRep
+	(*ReleaseLocksReq)(nil),  // 4: ReleaseLocksReq
+	(*ReleaseLocksRep)(nil),  // 5: ReleaseLocksRep
+	nil,                      // 6: Wheel.HashesEntry
+	nil,                      // 7: PythonVersion.EnvMarkersEntry
 }
 var file_pyenv_proto_pyenv_proto_depIdxs = []int32{
 	6, // 0: Wheel.hashes:type_name -> Wheel.HashesEntry
 	7, // 1: PythonVersion.env_markers:type_name -> PythonVersion.EnvMarkersEntry
-	0, // 2: InstallWheelReq.wheel:type_name -> Wheel
-	1, // 3: GetPyVersionRep.py_version:type_name -> PythonVersion
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 2: InstallWheelsReq.wheels:type_name -> Wheel
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_pyenv_proto_pyenv_proto_init() }
@@ -520,7 +520,7 @@ func file_pyenv_proto_pyenv_proto_init() {
 			}
 		}
 		file_pyenv_proto_pyenv_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InstallWheelReq); i {
+			switch v := v.(*InstallWheelsReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -532,7 +532,7 @@ func file_pyenv_proto_pyenv_proto_init() {
 			}
 		}
 		file_pyenv_proto_pyenv_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InstallWheelRep); i {
+			switch v := v.(*InstallWheelsRep); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -544,7 +544,7 @@ func file_pyenv_proto_pyenv_proto_init() {
 			}
 		}
 		file_pyenv_proto_pyenv_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPyVersionReq); i {
+			switch v := v.(*ReleaseLocksReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -556,7 +556,7 @@ func file_pyenv_proto_pyenv_proto_init() {
 			}
 		}
 		file_pyenv_proto_pyenv_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetPyVersionRep); i {
+			switch v := v.(*ReleaseLocksRep); i {
 			case 0:
 				return &v.state
 			case 1:

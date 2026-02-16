@@ -27,9 +27,10 @@ import (
 // UProcCmd is a handle for a running user proc inside a sigma container.
 // It is returned by StartSigmaContainer.
 type UProcCmd struct {
-	uproc    *proc.Proc
-	cmd      *exec.Cmd
-	jailPath string
+	uproc      *proc.Proc
+	cmd        *exec.Cmd
+	jailPath   string
+	lockHandle pyenvclnt.LockHandle
 }
 
 func (upc *UProcCmd) Wait() error {
@@ -55,7 +56,7 @@ func (upc *UProcCmd) Kill() error {
 func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaClnt, pyenvClnt *pyenvclnt.PyEnvClnt) (*UProcCmd, error) {
 	db.DPrintf(db.CONTAINER, "RunUProc scontainer dialproxy %v %v env %v\n", dialproxy, uproc, os.Environ())
 
-	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: JailPath(uproc.GetPid())}
+	uprocCmd := &UProcCmd{uproc: uproc, cmd: nil, jailPath: JailPath(uproc.GetPid()), lockHandle: 0}
 
 	straceProcs := proc.GetLabels(uproc.GetProcEnv().GetStrace())
 	valgrindProcs := proc.GetLabels(uproc.GetProcEnv().GetValgrind())
@@ -92,14 +93,18 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 			// Set up python environment based on pylock file (if present)
 			if pylockPath, err := python.GetPylockPath("/home/sigmaos/bin/kernel/pyproc", pythonFile); err == nil {
 				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
-				sitePackagesDir, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, pyenvClnt)
+				sitePackagesDir, lockHandle, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, pyenvClnt)
 				if err != nil {
 					err = fmt.Errorf("setting up python site-packages failed: %w", err)
 					db.DPrintf(db.CONTAINER, "%v", err)
 					return nil, err
 				}
 
-				pythonPath = pythonPath + ":" + strings.TrimPrefix(sitePackagesDir, uprocCmd.jailPath)
+				// Store the lock handle for cleanup
+				uprocCmd.lockHandle = lockHandle
+				if sitePackagesDir != "" {
+					pythonPath = pythonPath + ":" + strings.TrimPrefix(sitePackagesDir, uprocCmd.jailPath)
+				}
 			} else {
 				db.DPrintf(db.CONTAINER, "No pylock.toml file found\n")
 			}
@@ -152,7 +157,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 	s := time.Now()
 	if err := uprocCmd.cmd.Start(); err != nil {
 		db.DPrintf(db.CONTAINER, "Error start %v %v", uprocCmd.cmd, err)
-		CleanupUProc(uprocCmd)
+		CleanupUProc(uprocCmd, pyenvClnt)
 		return nil, err
 	}
 	perf.LogSpawnLatency("StartSigmaContainer cmd.Start", uproc.GetPid(), uproc.GetSpawnTime(), s)
@@ -160,9 +165,18 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 }
 
 // CleanupUProc removes the proc's python env (if any) and its jail directory.
-func CleanupUProc(uprocCmd *UProcCmd) {
-	pid := uprocCmd.uproc.GetPid()
-	python.CleanSitePackages(pyEnvPath(pid))
+// It also releases any Python package locks held by the process.
+func CleanupUProc(uprocCmd *UProcCmd, pyenvClnt *pyenvclnt.PyEnvClnt) {
+	// Release Python package locks and remove site-packages overlay
+	if uprocCmd.lockHandle != 0 {
+		pid := uprocCmd.uproc.GetPid()
+		python.CleanSitePackages(pyEnvPath(pid))
+
+		if err := pyenvClnt.ReleaseLocks(uprocCmd.lockHandle); err != nil {
+			db.DPrintf(db.CONTAINER, "Error releasing Python package locks: %v", err)
+		}
+	}
+
 	if err := os.RemoveAll(uprocCmd.jailPath); err != nil {
 		db.DPrintf(db.ALWAYS, "Error cleanupJail: %v", err)
 	}
