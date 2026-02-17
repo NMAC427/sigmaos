@@ -11,28 +11,28 @@ type refCount struct {
 	state atomic.Int32 // >=0: refcount, -1: closed
 }
 
-func (c *refCount) acquire() error {
+func (c *refCount) acquire() (int32, error) {
 	for {
 		s := c.state.Load()
 		if s < 0 {
-			return ErrEvicted
+			return -1, ErrEvicted
 		}
 		// try to increment refcount
 		if c.state.CompareAndSwap(s, s+1) {
-			return nil
+			return s + 1, nil
 		}
 		// CAS failed -> retry
 	}
 }
 
-func (c *refCount) release() {
+func (c *refCount) release() int32 {
 	for {
 		s := c.state.Load()
 		if s <= 0 {
 			panic("release on zero or closed refCount")
 		}
 		if c.state.CompareAndSwap(s, s-1) {
-			return
+			return s - 1
 		}
 	}
 }

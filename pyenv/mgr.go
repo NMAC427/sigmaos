@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"sigmaos/pyenv/pylock"
 	sessp "sigmaos/session/proto"
@@ -20,16 +19,15 @@ import (
 type installResult struct {
 	path     string
 	err      error
-	refCount refCount
-	lastUsed atomic.Int64 // Unix timestamp for LRU eviction
+	refCount zeroListItem
 }
 
 // LockHandle uniquely identifies a set of acquired locks
 type LockHandle struct {
 	SessionID   sessp.Tsession
 	HandleID    uint64
-	refs        []*refCount // References to release on unlock
-	releaseOnce sync.Once   // Ensures refs are released exactly once
+	refs        []*installResult // References to release on unlock
+	releaseOnce sync.Once        // Ensures refs are released exactly once
 }
 
 // PyMgr manages Python wheel installation and caching.
@@ -55,6 +53,8 @@ type PyMgr struct {
 
 	// Handle counter for generating unique lock handles (starts at 1)
 	handleCounter atomic.Uint64
+
+	evictionList zeroList // List of wheels with refcount=0, ordered by recency of becoming unused
 }
 
 // generateHandleID returns a unique uint64 handle ID
@@ -87,6 +87,8 @@ func NewPyMgr() *PyMgr {
 		downloadSem: make(chan struct{}, min(32, numCPU+4)),
 
 		sessionLocks: make(map[sessp.Tsession]map[uint64]*LockHandle),
+
+		evictionList: newZeroList(),
 	}
 }
 
@@ -104,7 +106,7 @@ func (pm *PyMgr) InstallWheels(wheels []*pylock.Wheel, pyVersion *PythonVersion,
 
 	// Results and acquired locks
 	installPaths := make([]string, len(wheels))
-	acquiredRefs := make([]*refCount, 0, len(wheels))
+	acquiredRefs := make([]*installResult, 0, len(wheels))
 	sha256s := make([]string, len(wheels))
 
 	// Step 1: Get sha256 for all wheels and verify they have hashes
@@ -145,18 +147,17 @@ func (pm *PyMgr) InstallWheels(wheels []*pylock.Wheel, pyVersion *PythonVersion,
 		}
 
 		// Try to acquire the lock
-		if err := result.refCount.acquire(); err != nil {
+		err := result.refCount.acquire(&pm.evictionList)
+		if err != nil {
 			// Failed to acquire - release all previously acquired locks
 			pm.mu.RUnlock()
 			for _, ref := range acquiredRefs {
-				ref.release()
+				ref.refCount.release(&pm.evictionList)
 			}
 			return nil, nil, fmt.Errorf("wheel %s was evicted", wheels[i].Name)
 		}
 
-		// Update last used time
-		result.lastUsed.Store(time.Now().Unix())
-		acquiredRefs = append(acquiredRefs, &result.refCount)
+		acquiredRefs = append(acquiredRefs, result)
 	}
 	pm.mu.RUnlock()
 
@@ -241,7 +242,7 @@ func (pm *PyMgr) ReleaseLocks(handle *LockHandle) error {
 	// Release all refs exactly once using sync.Once
 	handle.releaseOnce.Do(func() {
 		for _, ref := range handle.refs {
-			ref.release()
+			ref.refCount.release(&pm.evictionList)
 		}
 	})
 
@@ -279,7 +280,7 @@ func (pm *PyMgr) ReleaseAllSessionLocks(sessionID sessp.Tsession) {
 	for _, handle := range handles {
 		handle.releaseOnce.Do(func() {
 			for _, ref := range handle.refs {
-				ref.release()
+				ref.refCount.release(&pm.evictionList)
 			}
 		})
 	}
@@ -296,7 +297,7 @@ func (pm *PyMgr) SessionLocks() map[sessp.Tsession]map[uint64]*LockHandle {
 	return pm.sessionLocks
 }
 
-// TryEvict attempts to evict a package if its refcount is 0.
+// TryEvict attempts to evict a specific wheel if its refcount is 0.
 // Returns true if successfully evicted.
 func (pm *PyMgr) TryEvict(sha256 string, pyIdx int) bool {
 	pm.mu.Lock()
@@ -308,8 +309,8 @@ func (pm *PyMgr) TryEvict(sha256 string, pyIdx int) bool {
 	}
 
 	// Try to close (mark as evicted)
-	if !result.refCount.tryClose() {
-		return false // Still has references
+	if !result.refCount.tryClose(&pm.evictionList) {
+		return false
 	}
 
 	// Remove from installed wheels
