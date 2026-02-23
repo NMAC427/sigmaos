@@ -45,13 +45,20 @@ func writeFrame(w io.Writer, msg any) error {
 	if err != nil {
 		return err
 	}
-	var hdr [4]byte
-	binary.BigEndian.PutUint32(hdr[:], uint32(len(b)))
-	if _, err := w.Write(hdr[:]); err != nil {
-		return err
+	frame := make([]byte, 4+len(b))
+	binary.BigEndian.PutUint32(frame[:4], uint32(len(b)))
+	copy(frame[4:], b)
+	for len(frame) > 0 {
+		n, err := w.Write(frame)
+		if err != nil {
+			return err
+		}
+		if n <= 0 {
+			return io.ErrShortWrite
+		}
+		frame = frame[n:]
 	}
-	_, err = w.Write(b)
-	return err
+	return nil
 }
 
 func readFrame(r io.Reader, out any) error {
@@ -155,6 +162,7 @@ type zygoteEntry struct {
 	connMu   sync.Mutex
 	listener *net.UnixListener
 	zygConn  *net.UnixConn
+	writeMu  sync.Mutex
 
 	// Fork request tracking
 	pendingMu sync.RWMutex
@@ -557,12 +565,14 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
 		return 0, "", fmt.Errorf("zygote connection missing")
 	}
 
+	ze.writeMu.Lock()
 	err = writeFrame(conn, forkMsg{
 		Type:  "fork",
 		ReqID: reqID,
 		Env:   uproc.GetEnv(),
 		Args:  fp.GetChildArgs(),
 	})
+	ze.writeMu.Unlock()
 	if err != nil {
 		return 0, "", err
 	}
