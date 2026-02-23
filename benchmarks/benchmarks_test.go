@@ -98,6 +98,13 @@ var K8S_ADDR string
 var K8S_LEADER_NODE_IP string
 var K8S_JOB_NAME string
 var S3_RES_DIR string
+var ZYGOTE_WORKLOAD string
+var ZYGOTE_NPROCS int
+var ZYGOTE_NTRIALS int
+var ZYGOTE_KEEPALIVE time.Duration
+var ZYGOTE_MEM_LEVELS string
+var ZYGOTE_MEM_HOLD time.Duration
+var ZYGOTE_PSS_DELAY time.Duration
 
 // Read & set the proc version.
 func init() {
@@ -154,6 +161,13 @@ func init() {
 	flag.Float64Var(&CONTENDERS_FRAC, "contenders", 4000, "Fraction of cores which should be taken up by contending procs.")
 	flag.IntVar(&GO_MAX_PROCS, "gomaxprocs", int(linuxsched.GetNCores()), "Go maxprocs setting for procs to be spawned.")
 	flag.IntVar(&MAX_PARALLEL, "max_parallel", 1, "Max amount of parallelism.")
+	flag.StringVar(&ZYGOTE_WORKLOAD, "zygote_workload", "hello", "Zygote benchmark workload [hello, numpy_pandas, pytorch].")
+	flag.IntVar(&ZYGOTE_NPROCS, "zygote_nprocs", 10, "Number of concurrent procs in zygote benchmark.")
+	flag.IntVar(&ZYGOTE_NTRIALS, "zygote_ntrials", 50, "Number of trials in zygote benchmark.")
+	flag.DurationVar(&ZYGOTE_KEEPALIVE, "zygote_keepalive", 10*time.Second, "Zygote keepalive duration.")
+	flag.StringVar(&ZYGOTE_MEM_LEVELS, "zygote_mem_levels", "1,2,4,8,16", "Comma-separated concurrency levels for zygote memory benchmark.")
+	flag.DurationVar(&ZYGOTE_MEM_HOLD, "zygote_mem_hold", 30*time.Second, "How long zygote memory benchmark children should stay alive.")
+	flag.DurationVar(&ZYGOTE_PSS_DELAY, "zygote_pss_delay", 1*time.Second, "Delay before MeasurePSS samples process memory.")
 
 	db.DPrintf(db.ALWAYS, "ncore: %v", linuxsched.GetNCores())
 }
