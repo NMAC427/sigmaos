@@ -164,7 +164,7 @@ func init() {
 	flag.StringVar(&ZYGOTE_WORKLOAD, "zygote_workload", "hello", "Zygote benchmark workload [hello, numpy_pandas, pytorch].")
 	flag.IntVar(&ZYGOTE_NPROCS, "zygote_nprocs", 10, "Number of concurrent procs in zygote benchmark.")
 	flag.IntVar(&ZYGOTE_NTRIALS, "zygote_ntrials", 50, "Number of trials in zygote benchmark.")
-	flag.DurationVar(&ZYGOTE_KEEPALIVE, "zygote_keepalive", 10*time.Second, "Zygote keepalive duration.")
+	flag.DurationVar(&ZYGOTE_KEEPALIVE, "zygote_keepalive", 1*time.Second, "Zygote keepalive duration.")
 	flag.StringVar(&ZYGOTE_MEM_LEVELS, "zygote_mem_levels", "1,2,4,8,16", "Comma-separated concurrency levels for zygote memory benchmark.")
 	flag.DurationVar(&ZYGOTE_MEM_HOLD, "zygote_mem_hold", 30*time.Second, "How long zygote memory benchmark children should stay alive.")
 	flag.DurationVar(&ZYGOTE_PSS_DELAY, "zygote_pss_delay", 1*time.Second, "Delay before MeasurePSS samples process memory.")

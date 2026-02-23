@@ -56,6 +56,13 @@ func spawnAndWaitRound(ts *test.Tstate, w zygoteWorkload, n int, useFork bool, h
 	var wg sync.WaitGroup
 	errCh := make(chan error, n)
 
+	if useFork {
+		// Add a random environment variable to ensure that we don't reuse
+		// zygotes across trials.
+		uniqueId := fmt.Sprintf("%d", time.Now().UnixNano())
+		cfg.ZygoteProc.AppendEnv("__ZYGOTE_BENCHMARK", uniqueId)
+	}
+
 	start := time.Now()
 	for i := 0; i < n; i++ {
 		wg.Add(1)
@@ -154,7 +161,6 @@ func TestZygoteForkComparison(t *testing.T) {
 	forkRound := benchmarks.NewResults(ZYGOTE_NTRIALS, benchmarks.OPS)
 	forkPerProc := benchmarks.NewResults(ZYGOTE_NTRIALS, benchmarks.OPS)
 	for i := 0; i < ZYGOTE_NTRIALS; i++ {
-		// TODO: Kill the zygote between rounds
 		d, err := spawnAndWaitRound(ts, w, ZYGOTE_NPROCS, true, 0, forkCfg)
 		if err != nil {
 			t.Fatalf("fork trial %d: %v", i, err)
