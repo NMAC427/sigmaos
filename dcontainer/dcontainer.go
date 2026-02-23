@@ -90,7 +90,7 @@ func StartDockerContainer(p *proc.Proc, kernelId, user, netmode string, useGViso
 		// python dir
 		mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   path.Join(tmpBase, "sigmaos-python"),
+			Source:   path.Join(tmpBase, "sigmaos-python", kernelId),
 			Target:   "/tmp/python/package-cache",
 			ReadOnly: false,
 		},

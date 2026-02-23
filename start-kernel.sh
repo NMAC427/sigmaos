@@ -165,6 +165,7 @@ mkdir -p $PERF_DIR
 chmod a+w $PERF_DIR
 mkdir -p $KERNEL_DIR
 mkdir -p $PYTHON_PKG_CACHE_DIR
+mkdir -p $PYTHON_PKG_CACHE_DIR/$KERNELID
 
 # Pull latest docker images, if not running a local build.
 if [ "$TAG" != "local-build" ]; then
@@ -195,7 +196,7 @@ MOUNTS="--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
   --mount type=bind,src=$SPPROXY_DIR,dst=/tmp/spproxyd \
   --mount type=bind,src=$DATA_DIR,dst=/home/sigmaos/data \
   --mount type=bind,src=$HOST_BIN_CACHE/${KERNELID},dst=/home/sigmaos/bin/user/realms \
-  --mount type=bind,src=$PYTHON_PKG_CACHE_DIR,dst=/tmp/python/package-cache \
+  --mount type=bind,src=$PYTHON_PKG_CACHE_DIR/${KERNELID},dst=/tmp/python/package-cache \
   --mount type=bind,src=$PERF_DIR,dst=/tmp/sigmaos-perf \
   --mount type=bind,src=$HOMEDIR/.aws,dst=/home/sigmaos/.aws"
 # If running in local configuration, mount bin directory.
