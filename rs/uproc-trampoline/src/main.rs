@@ -202,6 +202,11 @@ fn jail_proc(
         "tmp/python/package-cache",
     ];
 
+    const FILES: &'static [&'static str] = &[
+        "dev/random",
+        "dev/urandom",
+    ];
+
     let newroot = "/home/sigmaos/jail/";
     let newroot_pn: String = newroot.to_owned() + pid + "/";
 
@@ -210,6 +215,10 @@ fn jail_proc(
     for d in DIRS.iter() {
         let path: String = newroot_pn.to_owned();
         fs::create_dir_all(path + d)?;
+    }
+    for f in FILES.iter() {
+        let path: String = newroot_pn.to_owned();
+        fs::File::create(path + f)?;
     }
     print_elapsed_time(
         debug_pid,
@@ -274,6 +283,16 @@ fn jail_proc(
         .fstype("none")
         .flags(MountFlags::BIND)
         .mount("/dev/shm", "dev/shm")?;
+
+    Mount::builder()
+        .fstype("none")
+        .flags(MountFlags::BIND)
+        .mount("/dev/random", "dev/random")?;
+
+    Mount::builder()
+        .fstype("none")
+        .flags(MountFlags::BIND)
+        .mount("/dev/urandom", "dev/urandom")?;
 
     // the binary passed to exec below has the path /mnt/binfs/<binary>
     Mount::builder()

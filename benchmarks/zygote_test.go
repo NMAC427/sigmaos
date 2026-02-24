@@ -140,11 +140,8 @@ func TestZygoteForkComparison(t *testing.T) {
 	zygoteProc := buildPythonProc(w, 0)
 	forkCfg := proc.ForkConfig{ZygoteProc: zygoteProc, KeepAlive: ZYGOTE_KEEPALIVE}
 
-	if _, err := spawnAndWaitRound(ts, w, ZYGOTE_NPROCS, false, 0, forkCfg); err != nil {
-		t.Fatalf("baseline warmup: %v", err)
-	}
-	if _, err := spawnAndWaitRound(ts, w, 1, true, 0, forkCfg); err != nil {
-		t.Fatalf("fork warmup: %v", err)
+	if _, err := spawnAndWaitRound(ts, w, 1, false, 0, forkCfg); err != nil {
+		t.Fatalf("warmup: %v", err)
 	}
 
 	baselineRound := benchmarks.NewResults(ZYGOTE_NTRIALS, benchmarks.OPS)
@@ -390,8 +387,8 @@ func TestZygoteForkMemoryScaling(t *testing.T) {
 	zygoteProc := buildPythonProc(w, 0)
 	forkCfg := proc.ForkConfig{ZygoteProc: zygoteProc, KeepAlive: ZYGOTE_KEEPALIVE}
 
-	if _, err := spawnAndWaitRound(ts, w, 1, true, 0, forkCfg); err != nil {
-		t.Fatalf("fork warmup: %v", err)
+	if _, err := spawnAndWaitRound(ts, w, 1, false, 0, forkCfg); err != nil {
+		t.Fatalf("warmup: %v", err)
 	}
 	if ZYGOTE_MEM_HOLD <= ZYGOTE_PSS_DELAY+500*time.Millisecond {
 		t.Fatalf("zygote_mem_hold (%v) must be > zygote_pss_delay (%v) + 500ms", ZYGOTE_MEM_HOLD, ZYGOTE_PSS_DELAY)
