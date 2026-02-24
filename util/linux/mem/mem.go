@@ -65,6 +65,14 @@ func getPSS(linuxPID int) (uint64, error) {
 	return parsePSSFromSmaps(string(data))
 }
 
+func GetPSS(linuxPID int) (proc.Tmem, error) {
+	pss, err := getPSS(linuxPID)
+	if err != nil {
+		return 0, err
+	}
+	return proc.Tmem(pss), nil
+}
+
 // parsePSSFromSmaps parses the Pss field from smaps or smaps_rollup content.
 func parsePSSFromSmaps(content string) (uint64, error) {
 	lines := strings.Split(content, "\n")

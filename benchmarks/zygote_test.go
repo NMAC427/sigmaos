@@ -31,6 +31,8 @@ func getZygoteWorkload(name string) (zygoteWorkload, error) {
 		return zygoteWorkload{name: name, script: "benchmarks/numpy_pandas/main.py"}, nil
 	case "pytorch":
 		return zygoteWorkload{name: name, script: "benchmarks/pytorch/main.py"}, nil
+	case "memory":
+		return zygoteWorkload{name: name, script: "benchmarks/memory/memory.py"}, nil
 	default:
 		return zygoteWorkload{}, fmt.Errorf("unknown zygote workload %q", name)
 	}

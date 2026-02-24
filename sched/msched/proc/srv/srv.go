@@ -382,6 +382,15 @@ func (ps *ProcSrv) prefetchProcFileStat(realm sp.Trealm, upid sp.Tpid, prog stri
 	ps.mu.RLock()
 }
 
+func recordPSS(uproc *proc.Proc, ctr container.ProcContainer) {
+	time.Sleep(time.Duration(uproc.GetMeasurePSSDelayMS()) * time.Millisecond)
+	pss, err := ctr.GetPSS()
+	if err != nil {
+		db.DPrintf(db.PSS_ERR, "Err GetPss: %v", err)
+	}
+	db.DPrintf(db.PSS, "[%v] PSS: %vKB", uproc.GetPid(), pss)
+}
+
 // Run a proc inside of an sigma container
 func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	uproc := proc.NewProcFromProto(req.ProcProto)
@@ -389,7 +398,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		perf.LogSpawnLatency("Paper.Setup.DownloadInitScript", uproc.GetPid(), uproc.GetSpawnTime(), uproc.GetSpawnTime())
 	}
 	perf.LogSpawnLatency("Paper.Setup.GlobalScheduling", uproc.GetPid(), uproc.GetSpawnTime(), uproc.GetSpawnTime())
-	recordPSS := db.WillBePrinted(db.PSS) && uproc.GetMeasurePSS()
+	shouldRecordPSS := db.WillBePrinted(db.PSS) && uproc.GetMeasurePSS()
 	db.DPrintf(db.PROCD, "Run uproc %v", uproc)
 	perf.LogSpawnLatency("ProcSrv.Run recvd proc", uproc.GetPid(), uproc.GetSpawnTime(), perf.TIME_NOT_SET)
 	isForkProc := uproc.GetForkProc() != nil
@@ -441,19 +450,22 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	// Fork procs are created by forking a warm zygote (managed by procd) instead
 	// of starting a new container from scratch.
 	if isForkProc {
-		hostPid, zygPid, err := ps.forkmgr.forkChild(uproc)
+		forkProc, err := ps.forkmgr.forkChild(uproc)
 		if err != nil {
 			return err
 		}
-		db.DPrintf(db.PROCD, "Forked host pid %v -> %d", uproc.GetPid(), hostPid)
-		pe, alloc := ps.procs.Alloc(hostPid, newProcEntry(uproc))
+		db.DPrintf(db.PROCD, "Forked host pid %v -> %d", uproc.GetPid(), forkProc.Pid())
+		pe, alloc := ps.procs.Alloc(forkProc.Pid(), newProcEntry(uproc))
 		if !alloc {
 			pe.insertSignal(uproc)
 		}
-		err = waitForHostPIDExit(hostPid)
+		if shouldRecordPSS {
+			go recordPSS(uproc, forkProc)
+		}
+		err = forkProc.Wait()
 
-		ps.forkmgr.childDone(zygPid)
-		ps.procs.Delete(hostPid)
+		ps.forkmgr.childDone(forkProc.ZygotePid())
+		ps.procs.Delete(forkProc.Pid())
 		if uproc.GetProcEnv().UseSPProxy {
 			if e := ps.spc.InformProcDone(uproc); e != nil {
 				db.DFatalf("Err inform spproxyclnt proc done: %v", e)
@@ -465,7 +477,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	if uproc.GetRunAfterBootScript() && uproc.GetProcEnv().UseSPProxy {
 		var pssPre proc.Tmem
 		var err error
-		if recordPSS {
+		if shouldRecordPSS {
 			pssPre, err = ps.spc.GetPSS()
 			if err != nil {
 				db.DPrintf(db.PSS_ERR, "Err GetPss spproxy: %v", err)
@@ -482,7 +494,7 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 		}
 		db.DPrintf(db.PROCD, "[%v] Done waiting for bootscript completion: %v %v", uproc.GetPid(), status, msg)
 		perf.LogSpawnLatency("ProcSrv.Run WaitBootScriptCompletion", uproc.GetPid(), uproc.GetSpawnTime(), start)
-		if recordPSS {
+		if shouldRecordPSS {
 			pssPost, err := ps.spc.GetPSS()
 			if err != nil {
 				db.DPrintf(db.PSS_ERR, "Err GetPss spproxy post: %v", err)
@@ -566,15 +578,8 @@ func (ps *ProcSrv) Run(ctx fs.CtxI, req proto.RunReq, res *proto.RunRep) error {
 	if !alloc { // it was already inserted
 		pe.insertSignal(uproc)
 	}
-	if recordPSS {
-		go func(uproc *proc.Proc, ctr container.ProcContainer) {
-			time.Sleep(time.Duration(uproc.GetMeasurePSSDelayMS()) * time.Millisecond)
-			pss, err := ctr.GetPSS()
-			if err != nil {
-				db.DPrintf(db.PSS_ERR, "Err GetPss: %v", err)
-			}
-			db.DPrintf(db.PSS, "[%v] PSS: %vKB", uproc.GetPid(), pss)
-		}(uproc, ctr)
+	if shouldRecordPSS {
+		go recordPSS(uproc, ctr)
 	}
 	err = ctr.Wait()
 	db.DPrintf(db.SPAWN_LAT, "[%v] Container execution time: %v", uproc.GetPid(), time.Since(ctrStart))

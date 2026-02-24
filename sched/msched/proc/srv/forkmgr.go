@@ -23,6 +23,7 @@ import (
 	"sigmaos/proc"
 	"sigmaos/scontainer"
 	sp "sigmaos/sigmap"
+	"sigmaos/util/linux/mem"
 )
 
 const (
@@ -31,6 +32,41 @@ const (
 	defaultSockRel                = "/tmp/sigma_fork.sock"
 	zygoteGracefulShutdownTimeout = 5 * time.Second
 )
+
+type ForkProc struct {
+	hostPid     int
+	zygotePid   sp.Tpid
+	zygoteEntry *zygoteEntry
+}
+
+func (fp *ForkProc) Pid() int {
+	return fp.hostPid
+}
+
+func (fp *ForkProc) GetPSS() (proc.Tmem, error) {
+	pss, err := mem.GetAggregatePSS(fp.hostPid)
+	if err != nil {
+		return 0, err
+	}
+
+	// Add average PSS of zygote
+	zygotePSS, err := mem.GetPSS(fp.zygoteEntry.zygCmd.Pid())
+	db.DPrintf(db.ALWAYS, "ForkProc GetPSS: child host PID %d has PSS %d KB, zygote PID %d has PSS %d KB\n", fp.hostPid, pss, fp.zygoteEntry.zygCmd.Pid(), zygotePSS)
+
+	if err != nil {
+		return 0, err
+	}
+	zygotePSS = zygotePSS / proc.Tmem(fp.zygoteEntry.children)
+	return pss + zygotePSS, nil
+}
+
+func (fp *ForkProc) Wait() error {
+	return waitForHostPIDExit(fp.hostPid)
+}
+
+func (fp *ForkProc) ZygotePid() sp.Tpid {
+	return fp.zygotePid
+}
 
 type forkMsg struct {
 	Type      string   `json:"type"`
@@ -512,15 +548,15 @@ func (fm *forkMgr) monitorZygote(ze *zygoteEntry) {
 
 // Ensures a matching zygote is running and requests it to fork a child proc.
 // Returns the host PID of the forked child, and a unique ID for the zygote.
-func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
+func (fm *forkMgr) forkChild(uproc *proc.Proc) (*ForkProc, error) {
 	fp := uproc.GetForkProc()
 	if fp == nil {
-		return 0, "", fmt.Errorf("forkChild called for non-fork proc")
+		return nil, fmt.Errorf("forkChild called for non-fork proc")
 	}
 
 	ze, err := fm.ensureZygote(uproc)
 	if err != nil {
-		return 0, "", err
+		return nil, err
 	}
 
 	// Wait for zygote to be ready
@@ -528,19 +564,19 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
 	case <-ze.readyCh:
 		// Ready to proceed
 	case <-ze.ctx.Done():
-		return 0, "", fmt.Errorf("zygote exited before ready: %v", ze.exitErr)
+		return nil, fmt.Errorf("zygote exited before ready: %v", ze.exitErr)
 	case <-time.After(1 * time.Minute):
-		return 0, "", fmt.Errorf("zygote setup timed out")
+		return nil, fmt.Errorf("zygote setup timed out")
 	}
 
 	// Verify still usable after waiting
 	if !ze.isUsable() {
-		return 0, "", fmt.Errorf("zygote became unusable")
+		return nil, fmt.Errorf("zygote became unusable")
 	}
 
 	reqID, err := randID()
 	if err != nil {
-		return 0, "", err
+		return nil, err
 	}
 
 	respCh := make(chan int, 1)
@@ -562,7 +598,7 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
 	ze.connMu.Unlock()
 
 	if conn == nil {
-		return 0, "", fmt.Errorf("zygote connection missing")
+		return nil, fmt.Errorf("zygote connection missing")
 	}
 
 	ze.writeMu.Lock()
@@ -574,24 +610,28 @@ func (fm *forkMgr) forkChild(uproc *proc.Proc) (int, sp.Tpid, error) {
 	})
 	ze.writeMu.Unlock()
 	if err != nil {
-		return 0, "", err
+		return nil, err
 	}
 
 	// Wait for response
 	select {
 	case hostPid, ok := <-respCh:
 		if !ok {
-			return 0, "", fmt.Errorf("zygote closed while waiting for fork")
+			return nil, fmt.Errorf("zygote closed while waiting for fork")
 		}
 		ze.childMu.Lock()
 		ze.wg.Add(1)
 		ze.children++
 		ze.childMu.Unlock()
-		return hostPid, ze.zygProc.GetPid(), nil
+		return &ForkProc{
+			hostPid:     hostPid,
+			zygotePid:   ze.zygProc.GetPid(),
+			zygoteEntry: ze,
+		}, nil
 	case <-ze.ctx.Done():
-		return 0, "", fmt.Errorf("zygote exited while forking: %v", ze.exitErr)
+		return nil, fmt.Errorf("zygote exited while forking: %v", ze.exitErr)
 	case <-time.After(10 * time.Second):
-		return 0, "", fmt.Errorf("timeout waiting for forked child")
+		return nil, fmt.Errorf("timeout waiting for forked child")
 	}
 }
 
