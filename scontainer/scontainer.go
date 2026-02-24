@@ -93,7 +93,14 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 			// Set up python environment based on pylock file (if present)
 			if pylockPath, err := python.GetPylockPath("/home/sigmaos/bin/kernel/pyproc", pythonFile); err == nil {
 				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
-				sitePackagesDir, lockHandle, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, pyenvClnt)
+
+				spTypeStr, ok := uproc.Env["SIGMA_PYTHON_SITE_PACKAGES_TYPE"]
+				if !ok {
+					spTypeStr = string(python.SymlinkSPType)
+				}
+				spType := python.TPySitePackagesType(spTypeStr)
+
+				sitePackagesDir, lockHandle, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, spType, pyenvClnt)
 				if err != nil {
 					err = fmt.Errorf("setting up python site-packages failed: %w", err)
 					db.DPrintf(db.CONTAINER, "%v", err)

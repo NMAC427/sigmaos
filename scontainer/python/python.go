@@ -14,6 +14,14 @@ import (
 	"sigmaos/pyenv/pylock"
 )
 
+type TPySitePackagesType string
+
+const (
+	OverlaySPType    TPySitePackagesType = "overlayfs"
+	SymlinkSPType    TPySitePackagesType = "symlink"
+	PythonPathSPType TPySitePackagesType = "pythonpath"
+)
+
 // Returns the wheel that best matches the compatibility tags supported by sigmaos.
 // Compatibility tags (e.g. cp311-cp311-manylinux_2_39_x86_64) are ordered from
 // most preferred to least preferred.
@@ -94,7 +102,13 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]p
 // and mounting an overlayFS. It atomically acquires locks on all wheels.
 // Returns the path to the site-packages directory and a lock handle.
 // The lock handle must be released when the process is done with the packages.
-func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylockPath string, pyenvClnt *clnt.PyEnvClnt) (string, clnt.LockHandle, error) {
+func SetupSitePackages(
+	workingDir string,
+	pyVersion *pyenv.PythonVersion,
+	pylockPath string,
+	stType TPySitePackagesType,
+	pyenvClnt *clnt.PyEnvClnt,
+) (string, clnt.LockHandle, error) {
 	lock, err := pylock.ParsePylock(pylockPath)
 	if err != nil {
 		return "", 0, err
@@ -131,16 +145,31 @@ func SetupSitePackages(workingDir string, pyVersion *pyenv.PythonVersion, pylock
 		return "", 0, fmt.Errorf("failed to install wheels: %w", err)
 	}
 
-	// Create overlayFS with all the wheels
-	// TODO: Switch to symlinks & benchmark which is better
-	overlayDir, err := mountOverlayFS(workingDir, installPaths)
-	if err != nil {
-		// Release locks on failure
-		pyenvClnt.ReleaseLocks(handle)
-		return "", 0, err
+	if stType == OverlaySPType {
+		overlayDir, err := mountOverlayFS(workingDir, installPaths)
+		if err != nil {
+			// Release locks on failure
+			pyenvClnt.ReleaseLocks(handle)
+			return "", 0, err
+		}
+
+		return filepath.Join(overlayDir, "site-packages"), handle, nil
+	} else if stType == SymlinkSPType {
+		symlinkDir, err := symlinkSitePackages(workingDir, installPaths)
+		if err != nil {
+			// Release locks on failure
+			pyenvClnt.ReleaseLocks(handle)
+			return "", 0, fmt.Errorf("failed to set up site-packages symlinks: %w", err)
+		}
+		return filepath.Join(symlinkDir, "site-packages"), handle, nil
+	} else if stType == PythonPathSPType {
+		for i, path := range installPaths {
+			installPaths[i] = filepath.Join(path, "site-packages")
+		}
+		return strings.Join(installPaths, ":"), handle, nil
 	}
 
-	return filepath.Join(overlayDir, "site-packages"), handle, nil
+	return "", 0, fmt.Errorf("unknown site-packages type: %v", stType)
 }
 
 func mountOverlayFS(workingDir string, lowerdirs []string) (string, error) {
@@ -218,7 +247,20 @@ func symlinkMerge(outDir string, inputDirs []string) error {
 			continue
 		}
 
-		// CASE 2: Collision (Exists in multiple sources)
+		// CASE 2: Collision File
+		info, err := os.Stat(paths[0])
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			// If it's a file, we create a symlink to the first path in the list.
+			if err := os.Symlink(paths[0], targetOut); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// CASE 3: Collision Directory
 		if err := os.MkdirAll(targetOut, 0755); err != nil {
 			return fmt.Errorf("failed to create merge dir %s: %w", targetOut, err)
 		}
