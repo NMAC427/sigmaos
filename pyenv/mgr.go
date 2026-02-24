@@ -12,8 +12,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	db "sigmaos/debug"
 	"sigmaos/pyenv/pylock"
 	sessp "sigmaos/session/proto"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type installResult struct {
@@ -77,6 +80,8 @@ func NewPyMgr() *PyMgr {
 		pendingInstalls[i] = make(map[string]*sync.Cond)
 	}
 
+	db.DPrintf(db.PYENV, "Initialized PyMgr with numCPU=%d", numCPU)
+
 	return &PyMgr{
 		installedWheels:  installedWheels,
 		downloadedWheels: make(map[string]string),
@@ -106,7 +111,7 @@ func (pm *PyMgr) InstallWheels(wheels []*pylock.Wheel, pyVersion *PythonVersion,
 
 	// Results and acquired locks
 	installPaths := make([]string, len(wheels))
-	acquiredRefs := make([]*installResult, 0, len(wheels))
+	installResults := make([]*installResult, len(wheels))
 	sha256s := make([]string, len(wheels))
 
 	// Step 1: Get sha256 for all wheels and verify they have hashes
@@ -118,54 +123,40 @@ func (pm *PyMgr) InstallWheels(wheels []*pylock.Wheel, pyVersion *PythonVersion,
 		sha256s[i] = sha256
 	}
 
-	// Step 2: Try to acquire all wheels atomically
-	// We use a two-phase approach: first install all missing wheels, then acquire locks
-	// If any installation fails, we roll back by not acquiring any locks
-
-	// Phase 1: Ensure all wheels are installed (or install them)
+	// Ensure all wheels are installed (or install them).
+	// This step also acquires a refcount on each wheel if installed successfully.
+	eg := errgroup.Group{}
 	for i, wheel := range wheels {
-		sha256 := sha256s[i]
+		ii, iwheel := i, wheel
 
-		// Try to get or create the install result
-		result, err := pm.getOrInstallWheel(wheel, pyVersion, pyIdx, sha256)
-		if err != nil {
-			// Installation failed - rollback any acquired refs and return error
-			return nil, nil, fmt.Errorf("failed to install %s: %w", wheel.Name, err)
-		}
-
-		installPaths[i] = result.path
-	}
-
-	// Phase 2: Acquire locks on all installed wheels
-	// Try to acquire all locks
-	pm.mu.RLock()
-	for i, sha256 := range sha256s {
-		result := pm.installedWheels[pyIdx][sha256]
-		if result == nil {
-			pm.mu.RUnlock()
-			return nil, nil, fmt.Errorf("wheel %s disappeared during installation", wheels[i].Name)
-		}
-
-		// Try to acquire the lock
-		err := result.refCount.acquire(&pm.evictionList)
-		if err != nil {
-			// Failed to acquire - release all previously acquired locks
-			pm.mu.RUnlock()
-			for _, ref := range acquiredRefs {
-				ref.refCount.release(&pm.evictionList)
+		eg.Go(func() error {
+			sha256 := sha256s[ii]
+			result, err := pm.getOrInstallWheel(iwheel, pyVersion, pyIdx, sha256)
+			if err != nil {
+				return fmt.Errorf("failed to install %s: %w", iwheel.Name, err)
 			}
-			return nil, nil, fmt.Errorf("wheel %s was evicted", wheels[i].Name)
-		}
 
-		acquiredRefs = append(acquiredRefs, result)
+			installPaths[ii] = result.path
+			installResults[ii] = result
+			return nil
+		})
 	}
-	pm.mu.RUnlock()
+
+	err := eg.Wait()
+	if err != nil {
+		for _, result := range installResults {
+			if result != nil && result.err == nil {
+				result.refCount.release(&pm.evictionList)
+			}
+		}
+		return nil, nil, err
+	}
 
 	// Create the lock handle
 	handle := &LockHandle{
 		SessionID: sessionID,
 		HandleID:  handleID,
-		refs:      acquiredRefs,
+		refs:      installResults,
 	}
 
 	// Register the handle with the session
@@ -180,7 +171,7 @@ func (pm *PyMgr) InstallWheels(wheels []*pylock.Wheel, pyVersion *PythonVersion,
 }
 
 // getOrInstallWheel ensures a wheel is installed and returns its result.
-// This doesn't acquire any locks, just ensures installation.
+// Increases the refcount by 1.
 func (pm *PyMgr) getOrInstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, pyIdx int, sha256 string) (*installResult, error) {
 	// Fast path - Already installed
 	pm.mu.RLock()
@@ -189,6 +180,7 @@ func (pm *PyMgr) getOrInstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion
 			pm.mu.RUnlock()
 			return nil, result.err
 		}
+		result.refCount.acquire(&pm.evictionList)
 		pm.mu.RUnlock()
 		return result, nil
 	}
@@ -202,6 +194,7 @@ func (pm *PyMgr) getOrInstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion
 			pm.mu.Unlock()
 			return nil, result.err
 		}
+		result.refCount.acquire(&pm.evictionList)
 		pm.mu.Unlock()
 		return result, nil
 	}
@@ -211,6 +204,11 @@ func (pm *PyMgr) getOrInstallWheel(wheel *pylock.Wheel, pyVersion *PythonVersion
 		result = checkIfInstalled(wheel, pyVersion)
 		if result != nil {
 			pm.installedWheels[pyIdx][sha256] = result
+			if result.err != nil {
+				pm.mu.Unlock()
+				return nil, result.err
+			}
+			result.refCount.acquire(&pm.evictionList)
 			pm.mu.Unlock()
 			return result, nil
 		}
@@ -353,6 +351,7 @@ func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
 	p, err := func() (string, error) {
 		pm.downloadSem <- struct{}{}
 		defer func() { <-pm.downloadSem }()
+		db.DPrintf(db.PYENV, "Downloading wheel %s", wheel.Name)
 		return DownloadWheel(*wheel)
 	}()
 
@@ -371,12 +370,18 @@ func (pm *PyMgr) downloadWheel(wheel *pylock.Wheel) (string, error) {
 	return p, err
 }
 
+// Increases the refcount for the wheel by one if the installation was successful, and returns the installResult.
 func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, wheelPath string, sha256 string) (*installResult, error) {
 	pyIdx := pyVersion.Index()
 
 	pm.mu.Lock()
 	// Check if installed while downloading
 	if result := pm.installedWheels[pyIdx][sha256]; result != nil {
+		if result.err != nil {
+			pm.mu.Unlock()
+			return nil, result.err
+		}
+		result.refCount.acquire(&pm.evictionList)
 		pm.mu.Unlock()
 		return result, nil
 	}
@@ -390,6 +395,15 @@ func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, whe
 
 		pm.mu.RLock()
 		result := pm.installedWheels[pyIdx][sha256]
+		if result == nil {
+			pm.mu.RUnlock()
+			return nil, fmt.Errorf("installation failed for %s", wheel.Name)
+		}
+		if result.err != nil {
+			pm.mu.RUnlock()
+			return nil, result.err
+		}
+		result.refCount.acquire(&pm.evictionList)
 		pm.mu.RUnlock()
 		return result, nil
 	}
@@ -410,6 +424,7 @@ func (pm *PyMgr) installWheel(wheel *pylock.Wheel, pyVersion *PythonVersion, whe
 	tmpInstallPath, err = func() (string, error) {
 		pm.installSem <- struct{}{}
 		defer func() { <-pm.installSem }()
+		db.DPrintf(db.PYENV, "Installing wheel %s for Python %s at %s", wheel.Name, pyVersion.Version(), installPath)
 		return InstallWheel(wheelPath, pyVersion)
 	}()
 
@@ -442,6 +457,9 @@ exitLocked:
 	result := &installResult{path: installPath, err: err}
 	pm.installedWheels[pyIdx][sha256] = result
 	delete(pm.pendingInstalls[pyIdx], sha256)
+	if err == nil {
+		result.refCount.acquire(&pm.evictionList)
+	}
 	pm.mu.Unlock()
 
 	cond.L.Lock()
