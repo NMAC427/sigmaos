@@ -96,7 +96,8 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 
 				spTypeStr, ok := uproc.Env["SIGMA_PYTHON_SITE_PACKAGES_TYPE"]
 				if !ok {
-					spTypeStr = string(python.SymlinkSPType)
+					// TODO: Decide on a default type
+					spTypeStr = string(python.PythonPathSPType)
 				}
 				spType := python.TPySitePackagesType(spTypeStr)
 
