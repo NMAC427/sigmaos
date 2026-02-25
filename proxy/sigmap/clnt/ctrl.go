@@ -13,6 +13,8 @@ import (
 	"sigmaos/serr"
 	sp "sigmaos/sigmap"
 	"sigmaos/util/io/demux"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type CtrlClnt struct {
@@ -40,12 +42,11 @@ func (scc *CtrlClnt) StatsSrv() (*rpc.RPCStatsSnapshot, error) {
 // Tell spproxyd to prepare for an incoming proc
 func (scc *CtrlClnt) InformIncomingProc(p *proc.Proc) error {
 	// Create a copy of the proc proto
-	pp := *p.GetProto()
-	// Clear the env, which is unneeded by spproxyd and may be modified in
-	// another thread
-	pp.Env = nil
+	// This is necessary, as other treads may modify the proc's proto (e.g. by setting the env)
+	// while we're marhalling it for the RPC call, which causes an exception.
+	pp := proto.CloneOf(p.GetProto())
 	req := spproto.SigmaInformProcReq{
-		ProcProto: &pp,
+		ProcProto: pp,
 	}
 	rep := spproto.SigmaErrRep{}
 	err := scc.rpcc.RPC("CtrlAPI.InformIncomingProc", &req, &rep)
