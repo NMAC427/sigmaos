@@ -9,7 +9,6 @@ import (
 	"sigmaos/proc"
 	"sigmaos/pyenv"
 	proto "sigmaos/pyenv/proto"
-	"sigmaos/pyenv/pylock"
 	sessp "sigmaos/session/proto"
 	"sigmaos/sigmaclnt"
 	sp "sigmaos/sigmap"
@@ -49,24 +48,8 @@ func (ps *PyEnvSrv) InstallWheels(ctx fs.CtxI, req proto.InstallWheelsReq, res *
 		return nil
 	}
 
-	// Convert proto wheels to pylock.Wheel
-	pylockWheels := make([]*pylock.Wheel, len(wheels))
-	for i, wheel := range wheels {
-		if wheel == nil {
-			return fmt.Errorf("InstallWheels: nil wheel at index %d", i)
-		}
-		size := wheel.Size
-		pylockWheels[i] = &pylock.Wheel{
-			Name:   wheel.Name,
-			URL:    wheel.Url,
-			Path:   wheel.Path,
-			Size:   &size,
-			Hashes: wheel.Hashes,
-		}
-	}
-
 	sessionID := ctx.SessionId()
-	handle, installPaths, err := ps.pm.InstallWheels(pylockWheels, pyVersion, sessionID)
+	handle, installPaths, err := ps.pm.InstallWheels(req.Wheels, pyVersion, sessionID)
 	if err != nil {
 		res.InstallPaths = nil
 		res.LockHandle = 0

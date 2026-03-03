@@ -74,8 +74,8 @@ func getBestWheel(pkg pylock.Package, compatibilityTags []string) (*pylock.Wheel
 	return best, nil
 }
 
-func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]pylock.Wheel, error) {
-	var wheels []pylock.Wheel
+func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]*pylock.Wheel, error) {
+	var wheels []*pylock.Wheel
 	envMarkers := pyVersion.EnvMarkers()
 	sysTags := pyVersion.SysTags()
 
@@ -95,7 +95,7 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]p
 			return nil, err
 		}
 
-		wheels = append(wheels, *wheel)
+		wheels = append(wheels, wheel)
 	}
 
 	return wheels, nil
@@ -140,16 +140,10 @@ func SetupSitePackages(
 	}
 	db.DPrintf(db.CONTAINER, "Total size of required python wheels: %d bytes", totalSize)
 
-	// Convert wheels to pointers for the client API
-	wheelPtrs := make([]*pylock.Wheel, len(wheels))
-	for i := range wheels {
-		wheelPtrs[i] = &wheels[i]
-	}
-
 	// Install all wheels atomically and acquire locks
 	// This ensures all-or-nothing semantics
 	s = time.Now()
-	installPaths, handle, err := pyenvClnt.InstallWheels(wheelPtrs, pyVersion)
+	installPaths, handle, err := pyenvClnt.InstallWheels(wheels, pyVersion)
 	perf.LogSpawnLatency("SetupSitePackages pyenvClnt.InstallWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to install wheels: %w", err)

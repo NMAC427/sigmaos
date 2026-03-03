@@ -2,13 +2,17 @@ syntax = "proto3";
 
 option go_package = "sigmaos/pyenv/proto";
 
+message Hashes {
+  string sha256 = 1;
+}
+
 // Wheel represents a Python wheel package from pylock.toml
 message Wheel {
   string name = 1;
   string url = 2;
   string path = 3;
   int64 size = 4;
-  map<string, string> hashes = 5;
+  Hashes hashes = 5;
 }
 
 // PythonVersion represents a supported Python runtime

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	proto "sigmaos/pyenv/proto"
 	"sigmaos/pyenv/pylock"
 
 	"github.com/google/uuid"
@@ -137,9 +138,9 @@ func loadEnvMarkers(path string) map[string]string {
 
 // DownloadWheel downloads a wheel from its URL and verifies its hash.
 // Returns the path to the downloaded wheel.
-func DownloadWheel(wheel pylock.Wheel) (string, error) {
-	sha256, found := wheel.Hashes["sha256"]
-	if !found {
+func DownloadWheel(wheel *proto.Wheel) (string, error) {
+	sha256 := wheel.Hashes.Sha256
+	if sha256 == "" {
 		return "", fmt.Errorf("Wheel %q has no sha256 hash", wheel.Name)
 	}
 
@@ -159,7 +160,7 @@ func DownloadWheel(wheel pylock.Wheel) (string, error) {
 	}
 	defer out.Close()
 
-	resp, err := http.Get(wheel.URL)
+	resp, err := http.Get(wheel.Url)
 	if err != nil {
 		return "", err
 	}
@@ -170,7 +171,7 @@ func DownloadWheel(wheel pylock.Wheel) (string, error) {
 		return "", err
 	}
 
-	hashMatch, err := VerifyWheelHash(outPath, &wheel)
+	hashMatch, err := VerifyWheelHash(outPath, wheel)
 	if err != nil {
 		return "", err
 	}
@@ -196,9 +197,9 @@ func computeSHA256(path string) (string, error) {
 }
 
 // VerifyWheelHash verifies that a wheel file matches its expected SHA256 hash.
-func VerifyWheelHash(path string, wheel *pylock.Wheel) (bool, error) {
-	expectedSha256, found := wheel.Hashes["sha256"]
-	if !found {
+func VerifyWheelHash(path string, wheel *proto.Wheel) (bool, error) {
+	expectedSha256 := wheel.Hashes.Sha256
+	if expectedSha256 == "" {
 		return false, fmt.Errorf("Wheel %q has no sha256 hash", wheel.Name)
 	}
 
@@ -215,9 +216,9 @@ func VerifyWheelHash(path string, wheel *pylock.Wheel) (bool, error) {
 }
 
 // GetWheelInstallPath returns the installation path for a wheel based on its hash and Python version.
-func GetWheelInstallPath(wheel *pylock.Wheel, pyVersion *PythonVersion) (string, error) {
-	sha256, found := wheel.Hashes["sha256"]
-	if !found || sha256 == "" {
+func GetWheelInstallPath(wheel *proto.Wheel, pyVersion *PythonVersion) (string, error) {
+	sha256 := wheel.Hashes.Sha256
+	if sha256 == "" {
 		return "", fmt.Errorf("wheel %q has no sha256 hash", wheel.Name)
 	}
 	h0h1 := sha256[:2]

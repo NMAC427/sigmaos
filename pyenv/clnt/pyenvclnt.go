@@ -48,11 +48,13 @@ func (pc *PyEnvClnt) InstallWheels(wheels []*pylock.Wheel, pythonVersion *pyenv.
 			return nil, 0, fmt.Errorf("InstallWheels: nil wheel at index %d", i)
 		}
 		protoWheels[i] = &proto.Wheel{
-			Name:   wheel.Name,
-			Url:    wheel.URL,
-			Path:   wheel.Path,
-			Size:   0,
-			Hashes: wheel.Hashes,
+			Name: wheel.Name,
+			Url:  wheel.Url,
+			Path: wheel.Path,
+			Size: 0,
+			Hashes: &proto.Hashes{
+				Sha256: wheel.Hashes.Sha256,
+			},
 		}
 		if wheel.Size != nil {
 			protoWheels[i].Size = *wheel.Size

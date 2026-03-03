@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -63,30 +62,34 @@ type Directory struct {
 }
 
 type Archive struct {
-	URL          string            `toml:"url"`
-	Path         string            `toml:"path"`
-	Size         *int64            `toml:"size"`
-	UploadTime   *time.Time        `toml:"upload-time"`
-	Hashes       map[string]string `toml:"hashes"`
-	Subdirectory string            `toml:"subdirectory"`
+	URL  string `toml:"url"`
+	Path string `toml:"path"`
+	Size *int64 `toml:"size"`
+	// UploadTime   *time.Time `toml:"upload-time"`
+	Hashes       Hashes `toml:"hashes"`
+	Subdirectory string `toml:"subdirectory"`
 }
 
 type Sdist struct {
-	Name       string            `toml:"name"`
-	URL        string            `toml:"url"`
-	Path       string            `toml:"path"`
-	Size       *int64            `toml:"size"`
-	UploadTime *time.Time        `toml:"upload-time"`
-	Hashes     map[string]string `toml:"hashes"`
+	Name string `toml:"name"`
+	URL  string `toml:"url"`
+	Path string `toml:"path"`
+	Size *int64 `toml:"size"`
+	// UploadTime *time.Time `toml:"upload-time"`
+	Hashes Hashes `toml:"hashes"`
 }
 
 type Wheel struct {
-	Name       string            `toml:"name"`
-	URL        string            `toml:"url"`
-	Path       string            `toml:"path"`
-	Size       *int64            `toml:"size"`
-	UploadTime *time.Time        `toml:"upload-time"`
-	Hashes     map[string]string `toml:"hashes"`
+	Name string `toml:"name"`
+	Url  string `toml:"url"`
+	Path string `toml:"path"`
+	Size *int64 `toml:"size"`
+	// UploadTime *time.Time `toml:"upload-time"`
+	Hashes Hashes `toml:"hashes"`
+}
+
+type Hashes struct {
+	Sha256 string `toml:"sha256"`
 }
 
 func ParsePylock(path string) (*Pylock, error) {
@@ -143,22 +146,22 @@ func ParsePylock(path string) (*Pylock, error) {
 		}
 		if pkg.Archive != nil {
 			sourceCount++
-			if len(pkg.Archive.Hashes) == 0 {
-				return nil, fmt.Errorf("packages[%d] (name=%s): archive.hashes must contain at least one entry", i, pkg.Name)
+			if pkg.Archive.Hashes.Sha256 == "" {
+				return nil, fmt.Errorf("packages[%d] (name=%s): archive.hashes must contain sha256", i, pkg.Name)
 			}
 		}
 		if pkg.Sdist != nil {
 			sourceCount++
-			if len(pkg.Sdist.Hashes) == 0 {
-				return nil, fmt.Errorf("packages[%d] (name=%s): sdist.hashes must contain at least one entry", i, pkg.Name)
+			if pkg.Sdist.Hashes.Sha256 == "" {
+				return nil, fmt.Errorf("packages[%d] (name=%s): sdist.hashes must contain sha256", i, pkg.Name)
 			}
 		}
 		if len(pkg.Wheels) > 0 {
 			sourceCount++
 			for j := range pkg.Wheels {
 				w := &pkg.Wheels[j]
-				if len(w.Hashes) == 0 {
-					return nil, fmt.Errorf("packages[%d].wheels[%d] (name=%s): wheels.hashes must contain at least one entry", i, j, pkg.Name)
+				if w.Hashes.Sha256 == "" {
+					return nil, fmt.Errorf("packages[%d].wheels[%d] (name=%s): wheels.hashes must contain sha256", i, j, pkg.Name)
 				}
 			}
 		}
@@ -200,8 +203,8 @@ func ParsePylock(path string) (*Pylock, error) {
 		for j := range pkg.Wheels {
 			w := &pkg.Wheels[j]
 			if w.Name == "" {
-				if w.URL != "" {
-					w.Name = filepath.Base(w.URL)
+				if w.Url != "" {
+					w.Name = filepath.Base(w.Url)
 				} else if w.Path != "" {
 					w.Name = filepath.Base(w.Path)
 				}
