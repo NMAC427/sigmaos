@@ -25,41 +25,75 @@ const (
 	PythonPathSPType TPySitePackagesType = "pythonpath"
 )
 
+func prepareSysTagRanks(compatibilityTags []string) map[string]int {
+	ranks := make(map[string]int)
+	for i, tag := range compatibilityTags {
+		ranks[tag] = i
+	}
+	return ranks
+}
+
+// last3DashFields returns the last three '-' separated fields of s,
+// joined by '-' (i.e. the substring from the 3rd dash-from-end onward).
+// If fewer than 3 dashes exist, it returns "" and false.
+func last3DashFields(s string) (string, bool) {
+	end := len(s)
+	dashCount := 0
+
+	for i := end - 1; i >= 0; i-- {
+		if s[i] == '-' {
+			dashCount++
+			if dashCount == 3 {
+				// substring after this dash to end
+				return s[i+1:], true
+			}
+		}
+	}
+
+	return "", false
+}
+
 // Returns the wheel that best matches the compatibility tags supported by sigmaos.
 // Compatibility tags (e.g. cp311-cp311-manylinux_2_39_x86_64) are ordered from
 // most preferred to least preferred.
-func getBestWheel(pkg pylock.Package, compatibilityTags []string) (*pylock.Wheel, error) {
+func getBestWheel(pkg pylock.Package, sysTagRanks map[string]int) (*pylock.Wheel, error) {
 	if len(pkg.Wheels) == 0 {
 		return nil, fmt.Errorf("package %q has no wheels", pkg.Name)
 	}
 
-	tagRank := make(map[string]int, len(compatibilityTags))
-	for i, tag := range compatibilityTags {
-		tagRank[tag] = i
-	}
-
 	var best *pylock.Wheel
-	bestRank := len(compatibilityTags)
+	bestRank := len(sysTagRanks)
 
 	for i := range pkg.Wheels {
 		w := &pkg.Wheels[i]
 
-		base := strings.TrimSuffix(w.Name, ".whl")
-		parts := strings.Split(base, "-")
-		if len(parts) < 5 {
+		tagTripple, ok := last3DashFields(strings.TrimSuffix(w.Name, ".whl"))
+		if !ok {
 			continue
 		}
 
+		// Fast path: No compressed tags
+		if strings.IndexByte(tagTripple, '.') < 0 {
+			if rank, ok := sysTagRanks[tagTripple]; ok && rank < bestRank {
+				best = w
+				bestRank = rank
+			}
+			continue
+		}
+
+		// Slow path: Need to expand compressed tags
+		parts := strings.Split(tagTripple, "-")
+
 		// Expand any compressed tag triples
-		pytags := strings.Split(parts[len(parts)-3], ".")
-		abitags := strings.Split(parts[len(parts)-2], ".")
-		platformtags := strings.Split(parts[len(parts)-1], ".")
+		pytags := strings.Split(parts[0], ".")
+		abitags := strings.Split(parts[1], ".")
+		platformtags := strings.Split(parts[2], ".")
 
 		for _, py := range pytags {
 			for _, abi := range abitags {
 				for _, plat := range platformtags {
-					tagTriple := fmt.Sprintf("%s-%s-%s", py, abi, plat)
-					if rank, ok := tagRank[tagTriple]; ok && rank < bestRank {
+					tagTriple := py + "-" + abi + "-" + plat
+					if rank, ok := sysTagRanks[tagTriple]; ok && rank < bestRank {
 						best = w
 						bestRank = rank
 					}
@@ -77,20 +111,26 @@ func getBestWheel(pkg pylock.Package, compatibilityTags []string) (*pylock.Wheel
 func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]*pylock.Wheel, error) {
 	var wheels []*pylock.Wheel
 	envMarkers := pyVersion.EnvMarkers()
-	sysTags := pyVersion.SysTags()
+	sysTagRanks := prepareSysTagRanks(pyVersion.SysTags())
+	markerCache := make(map[string]bool)
 
 	for _, pkg := range lock.Packages {
-		is_required, err := pylock.EvaluateMarker(pkg.Marker, envMarkers)
-		if err != nil {
-			return nil, err
+		isRequired, ok := markerCache[pkg.Marker]
+		if !ok {
+			var err error
+			isRequired, err = pylock.EvaluateMarker(pkg.Marker, envMarkers)
+			if err != nil {
+				return nil, err
+			}
+			markerCache[pkg.Marker] = isRequired
 		}
 
-		db.DPrintf(db.CONTAINER, "Python package %v (%v) required: %v (%v)", pkg.Name, pkg.Version, is_required, pkg.Marker)
-		if !is_required {
+		db.DPrintf(db.CONTAINER, "Python package %v (%v) required: %v (%v)", pkg.Name, pkg.Version, isRequired, pkg.Marker)
+		if !isRequired {
 			continue
 		}
 
-		wheel, err := getBestWheel(pkg, sysTags)
+		wheel, err := getBestWheel(pkg, sysTagRanks)
 		if err != nil {
 			return nil, err
 		}
