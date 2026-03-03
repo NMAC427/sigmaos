@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	db "sigmaos/debug"
+	"sigmaos/proc"
 	"sigmaos/pyenv"
 	"sigmaos/pyenv/clnt"
 	"sigmaos/pyenv/pylock"
+	"sigmaos/util/perf"
 )
 
 type TPySitePackagesType string
@@ -103,18 +106,23 @@ func getRequiredWheels(lock *pylock.Pylock, pyVersion *pyenv.PythonVersion) ([]p
 // Returns the path to the site-packages directory and a lock handle.
 // The lock handle must be released when the process is done with the packages.
 func SetupSitePackages(
+	uproc *proc.Proc,
 	workingDir string,
 	pyVersion *pyenv.PythonVersion,
 	pylockPath string,
 	stType TPySitePackagesType,
 	pyenvClnt *clnt.PyEnvClnt,
 ) (string, clnt.LockHandle, error) {
+	s := time.Now()
 	lock, err := pylock.ParsePylock(pylockPath)
+	perf.LogSpawnLatency("SetupSitePackages pylock.ParsePylock", uproc.GetPid(), uproc.GetSpawnTime(), s)
 	if err != nil {
 		return "", 0, err
 	}
 
+	s = time.Now()
 	wheels, err := getRequiredWheels(lock, pyVersion)
+	perf.LogSpawnLatency("SetupSitePackages getRequiredWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
 	if err != nil {
 		return "", 0, err
 	}
@@ -140,22 +148,26 @@ func SetupSitePackages(
 
 	// Install all wheels atomically and acquire locks
 	// This ensures all-or-nothing semantics
+	s = time.Now()
 	installPaths, handle, err := pyenvClnt.InstallWheels(wheelPtrs, pyVersion)
+	perf.LogSpawnLatency("SetupSitePackages pyenvClnt.InstallWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to install wheels: %w", err)
 	}
 
+	s = time.Now()
 	if stType == OverlaySPType {
 		overlayDir, err := mountOverlayFS(workingDir, installPaths)
+		perf.LogSpawnLatency("SetupSitePackages mountOverlayFS", uproc.GetPid(), uproc.GetSpawnTime(), s)
 		if err != nil {
 			// Release locks on failure
 			pyenvClnt.ReleaseLocks(handle)
 			return "", 0, err
 		}
-
 		return filepath.Join(overlayDir, "site-packages"), handle, nil
 	} else if stType == SymlinkSPType {
 		symlinkDir, err := symlinkSitePackages(workingDir, installPaths)
+		perf.LogSpawnLatency("SetupSitePackages symlinkSitePackages", uproc.GetPid(), uproc.GetSpawnTime(), s)
 		if err != nil {
 			// Release locks on failure
 			pyenvClnt.ReleaseLocks(handle)

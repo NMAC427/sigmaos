@@ -74,6 +74,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 	}
 	isPythonProc := pythonVersion != nil
 	if isPythonProc {
+		startPythonSetup := time.Now()
 		pythonPath := pythonVersion.PythonPath()
 
 		// uproc-trampoline will mount the correct python interpreter files
@@ -94,14 +95,20 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 			if pylockPath, err := python.GetPylockPath("/home/sigmaos/bin/kernel/pyproc", pythonFile); err == nil {
 				db.DPrintf(db.CONTAINER, "setting up python site-packages from %v", pylockPath)
 
-				spTypeStr, ok := uproc.Env["SIGMA_PYTHON_SITE_PACKAGES_TYPE"]
-				if !ok {
-					// TODO: Decide on a default type
-					spTypeStr = string(python.PythonPathSPType)
+				spType := python.PythonPathSPType
+				if spTypeStr, ok := uproc.Env["SIGMA_PYTHON_SITE_PACKAGES_TYPE"]; ok {
+					spType = python.TPySitePackagesType(spTypeStr)
 				}
-				spType := python.TPySitePackagesType(spTypeStr)
 
-				sitePackagesDir, lockHandle, err := python.SetupSitePackages(pyEnvPath(uproc.GetPid()), pythonVersion, pylockPath, spType, pyenvClnt)
+				sitePackagesDir, lockHandle, err := python.SetupSitePackages(
+					uproc,
+					pyEnvPath(uproc.GetPid()),
+					pythonVersion,
+					pylockPath,
+					spType,
+					pyenvClnt,
+				)
+
 				if err != nil {
 					err = fmt.Errorf("setting up python site-packages failed: %w", err)
 					db.DPrintf(db.CONTAINER, "%v", err)
@@ -122,6 +129,7 @@ func StartSigmaContainer(uproc *proc.Proc, dialproxy bool, sc *sigmaclnt.SigmaCl
 
 		db.DPrintf(db.CONTAINER, "PYTHONPATH: %v\n", pythonPath)
 		uproc.AppendEnv("PYTHONPATH", pythonPath)
+		perf.LogSpawnLatency("StartSigmaContainer python setup", uproc.GetPid(), uproc.GetSpawnTime(), startPythonSetup)
 	}
 
 	// Optionally strace the proc

@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Top-level pylock structure
@@ -110,7 +109,7 @@ func ParsePylock(path string) (*Pylock, error) {
 		return nil, fmt.Errorf(`unsupported lock-version %q (only "1.0" supported)`, p.LockVersion)
 	}
 
-	if strings.TrimSpace(p.CreatedBy) == "" {
+	if p.CreatedBy == "" {
 		return nil, errors.New(`missing required key "created-by"`)
 	}
 
@@ -121,7 +120,7 @@ func ParsePylock(path string) (*Pylock, error) {
 	// Validate packages content: mutually exclusive sources, required hashes etc.
 	for i := range p.Packages {
 		pkg := &p.Packages[i]
-		if strings.TrimSpace(pkg.Name) == "" {
+		if pkg.Name == "" {
 			return nil, fmt.Errorf("package entry %d missing required field: name", i)
 		}
 		// Count source kinds set
@@ -129,16 +128,16 @@ func ParsePylock(path string) (*Pylock, error) {
 		if pkg.VCS != nil {
 			sourceCount++
 			// VCS requires commit-id
-			if strings.TrimSpace(pkg.VCS.CommitID) == "" {
+			if pkg.VCS.CommitID == "" {
 				return nil, fmt.Errorf("packages[%d] (name=%s): vcs.commit-id is required when vcs is used", i, pkg.Name)
 			}
-			if strings.TrimSpace(pkg.VCS.Type) == "" {
+			if pkg.VCS.Type == "" {
 				return nil, fmt.Errorf("packages[%d] (name=%s): vcs.type is required when vcs is used", i, pkg.Name)
 			}
 		}
 		if pkg.Directory != nil {
 			sourceCount++
-			if strings.TrimSpace(pkg.Directory.Path) == "" {
+			if pkg.Directory.Path == "" {
 				return nil, fmt.Errorf("packages[%d] (name=%s): directory.path required", i, pkg.Name)
 			}
 		}
