@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"sigmaos/pyenv/clnt"
 	"sigmaos/pyenv/pylock"
 	"sigmaos/util/perf"
+
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type TPySitePackagesType string
@@ -24,6 +27,26 @@ const (
 	SymlinkSPType    TPySitePackagesType = "symlink"
 	PythonPathSPType TPySitePackagesType = "pythonpath"
 )
+
+type cacheKey struct {
+	path    string
+	version int
+}
+
+var (
+	requiredWheelsCache *lru.Cache[cacheKey, []*pylock.Wheel]
+	once                sync.Once
+)
+
+func initCache() {
+	once.Do(func() {
+		cache, err := lru.New[cacheKey, []*pylock.Wheel](32)
+		if err != nil {
+			panic(fmt.Sprintf("failed to create LRU cache: %v", err))
+		}
+		requiredWheelsCache = cache
+	})
+}
 
 func prepareSysTagRanks(compatibilityTags []string) map[string]int {
 	ranks := make(map[string]int)
@@ -153,18 +176,29 @@ func SetupSitePackages(
 	stType TPySitePackagesType,
 	pyenvClnt *clnt.PyEnvClnt,
 ) (string, clnt.LockHandle, error) {
-	s := time.Now()
-	lock, err := pylock.ParsePylock(pylockPath)
-	perf.LogSpawnLatency("SetupSitePackages pylock.ParsePylock", uproc.GetPid(), uproc.GetSpawnTime(), s)
-	if err != nil {
-		return "", 0, err
-	}
+	initCache()
 
-	s = time.Now()
-	wheels, err := getRequiredWheels(lock, pyVersion)
-	perf.LogSpawnLatency("SetupSitePackages getRequiredWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
-	if err != nil {
-		return "", 0, err
+	var wheels []*pylock.Wheel
+	var ok bool
+	var err error
+
+	key := cacheKey{path: pylockPath, version: pyVersion.Index()}
+	if wheels, ok = requiredWheelsCache.Get(key); !ok {
+		s := time.Now()
+		lock, err := pylock.ParsePylock(pylockPath)
+		perf.LogSpawnLatency("SetupSitePackages pylock.ParsePylock", uproc.GetPid(), uproc.GetSpawnTime(), s)
+		if err != nil {
+			return "", 0, err
+		}
+
+		s = time.Now()
+		wheels, err = getRequiredWheels(lock, pyVersion)
+		perf.LogSpawnLatency("SetupSitePackages getRequiredWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
+		if err != nil {
+			return "", 0, err
+		}
+
+		requiredWheelsCache.Add(key, wheels)
 	}
 
 	if len(wheels) == 0 {
@@ -174,15 +208,13 @@ func SetupSitePackages(
 
 	totalSize := int64(0)
 	for _, wheel := range wheels {
-		if wheel.Size != nil {
-			totalSize += *wheel.Size
-		}
+		totalSize += wheel.Size
 	}
 	db.DPrintf(db.CONTAINER, "Total size of required python wheels: %d bytes", totalSize)
 
 	// Install all wheels atomically and acquire locks
 	// This ensures all-or-nothing semantics
-	s = time.Now()
+	s := time.Now()
 	installPaths, handle, err := pyenvClnt.InstallWheels(wheels, pyVersion)
 	perf.LogSpawnLatency("SetupSitePackages pyenvClnt.InstallWheels", uproc.GetPid(), uproc.GetSpawnTime(), s)
 	if err != nil {

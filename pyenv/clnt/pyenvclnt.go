@@ -51,13 +51,10 @@ func (pc *PyEnvClnt) InstallWheels(wheels []*pylock.Wheel, pythonVersion *pyenv.
 			Name: wheel.Name,
 			Url:  wheel.Url,
 			Path: wheel.Path,
-			Size: 0,
+			Size: wheel.Size,
 			Hashes: &proto.Hashes{
 				Sha256: wheel.Hashes.Sha256,
 			},
-		}
-		if wheel.Size != nil {
-			protoWheels[i].Size = *wheel.Size
 		}
 	}
 

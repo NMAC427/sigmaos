@@ -64,7 +64,7 @@ type Directory struct {
 type Archive struct {
 	URL  string `toml:"url"`
 	Path string `toml:"path"`
-	Size *int64 `toml:"size"`
+	Size int64  `toml:"size"`
 	// UploadTime   *time.Time `toml:"upload-time"`
 	Hashes       Hashes `toml:"hashes"`
 	Subdirectory string `toml:"subdirectory"`
@@ -74,7 +74,7 @@ type Sdist struct {
 	Name string `toml:"name"`
 	URL  string `toml:"url"`
 	Path string `toml:"path"`
-	Size *int64 `toml:"size"`
+	Size int64  `toml:"size"`
 	// UploadTime *time.Time `toml:"upload-time"`
 	Hashes Hashes `toml:"hashes"`
 }
@@ -83,7 +83,7 @@ type Wheel struct {
 	Name string `toml:"name"`
 	Url  string `toml:"url"`
 	Path string `toml:"path"`
-	Size *int64 `toml:"size"`
+	Size int64  `toml:"size"`
 	// UploadTime *time.Time `toml:"upload-time"`
 	Hashes Hashes `toml:"hashes"`
 }
