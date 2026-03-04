@@ -49,6 +49,7 @@ type PyMgr struct {
 
 	installSem  chan struct{}
 	downloadSem chan struct{}
+	compileSem  chan struct{}
 
 	// Session tracking for automatic lock release
 	sessionLocks   map[sessp.Tsession]map[uint64]*LockHandle // session -> handleID -> handle
@@ -90,6 +91,7 @@ func NewPyMgr() *PyMgr {
 
 		installSem:  make(chan struct{}, numCPU),
 		downloadSem: make(chan struct{}, min(32, numCPU+4)),
+		compileSem:  make(chan struct{}, numCPU),
 
 		sessionLocks: make(map[sessp.Tsession]map[uint64]*LockHandle),
 
@@ -445,6 +447,22 @@ func (pm *PyMgr) installWheel(wheel *proto.Wheel, pyVersion *PythonVersion, whee
 		os.RemoveAll(tmpInstallPath)
 		goto exitLocked
 	}
+
+	// Start pre-compiling in background
+	go func() {
+		pm.compileSem <- struct{}{}
+		defer func() { <-pm.compileSem }()
+		pm.mu.RLock()
+		result := pm.installedWheels[pyIdx][sha256]
+		pm.mu.RUnlock()
+		if result == nil || result.err != nil {
+			return
+		}
+
+		if err := CompilePythonFiles(installPath, pyVersion); err != nil {
+			db.DPrintf(db.PYENV_ERR, "Failed to compile wheel %s: %v", wheel.Name, err)
+		}
+	}()
 
 	goto exitLocked
 

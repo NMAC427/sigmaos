@@ -235,22 +235,26 @@ func InstallWheel(wheelPath string, pyVersion *PythonVersion) (string, error) {
 	// Install into temporary directory first, and then move to final location
 	// to avoid partially installed wheels if installation fails.
 	tmpInstallDir := filepath.Join(PYTHON_TMP_INSTALL_DIR, uuid.New().String())
-	if err := os.MkdirAll(tmpInstallDir, 0777); err != nil {
+	if err := os.MkdirAll(tmpInstallDir, 0o777); err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command(
-		filepath.Join(pyVersion.DcontainerPath(), "python"),
-		filepath.Join(pyVersion.DcontainerPath(), "sigmaos/kernel/install_wheel.py"),
-		wheelPath,
-		tmpInstallDir,
-	)
-	cmd.Env = append(cmd.Env, "PYTHONPATH="+filepath.Join(pyVersion.DcontainerPath(), "sigmaos/kernel/site-packages"))
-	err := cmd.Run()
+	err := ExtractWheelToSitePackages(wheelPath, tmpInstallDir)
 	if err != nil {
 		os.RemoveAll(tmpInstallDir)
 		return "", fmt.Errorf("failed to install wheel %q: %w", wheelPath, err)
 	}
 
 	return tmpInstallDir, nil
+}
+
+// Compiles all .py files in the given directory to .pyc bytecode files using the specified Python version.
+func CompilePythonFiles(directory string, pyVersion *PythonVersion) error {
+	cmd := exec.Command(
+		filepath.Join(pyVersion.DcontainerPath(), "python"),
+		"-m", "compileall", "-q",
+		directory,
+	)
+	cmd.Env = append(cmd.Env, "PYTHONPATH="+filepath.Join(pyVersion.DcontainerPath(), "sigmaos/kernel/site-packages"))
+	return cmd.Run()
 }

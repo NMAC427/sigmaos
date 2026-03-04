@@ -109,8 +109,6 @@ markers = collect_markers()
 json.dump(markers, sys.stdout, indent=2, sort_keys=True)
 EOF
 
-cp "$ROOT/pyenv/srv/install_wheel.py" "$PY_OUTPATH/sigmaos/kernel"
-
 # Copy Python user processes
 # TODO: Use binfs instead of shipping pyproc with the kernel
 rm -rf "$OUTPATH/kernel/pyproc"

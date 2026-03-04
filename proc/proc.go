@@ -77,9 +77,7 @@ func NewPythonProc(version PythonVersionName, args []string) *Proc {
 	p.GetProcEnv().UseSPProxy = true
 	p.GetProcEnv().UseSPProxyProcClnt = true
 	p.AppendEnv("SIGMA_PYTHON_VERSION", string(version))
-	// TODO: Reenable writing .pyc files once we have some kind of persistence story
-	// for pyproc files in realms.
-	p.AppendEnv("PYTHONDONTWRITEBYTECODE", "1")
+	p.AppendEnv("PYTHONDONTWRITEBYTECODE", "1") // Package cache is read-only, thus we don't write .pyc files
 	return p
 }
 
